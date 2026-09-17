@@ -1,0 +1,13 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "picker",
+  "description": "The picker window may read its context, launch a browser, dismiss itself and open settings.",
+  "windows": ["picker"],
+  "permissions": [
+    "core:default",
+    "allow-launch-context",
+    "allow-pick",
+    "allow-dismiss",
+    "allow-open-settings"
+  ]
+}

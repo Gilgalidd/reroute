@@ -1,0 +1,109 @@
+//! Signpost desktop application (Tauri shell).
+//!
+//! Flow for a click on a link:
+//!
+//! 1. The OS starts `signpost <url>` (or, on macOS, sends an open-URL event).
+//! 2. [`incoming::decide`] validates the URL and evaluates the rules. If a
+//!    rule matches, the browser is launched and the process exits before any
+//!    window is created.
+//! 3. Otherwise the picker window is shown; the choice is launched through
+//!    the same code path and the process exits.
+//!
+//! Started without arguments, Signpost opens its settings window.
+
+#![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used, clippy::panic))]
+
+mod cli;
+mod commands;
+mod incoming;
+mod state;
+mod windows;
+
+use tauri::Manager;
+
+use crate::state::AppState;
+
+/// Entry point called from `main`.
+pub fn run() {
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+
+    let mode = cli::parse(std::env::args().skip(1));
+    if mode == cli::Mode::Version {
+        println!("signpost {}", env!("CARGO_PKG_VERSION"));
+        return;
+    }
+
+    let state = AppState::load();
+
+    if let cli::Mode::Pick(raw) = &mode {
+        match incoming::decide(&state, raw) {
+            incoming::Decision::Launched => return,
+            incoming::Decision::Ask(url) => state.set_pending(url),
+            incoming::Decision::Refused(message) => state.set_url_error(message),
+        }
+    }
+
+    let app = tauri::Builder::default()
+        .manage(state)
+        .invoke_handler(tauri::generate_handler![
+            commands::launch_context,
+            commands::pick,
+            commands::dismiss,
+            commands::open_settings,
+            commands::get_config,
+            commands::save_config,
+            commands::discover_browsers,
+            commands::test_url,
+            commands::default_browser_status,
+            commands::register_default_browser,
+            commands::import_hurl,
+            commands::app_info,
+        ])
+        .setup(move |app| {
+            let handle = app.handle();
+            match mode {
+                cli::Mode::Pick(_) => windows::open_picker(handle)?,
+                cli::Mode::Settings => windows::open_settings_or_wait(handle),
+                cli::Mode::Version => {}
+            }
+            Ok(())
+        })
+        .on_window_event(|window, event| {
+            if window.label() == windows::PICKER
+                && matches!(event, tauri::WindowEvent::Focused(false))
+            {
+                windows::picker_lost_focus(window.app_handle());
+            }
+        })
+        .build(tauri::generate_context!());
+
+    let app = match app {
+        Ok(app) => app,
+        Err(error) => {
+            log::error!("cannot start the application: {error}");
+            std::process::exit(1);
+        }
+    };
+
+    app.run(|app, event| handle_run_event(app, &event));
+}
+
+/// macOS delivers link clicks and dock re-activation as run-loop events.
+/// Other platforms have nothing to do here.
+fn handle_run_event(app: &tauri::AppHandle, event: &tauri::RunEvent) {
+    #[cfg(target_os = "macos")]
+    match event {
+        tauri::RunEvent::Opened { urls } => incoming::handle_opened(app, urls),
+        tauri::RunEvent::Reopen {
+            has_visible_windows: false,
+            ..
+        } => {
+            if let Err(error) = windows::open_settings(app) {
+                log::error!("cannot open settings: {error}");
+            }
+        }
+        _ => {}
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = (app, event);
+}

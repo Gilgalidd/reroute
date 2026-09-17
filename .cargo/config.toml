@@ -1,0 +1,3 @@
+[alias]
+# `cargo lint` runs the same clippy invocation as CI.
+lint = "clippy --workspace --all-targets -- -D warnings"

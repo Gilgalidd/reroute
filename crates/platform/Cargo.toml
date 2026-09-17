@@ -1,0 +1,30 @@
+[package]
+name = "signpost-platform"
+description = "Operating-system integration for Signpost: browser discovery, process launching, default-browser registration and icon loading."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+signpost-core = { workspace = true }
+log = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+directories = "6"
+
+[target.'cfg(windows)'.dependencies]
+winreg = "0.55"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+plist = "1"
+icns = "0.3"
+core-foundation = "0.10"
+
+[dev-dependencies]
+tempfile = { workspace = true }
