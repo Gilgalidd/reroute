@@ -14,7 +14,7 @@ use super::Outcome;
 use crate::PlatformError;
 
 /// Must match `identifier` in `apps/desktop/src-tauri/tauri.conf.json`.
-pub const BUNDLE_ID: &str = "dev.reroute.app";
+pub const BUNDLE_ID: &str = "dev.reroute.desktop";
 
 type OSStatus = i32;
 

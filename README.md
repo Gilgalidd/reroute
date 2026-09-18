@@ -99,7 +99,7 @@ Everything lives in one TOML file:
 | Platform | Path |
 |----------|------|
 | Linux    | `~/.config/reroute/config.toml` |
-| macOS    | `~/Library/Application Support/dev.reroute.app/config.toml` |
+| macOS    | `~/Library/Application Support/dev.reroute.desktop/config.toml` |
 | Windows  | `%APPDATA%\reroute\reroute\config\config.toml` |
 
 ```toml

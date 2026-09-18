@@ -8,6 +8,9 @@ All notable changes to Reroute are documented here. The format follows
 
 ### Fixed
 
+- Linux packaging: the desktop-entry template file had kept its old name,
+  which made `tauri build` fail. The bundle identifier is now
+  `dev.reroute.desktop` (Tauri warns against identifiers ending in `.app`).
 - Settings: adding a launch option to a browser that had none failed with
   "undefined is not an object": Rust omits empty collections from the
   configuration it sends, and the UI now fills them in on load.
