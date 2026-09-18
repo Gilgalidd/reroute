@@ -6,6 +6,10 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.1.1] - 2026-09-18
+
 ### Added
 
 - Component tests for the picker and settings windows (Vitest, jsdom,
@@ -58,5 +62,6 @@ All notable changes to Reroute are documented here. The format follows
   verifies it, because `xdg-settings` on KDE needs `qtpaths` and restores
   the previous browser when its own write fails.
 
-[Unreleased]: https://github.com/Gilgalidd/reroute/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Gilgalidd/reroute/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Gilgalidd/reroute/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Gilgalidd/reroute/releases/tag/v0.1.0
