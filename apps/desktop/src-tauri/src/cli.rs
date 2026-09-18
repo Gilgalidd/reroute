@@ -10,6 +10,8 @@ pub enum Mode {
     Pick(String),
     /// Print the version and exit.
     Version,
+    /// Register as the default browser from the command line and exit.
+    MakeDefault,
 }
 
 /// Interpret the arguments after the program name.
@@ -19,6 +21,7 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Mode {
         match arg.as_str() {
             "--version" | "-V" => return Mode::Version,
             "--settings" => return Mode::Settings,
+            "--make-default" => return Mode::MakeDefault,
             "--" => {}
             flag if flag.starts_with('-') && url.is_none() => {
                 log::warn!("ignoring unknown option {flag}");
@@ -67,6 +70,11 @@ mod tests {
             parse_all(&["javascript:alert(1)"]),
             Mode::Pick("javascript:alert(1)".into())
         );
+    }
+
+    #[test]
+    fn make_default_is_a_mode() {
+        assert_eq!(parse_all(&["--make-default"]), Mode::MakeDefault);
     }
 
     #[test]

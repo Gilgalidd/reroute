@@ -80,20 +80,13 @@ pub fn ensure_desktop_file() -> Result<PathBuf, PlatformError> {
 }
 
 /// Register the desktop entry and make it the default browser.
+///
+/// Order matters: the desktop-specific helpers run first and may fail (on
+/// KDE without `qtpaths`, `xdg-settings` even restores the previous browser
+/// when its own write fails), then `mimeapps.list` is written last so that
+/// it is authoritative. The result is verified before reporting success.
 pub fn register() -> Result<Outcome, PlatformError> {
     ensure_desktop_file()?;
-    let path = mimeapps_path()?;
-    let current = match std::fs::read_to_string(&path) {
-        Ok(text) => text,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
-        Err(e) => return Err(PlatformError::Os(format!("{}: {e}", path.display()))),
-    };
-    write_atomically(
-        &path,
-        &super::mimeapps::set_default_browser(&current, DESKTOP_ID),
-    )?;
-    // Best effort: some desktops keep their own setting, and the database
-    // refresh only matters for menus. Neither failure undoes the edit above.
     for (tool, args) in [
         ("update-desktop-database", vec![]),
         (
@@ -105,16 +98,33 @@ pub fn register() -> Result<Outcome, PlatformError> {
             log::info!("{error} (ignored)");
         }
     }
-    Ok(Outcome::Done)
+    let path = mimeapps_path()?;
+    let current = match std::fs::read_to_string(&path) {
+        Ok(text) => text,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(e) => return Err(PlatformError::Os(format!("{}: {e}", path.display()))),
+    };
+    write_atomically(
+        &path,
+        &super::mimeapps::set_default_browser(&current, DESKTOP_ID),
+    )?;
+    if is_default()? {
+        Ok(Outcome::Done)
+    } else {
+        Err(PlatformError::Os(format!(
+            "{} was written but does not name Signpost",
+            path.display()
+        )))
+    }
 }
 
-/// Read the `https` handler from `mimeapps.list`; fall back to
-/// `xdg-settings` when the file has no opinion.
+/// Every web type in `mimeapps.list` must point at Signpost; fall back to
+/// `xdg-settings` when the file has no opinion at all.
 pub fn is_default() -> Result<bool, PlatformError> {
     let path = mimeapps_path()?;
     if let Ok(text) = std::fs::read_to_string(&path) {
-        if let Some(handler) = super::mimeapps::default_https_handler(&text) {
-            return Ok(handler == DESKTOP_ID);
+        if let Some(handlers) = super::mimeapps::default_web_handlers(&text) {
+            return Ok(handlers.iter().all(|h| h == DESKTOP_ID));
         }
     }
     let current = run_tool("xdg-settings", &["get", "default-web-browser"])?;

@@ -26,7 +26,7 @@ open Signpost and press **Make Signpost the default** in the General tab.
 
 | Platform | What happens |
 |----------|--------------|
-| Linux    | `xdg-settings` and `xdg-mime` are updated; done. |
+| Linux    | `~/.config/mimeapps.list` (the freedesktop default-applications file) is updated; done. Also available as `signpost --make-default` for scripts. |
 | Windows  | Signpost registers itself and opens *Settings › Default apps* where you pick it (Windows does not allow apps to set themselves as default). |
 | macOS    | macOS shows its own confirmation dialog. |
 
@@ -52,7 +52,8 @@ Right-click a tile (or press `Space`) for its launch options, such as a
 Chrome profile or a Firefox private window.
 
 Open the settings window from the ⚙ button, by running `signpost` with no
-argument, or with `signpost --settings`.
+argument, or with `signpost --settings`. Other flags: `--make-default`
+(register as default browser and exit) and `--version`.
 
 ## Configure
 

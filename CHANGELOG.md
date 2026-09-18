@@ -18,3 +18,12 @@ All notable changes to Signpost are documented here. The format follows
   browser registration, import from Hurl.
 - Strict URL validation: only `http`/`https`, no credentials, size-limited.
 - TOML configuration with atomic, private writes.
+- `signpost --make-default` for installers and scripts.
+
+### Fixed
+
+- Linux: desktop entries restricted with `OnlyShowIn`/`NotShowIn` (such as
+  the snap Chromium stub whose `Exec` is `/usr/bin/false`) are skipped.
+- Linux: default-browser registration edits `mimeapps.list` directly and
+  verifies it, because `xdg-settings` on KDE needs `qtpaths` and restores
+  the previous browser when its own write fails.

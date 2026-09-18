@@ -47,8 +47,10 @@ URL can never be mistaken for a command-line option such as `--profile`.
 - The child is detached (new process group on Unix, `DETACHED_PROCESS` on
   Windows) with `stdin`/`stdout`/`stderr` closed, and Signpost exits.
 - System helpers used for default-browser registration (`xdg-settings`,
-  `xdg-mime`, `explorer.exe`) are located on `PATH` or `%SystemRoot%` and
-  pass the same executable check.
+  `update-desktop-database`, `explorer.exe`) are located on `PATH` or
+  `%SystemRoot%` and pass the same executable check. On Linux they are
+  best-effort only: the authoritative step is Signpost's own edit of
+  `~/.config/mimeapps.list`, verified after writing.
 
 ## Configuration file
 

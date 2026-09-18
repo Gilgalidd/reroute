@@ -59,7 +59,7 @@ property tests (`proptest`).
 |--------|-------|---------|-------|
 | `discover` | `.desktop` entries with `x-scheme-handler/http(s)` in XDG data dirs, Flatpak and Snap exports | `HKLM/HKCU\Software\Clients\StartMenuInternet` | `.app` bundles whose `Info.plist` lists `http`/`https` |
 | `launch` | `Command` + new process group | `Command` + `DETACHED_PROCESS` | same as Linux |
-| `register` | user desktop entry + `xdg-settings` / `xdg-mime` | HKCU `ProgId` + `RegisteredApplications`, then opens *Default apps* | `LSSetDefaultHandlerForURLScheme` |
+| `register` | user desktop entry + direct edit of `mimeapps.list` (`xdg-settings` best-effort first) | HKCU `ProgId` + `RegisteredApplications`, then opens *Default apps* | `LSSetDefaultHandlerForURLScheme` |
 | `icons` | file read + magic-byte sniffing | same | same, plus ICNS → PNG |
 | `paths` | `directories::ProjectDirs` (+ `SIGNPOST_CONFIG_DIR` override) | same | same |
 
@@ -73,7 +73,7 @@ the real system.
 | File | Responsibility |
 |------|----------------|
 | `lib.rs` | `run()`: parse CLI, load state, fast path, build Tauri app, run loop (macOS URL events). |
-| `cli.rs` | `--settings`, `--version`, first positional = URL. |
+| `cli.rs` | `--settings`, `--make-default`, `--version`, first positional = URL. |
 | `state.rs` | `AppState`: config, pending URL, errors; mutex helpers. |
 | `incoming.rs` | `decide` and `launch`. |
 | `windows.rs` | Picker/settings window creation, focus-loss handling, exit policy. |

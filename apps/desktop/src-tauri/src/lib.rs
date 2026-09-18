@@ -32,6 +32,10 @@ pub fn run() {
         println!("signpost {}", env!("CARGO_PKG_VERSION"));
         return;
     }
+    if mode == cli::Mode::MakeDefault {
+        make_default_from_cli();
+        return;
+    }
 
     let state = AppState::load();
 
@@ -64,7 +68,7 @@ pub fn run() {
             match mode {
                 cli::Mode::Pick(_) => windows::open_picker(handle)?,
                 cli::Mode::Settings => windows::open_settings_or_wait(handle),
-                cli::Mode::Version => {}
+                cli::Mode::Version | cli::Mode::MakeDefault => {}
             }
             Ok(())
         })
@@ -86,6 +90,22 @@ pub fn run() {
     };
 
     app.run(|app, event| handle_run_event(app, &event));
+}
+
+/// `signpost --make-default`: for installers and scripts. Prints the outcome
+/// and exits non-zero on failure.
+fn make_default_from_cli() {
+    match signpost_platform::register::register() {
+        Ok(signpost_platform::register::Outcome::Done) => {
+            let verified = signpost_platform::register::is_default().unwrap_or(false);
+            println!("Signpost is now the default browser (verified: {verified}).");
+        }
+        Ok(signpost_platform::register::Outcome::NeedsUserAction(message)) => println!("{message}"),
+        Err(error) => {
+            eprintln!("could not register: {error}");
+            std::process::exit(1);
+        }
+    }
 }
 
 /// macOS delivers link clicks and dock re-activation as run-loop events.

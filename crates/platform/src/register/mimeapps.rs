@@ -43,14 +43,24 @@ pub fn set_default_browser(text: &str, desktop_id: &str) -> String {
     render(&sections)
 }
 
-/// The desktop id registered as default for `https` links, if any.
-pub fn default_https_handler(text: &str) -> Option<String> {
+/// The desktop ids registered as default for each of [`WEB_TYPES`], in
+/// order. `None` when the file has no `[Default Applications]` section;
+/// a type without an entry yields an empty string.
+pub fn default_web_handlers(text: &str) -> Option<Vec<String>> {
     let sections = parse(text);
     let defaults = sections
         .iter()
         .find(|s| s.header.as_deref() == Some(DEFAULTS))?;
-    get_key(defaults, "x-scheme-handler/https")
-        .and_then(|v| v.split(';').find(|s| !s.is_empty()).map(str::to_owned))
+    Some(
+        WEB_TYPES
+            .iter()
+            .map(|mime| {
+                get_key(defaults, mime)
+                    .and_then(|v| v.split(';').find(|s| !s.is_empty()).map(str::to_owned))
+                    .unwrap_or_default()
+            })
+            .collect(),
+    )
 }
 
 /// A `[header]` followed by its raw lines (comments and blanks included).
@@ -158,8 +168,8 @@ mod tests {
         assert!(out.contains("text/html=signpost.desktop\n"), "{out}");
         assert!(out.contains("x-scheme-handler/http=signpost.desktop;firefox_firefox.desktop;chromium.desktop;\n"), "{out}");
         assert_eq!(
-            default_https_handler(&out).as_deref(),
-            Some("signpost.desktop")
+            default_web_handlers(&out).unwrap(),
+            vec!["signpost.desktop"; 3]
         );
         assert_eq!(out.matches("[Default Applications]").count(), 1);
         assert_eq!(out.matches("[Added Associations]").count(), 1);
@@ -171,16 +181,22 @@ mod tests {
         assert!(out.starts_with("[Default Applications]\n"), "{out}");
         assert!(out.contains("\n[Added Associations]\n"), "{out}");
         assert_eq!(
-            default_https_handler(&out).as_deref(),
-            Some("signpost.desktop")
+            default_web_handlers(&out).unwrap(),
+            vec!["signpost.desktop"; 3]
         );
-        assert_eq!(default_https_handler(EXISTING), None);
         assert_eq!(
-            default_https_handler(
-                "[Default Applications]\nx-scheme-handler/https=a.desktop;b.desktop\n"
+            default_web_handlers(EXISTING).unwrap(),
+            vec!["firefox_firefox.desktop", "", ""]
+        );
+        assert_eq!(default_web_handlers(""), None);
+        assert_eq!(
+            default_web_handlers(
+                "[Default Applications]
+x-scheme-handler/https=a.desktop;b.desktop
+"
             )
-            .as_deref(),
-            Some("a.desktop")
+            .unwrap(),
+            vec!["", "a.desktop", ""]
         );
     }
 
