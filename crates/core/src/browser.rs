@@ -100,7 +100,7 @@ pub struct Browser {
     #[serde(default)]
     pub hidden: bool,
     /// Optional path to a local PNG/SVG/ICO/ICNS file used as icon. Remote
-    /// URLs are not supported by design (Signpost never uses the network).
+    /// URLs are not supported by design (Reroute never uses the network).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon: Option<PathBuf>,
     /// Alternative launches shown in the entry's context menu.

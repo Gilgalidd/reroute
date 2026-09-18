@@ -55,16 +55,16 @@ cd apps/desktop && npm run tauri build
 same commands.
 
 On Linux under Wayland the window icon comes from the desktop entry, which
-only exists after registering: run `signpost --make-default` once (it also
+only exists after registering: run `reroute --make-default` once (it also
 installs the icons into `~/.local/share/icons/hicolor`).
 
-Set `RUST_LOG=debug` to see what Signpost decides and why; logs go to stderr.
-Set `SIGNPOST_CONFIG_DIR=/tmp/signpost-dev` to keep a scratch configuration
+Set `RUST_LOG=debug` to see what Reroute decides and why; logs go to stderr.
+Set `REROUTE_CONFIG_DIR=/tmp/reroute-dev` to keep a scratch configuration
 while developing.
 
 Note that the Rust crate embeds `apps/desktop/dist`, so run `npm run build`
 (or `tauri dev`, which serves it live) before `cargo test --workspace`.
-The pure crates need nothing: `cargo test -p signpost-core -p signpost-platform`.
+The pure crates need nothing: `cargo test -p reroute-core -p reroute-platform`.
 
 ## Project layout
 
@@ -94,13 +94,13 @@ if you fix a bug they found.
 
 ## Manual test checklist before a release
 
-- [ ] Fresh profile (`SIGNPOST_CONFIG_DIR` empty): first run discovers the
+- [ ] Fresh profile (`REROUTE_CONFIG_DIR` empty): first run discovers the
       installed browsers and shows them.
-- [ ] `signpost https://example.com/` shows the picker; `1` opens the first
+- [ ] `reroute https://example.com/` shows the picker; `1` opens the first
       browser; `Esc` closes without opening.
 - [ ] Right-click a tile with launch options; pick one; the right profile opens.
 - [ ] Tick "Always use for this domain", open the same link again: no picker.
-- [ ] `signpost javascript:alert(1)` shows a refusal, opens nothing.
+- [ ] `reroute javascript:alert(1)` shows a refusal, opens nothing.
 - [ ] Settings › General › Make default; then click a link in another app.
 - [ ] Rules › Try a URL reports the expected rule.
 - [ ] Corrupt `config.toml` on purpose: the picker still works and shows the

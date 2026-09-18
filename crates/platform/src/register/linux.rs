@@ -9,12 +9,12 @@ use super::{run_tool, Outcome};
 use crate::PlatformError;
 
 /// Desktop-entry id registered with the system.
-pub const DESKTOP_ID: &str = "signpost.desktop";
+pub const DESKTOP_ID: &str = "reroute.desktop";
 
 /// Contents of the desktop entry pointing at `exe`.
 pub fn desktop_file_contents(exe: &Path) -> String {
     format!(
-        "[Desktop Entry]\nType=Application\nName=Signpost\nComment=Choose a browser for each link\nExec={} %u\nIcon=signpost\nTerminal=false\nCategories=Network;WebBrowser;\nMimeType=x-scheme-handler/http;x-scheme-handler/https;text/html;\nStartupNotify=false\nNoDisplay=false\n",
+        "[Desktop Entry]\nType=Application\nName=Reroute\nComment=Choose a browser for each link\nExec={} %u\nIcon=reroute\nTerminal=false\nCategories=Network;WebBrowser;\nMimeType=x-scheme-handler/http;x-scheme-handler/https;text/html;\nStartupNotify=false\nNoDisplay=false\n",
         quote_exec(exe)
     )
 }
@@ -51,18 +51,18 @@ fn applications_dir() -> Result<PathBuf, PlatformError> {
 
 /// Path of the `size`×`size` application icon inside a hicolor theme rooted
 /// at `data_dir` (`$XDG_DATA_HOME` or `/usr/share`). Packaged installs use
-/// the same layout, so `Icon=signpost` in the desktop entry resolves either way.
+/// the same layout, so `Icon=reroute` in the desktop entry resolves either way.
 pub fn icon_path(data_dir: &Path, size: u32) -> PathBuf {
     data_dir
         .join("icons/hicolor")
         .join(format!("{size}x{size}"))
         .join("apps")
-        .join("signpost.png")
+        .join("reroute.png")
 }
 
 /// Install the application icons into the user's hicolor theme so that the
 /// desktop entry (and therefore the window title bar and task bar under
-/// Wayland) shows a logo when Signpost runs from outside a package.
+/// Wayland) shows a logo when Reroute runs from outside a package.
 pub fn install_icons(icons: &[(u32, &[u8])]) -> Result<(), PlatformError> {
     let data_dir = match std::env::var_os("XDG_DATA_HOME") {
         Some(d) => PathBuf::from(d),
@@ -98,7 +98,7 @@ fn write_atomically(path: &Path, contents: &str) -> Result<(), PlatformError> {
     std::fs::rename(&tmp, path).map_err(os)
 }
 
-/// Write (or refresh) `~/.local/share/applications/signpost.desktop`.
+/// Write (or refresh) `~/.local/share/applications/reroute.desktop`.
 pub fn ensure_desktop_file() -> Result<PathBuf, PlatformError> {
     let exe = std::env::current_exe().map_err(|e| PlatformError::Os(e.to_string()))?;
     let dir = applications_dir()?;
@@ -142,13 +142,13 @@ pub fn register() -> Result<Outcome, PlatformError> {
         Ok(Outcome::Done)
     } else {
         Err(PlatformError::Os(format!(
-            "{} was written but does not name Signpost",
+            "{} was written but does not name Reroute",
             path.display()
         )))
     }
 }
 
-/// Every web type in `mimeapps.list` must point at Signpost; fall back to
+/// Every web type in `mimeapps.list` must point at Reroute; fall back to
 /// `xdg-settings` when the file has no opinion at all.
 pub fn is_default() -> Result<bool, PlatformError> {
     let path = mimeapps_path()?;
@@ -167,8 +167,8 @@ mod tests {
 
     #[test]
     fn desktop_file_declares_http_handlers_and_quotes_exec() {
-        let text = desktop_file_contents(Path::new("/opt/sign post/bin/signpost"));
-        assert!(text.contains("Exec=\"/opt/sign post/bin/signpost\" %u"));
+        let text = desktop_file_contents(Path::new("/opt/sign post/bin/reroute"));
+        assert!(text.contains("Exec=\"/opt/sign post/bin/reroute\" %u"));
         assert!(text.contains("x-scheme-handler/https;"));
         assert!(text.starts_with("[Desktop Entry]\n"));
     }
@@ -177,7 +177,7 @@ mod tests {
     fn icons_follow_the_hicolor_layout() {
         assert_eq!(
             icon_path(Path::new("/usr/share"), 128),
-            PathBuf::from("/usr/share/icons/hicolor/128x128/apps/signpost.png")
+            PathBuf::from("/usr/share/icons/hicolor/128x128/apps/reroute.png")
         );
         let dir = tempfile::tempdir().unwrap();
         std::env::set_var("XDG_DATA_HOME", dir.path());

@@ -1,6 +1,6 @@
 //! macOS: Launch Services.
 //!
-//! This is the only place in Signpost that uses `unsafe`: two C functions
+//! This is the only place in Reroute that uses `unsafe`: two C functions
 //! from the `CoreServices` framework. `LSSetDefaultHandlerForURLScheme` makes
 //! macOS show its own "Do you want to change your default web browser?"
 //! confirmation, so the change is never silent.
@@ -14,7 +14,7 @@ use super::Outcome;
 use crate::PlatformError;
 
 /// Must match `identifier` in `apps/desktop/src-tauri/tauri.conf.json`.
-pub const BUNDLE_ID: &str = "dev.signpost.app";
+pub const BUNDLE_ID: &str = "dev.reroute.app";
 
 type OSStatus = i32;
 

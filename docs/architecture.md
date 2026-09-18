@@ -1,14 +1,14 @@
 # Architecture
 
-Signpost is three Rust crates and one small Svelte front end.
+Reroute is three Rust crates and one small Svelte front end.
 
 ```
-signpost/
+reroute/
 ├── crates/
-│   ├── core/          signpost-core      pure logic, no OS access, ~all tests live here
-│   └── platform/      signpost-platform  discovery, launching, default-browser registration, icons
+│   ├── core/          reroute-core      pure logic, no OS access, ~all tests live here
+│   └── platform/      reroute-platform  discovery, launching, default-browser registration, icons
 ├── apps/desktop/
-│   ├── src-tauri/     signpost           Tauri shell: windows, IPC commands, CLI
+│   ├── src-tauri/     reroute           Tauri shell: windows, IPC commands, CLI
 │   └── src/           Svelte 5 + TypeScript UI (picker and settings windows)
 └── docs/
 ```
@@ -20,7 +20,7 @@ the app only through a dozen typed IPC commands.
 ## Life of a click
 
 ```
-OS opens "signpost https://…"            (macOS: RunEvent::Opened instead)
+OS opens "reroute https://…"            (macOS: RunEvent::Opened instead)
         │
         ▼
 cli::parse ──► AppState::load (config.toml; first run: discover browsers)
@@ -38,7 +38,7 @@ incoming::decide
 The fast path (rule matched) never creates a window or initialises the web
 view, so rule-based opening costs a few milliseconds.
 
-## `signpost-core`
+## `reroute-core`
 
 | Module | Responsibility |
 |--------|----------------|
@@ -53,7 +53,7 @@ view, so rule-based opening costs a few milliseconds.
 Everything here is covered by unit tests and, for the URL and rule engines,
 property tests (`proptest`).
 
-## `signpost-platform`
+## `reroute-platform`
 
 | Module | Linux | Windows | macOS |
 |--------|-------|---------|-------|
@@ -61,7 +61,7 @@ property tests (`proptest`).
 | `launch` | `Command` + new process group | `Command` + `DETACHED_PROCESS` | same as Linux |
 | `register` | user desktop entry + direct edit of `mimeapps.list` (`xdg-settings` best-effort first) | HKCU `ProgId` + `RegisteredApplications`, then opens *Default apps* | `LSSetDefaultHandlerForURLScheme` |
 | `icons` | file read + magic-byte sniffing | same | same, plus ICNS → PNG |
-| `paths` | `directories::ProjectDirs` (+ `SIGNPOST_CONFIG_DIR` override) | same | same |
+| `paths` | `directories::ProjectDirs` (+ `REROUTE_CONFIG_DIR` override) | same | same |
 
 Each backend separates a **pure parsing layer** (desktop-entry parser,
 registry command-line splitter, plist reader, registry entry list) that is

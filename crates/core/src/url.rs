@@ -2,7 +2,7 @@
 //!
 //! The URL is the only input that arrives from outside the user's control
 //! (any application can ask the OS to "open" a string). [`SafeUrl`] is the
-//! single gate through which such a string must pass before Signpost will
+//! single gate through which such a string must pass before Reroute will
 //! match rules against it or hand it to a browser.
 
 use std::fmt;
@@ -16,7 +16,7 @@ use crate::error::UrlError;
 /// time.
 pub const MAX_URL_LEN: usize = 8 * 1024;
 
-/// Schemes that Signpost is willing to forward. The list is intentionally
+/// Schemes that Reroute is willing to forward. The list is intentionally
 /// not configurable: `javascript:`, `file:`, `data:` and friends must never
 /// reach a browser through a picker that pretends to be a browser.
 pub const ALLOWED_SCHEMES: &[&str] = &["http", "https"];

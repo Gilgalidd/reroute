@@ -1,15 +1,15 @@
-//! Signpost desktop application (Tauri shell).
+//! Reroute desktop application (Tauri shell).
 //!
 //! Flow for a click on a link:
 //!
-//! 1. The OS starts `signpost <url>` (or, on macOS, sends an open-URL event).
+//! 1. The OS starts `reroute <url>` (or, on macOS, sends an open-URL event).
 //! 2. [`incoming::decide`] validates the URL and evaluates the rules. If a
 //!    rule matches, the browser is launched and the process exits before any
 //!    window is created.
 //! 3. Otherwise the picker window is shown; the choice is launched through
 //!    the same code path and the process exits.
 //!
-//! Started without arguments, Signpost opens its settings window.
+//! Started without arguments, Reroute opens its settings window.
 
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used, clippy::panic))]
 
@@ -24,7 +24,7 @@ use tauri::Manager;
 use crate::state::AppState;
 
 /// Application icons embedded for the Linux user-level registration (see
-/// `signpost_platform::register::install_icons`).
+/// `reroute_platform::register::install_icons`).
 pub const APP_ICONS: &[(u32, &[u8])] = &[
     (32, include_bytes!("../icons/32x32.png")),
     (64, include_bytes!("../icons/64x64.png")),
@@ -39,7 +39,7 @@ pub fn run() {
 
     let mode = cli::parse(std::env::args().skip(1));
     if mode == cli::Mode::Version {
-        println!("signpost {}", env!("CARGO_PKG_VERSION"));
+        println!("reroute {}", env!("CARGO_PKG_VERSION"));
         return;
     }
     if mode == cli::Mode::MakeDefault {
@@ -102,18 +102,18 @@ pub fn run() {
     app.run(|app, event| handle_run_event(app, &event));
 }
 
-/// `signpost --make-default`: for installers and scripts. Prints the outcome
+/// `reroute --make-default`: for installers and scripts. Prints the outcome
 /// and exits non-zero on failure.
 fn make_default_from_cli() {
-    if let Err(error) = signpost_platform::register::install_icons(APP_ICONS) {
+    if let Err(error) = reroute_platform::register::install_icons(APP_ICONS) {
         eprintln!("icons not installed: {error}");
     }
-    match signpost_platform::register::register() {
-        Ok(signpost_platform::register::Outcome::Done) => {
-            let verified = signpost_platform::register::is_default().unwrap_or(false);
-            println!("Signpost is now the default browser (verified: {verified}).");
+    match reroute_platform::register::register() {
+        Ok(reroute_platform::register::Outcome::Done) => {
+            let verified = reroute_platform::register::is_default().unwrap_or(false);
+            println!("Reroute is now the default browser (verified: {verified}).");
         }
-        Ok(signpost_platform::register::Outcome::NeedsUserAction(message)) => println!("{message}"),
+        Ok(reroute_platform::register::Outcome::NeedsUserAction(message)) => println!("{message}"),
         Err(error) => {
             eprintln!("could not register: {error}");
             std::process::exit(1);

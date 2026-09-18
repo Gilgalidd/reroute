@@ -22,7 +22,7 @@ pub enum UrlError {
     /// The URL has no host part (e.g. `http:///path`).
     #[error("URL has no host")]
     MissingHost,
-    /// The URL embeds a username or password, which Signpost refuses to
+    /// The URL embeds a username or password, which Reroute refuses to
     /// forward because it is a well-known phishing vector.
     #[error("URLs with embedded credentials are refused")]
     Credentials,

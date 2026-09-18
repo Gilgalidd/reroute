@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
-use signpost_core::{Config, ConfigStore, SafeUrl};
+use reroute_core::{Config, ConfigStore, SafeUrl};
 
 /// Everything the windows need to know.
 pub struct AppState {
@@ -26,9 +26,9 @@ impl AppState {
     /// fatal, so a broken file never prevents the user from opening a link.
     /// On the very first run the installed browsers are discovered and saved.
     pub fn load() -> Self {
-        let dir = signpost_platform::paths::config_dir().unwrap_or_else(|| {
+        let dir = reroute_platform::paths::config_dir().unwrap_or_else(|| {
             log::warn!("no configuration directory available; using the temporary directory");
-            std::env::temp_dir().join("signpost")
+            std::env::temp_dir().join("reroute")
         });
         let store = ConfigStore::in_dir(&dir);
         let mut config_error = None;
@@ -42,7 +42,7 @@ impl AppState {
         };
 
         if config.browsers.is_empty() && config_error.is_none() {
-            let added = config.merge_discovered(signpost_platform::discover::installed_browsers());
+            let added = config.merge_discovered(reroute_platform::discover::installed_browsers());
             log::info!("first run: discovered {added} browser(s)");
             if let Err(error) = store.save(&config) {
                 log::warn!("could not save the initial configuration: {error}");

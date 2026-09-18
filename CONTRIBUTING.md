@@ -1,12 +1,12 @@
 # Contributing
 
-Thanks for helping. Signpost is meant to stay small enough for one person to
+Thanks for helping. Reroute is meant to stay small enough for one person to
 understand in an afternoon, so the bar is "clear and boring" rather than
 "clever".
 
 ## Ground rules
 
-- **No network.** Signpost never opens a socket. Pull requests that add an
+- **No network.** Reroute never opens a socket. Pull requests that add an
   HTTP client, telemetry or auto-update will be declined (see `deny.toml`).
 - **No shell.** Browsers are spawned with an argument vector, never through
   `sh -c` or `cmd /C`.

@@ -1,7 +1,7 @@
 # cargo-deny configuration: supply-chain policy enforced in CI.
 [graph]
 all-features = true
-# Signpost ships on desktop only. Restricting the graph to these targets keeps
+# Reroute ships on desktop only. Restricting the graph to these targets keeps
 # mobile-only dependencies of Tauri (e.g. its HTTP client) out of the audit.
 targets = [
     "x86_64-unknown-linux-gnu",
@@ -38,12 +38,12 @@ confidence-threshold = 0.8
 multiple-versions = "warn"
 wildcards = "deny"
 allow-wildcard-paths = true
-# Signpost must never talk to the network; refuse HTTP clients outright.
+# Reroute must never talk to the network; refuse HTTP clients outright.
 deny = [
-    { crate = "reqwest", reason = "Signpost has a zero-network policy" },
-    { crate = "hyper", reason = "Signpost has a zero-network policy" },
-    { crate = "ureq", reason = "Signpost has a zero-network policy" },
-    { crate = "openssl", reason = "Signpost has a zero-network policy" },
+    { crate = "reqwest", reason = "Reroute has a zero-network policy" },
+    { crate = "hyper", reason = "Reroute has a zero-network policy" },
+    { crate = "ureq", reason = "Reroute has a zero-network policy" },
+    { crate = "openssl", reason = "Reroute has a zero-network policy" },
 ]
 
 [sources]

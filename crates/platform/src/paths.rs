@@ -4,15 +4,15 @@ use std::path::PathBuf;
 
 /// Environment variable that overrides the configuration directory. Handy
 /// for tests, portable installs and reproducing bug reports.
-pub const CONFIG_DIR_ENV: &str = "SIGNPOST_CONFIG_DIR";
+pub const CONFIG_DIR_ENV: &str = "REROUTE_CONFIG_DIR";
 
 /// Directory holding `config.toml`:
 ///
-/// * Linux: `$XDG_CONFIG_HOME/signpost` (usually `~/.config/signpost`)
-/// * macOS: `~/Library/Application Support/dev.signpost.app`
-/// * Windows: `%APPDATA%\signpost\signpost\config`
+/// * Linux: `$XDG_CONFIG_HOME/reroute` (usually `~/.config/reroute`)
+/// * macOS: `~/Library/Application Support/dev.reroute.app`
+/// * Windows: `%APPDATA%\reroute\reroute\config`
 ///
-/// `SIGNPOST_CONFIG_DIR` takes precedence when set to an absolute path.
+/// `REROUTE_CONFIG_DIR` takes precedence when set to an absolute path.
 pub fn config_dir() -> Option<PathBuf> {
     if let Some(dir) = std::env::var_os(CONFIG_DIR_ENV) {
         let dir = PathBuf::from(dir);
@@ -21,7 +21,7 @@ pub fn config_dir() -> Option<PathBuf> {
         }
         log::warn!("{CONFIG_DIR_ENV} is not absolute; ignoring");
     }
-    directories::ProjectDirs::from("dev", "signpost", "signpost")
+    directories::ProjectDirs::from("dev", "reroute", "reroute")
         .map(|d| d.config_dir().to_path_buf())
 }
 

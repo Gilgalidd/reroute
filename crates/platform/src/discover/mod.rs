@@ -1,12 +1,12 @@
 //! Find the browsers installed on this machine.
 //!
 //! Discovery only *proposes* entries; the user's configuration is the
-//! source of truth and is merged with [`signpost_core::Config::merge_discovered`],
+//! source of truth and is merged with [`reroute_core::Config::merge_discovered`],
 //! which never overwrites an existing entry.
 
 use std::path::{Path, PathBuf};
 
-use signpost_core::Browser;
+use reroute_core::Browser;
 
 #[cfg(target_os = "linux")]
 pub mod linux;
@@ -16,7 +16,7 @@ pub mod macos;
 pub mod windows;
 
 /// Browsers registered with the operating system as HTTP handlers, in a
-/// stable order (alphabetical by name). Signpost itself is excluded.
+/// stable order (alphabetical by name). Reroute itself is excluded.
 pub fn installed_browsers() -> Vec<Browser> {
     #[cfg(target_os = "linux")]
     let mut found = linux::installed_browsers();
@@ -33,7 +33,7 @@ pub fn installed_browsers() -> Vec<Browser> {
     found
 }
 
-/// Is `path` this very program? Guards against listing Signpost as a
+/// Is `path` this very program? Guards against listing Reroute as a
 /// browser, which would loop forever.
 fn is_self(path: &Path) -> bool {
     let me = std::env::current_exe()
@@ -48,7 +48,7 @@ fn is_self(path: &Path) -> bool {
     let text = path.to_string_lossy();
     let file = text.rsplit(['/', '\\']).next().unwrap_or_default();
     let stem = file.rsplit_once('.').map_or(file, |(s, _)| s);
-    stem.eq_ignore_ascii_case("signpost")
+    stem.eq_ignore_ascii_case("reroute")
 }
 
 /// Keep only absolute, existing paths; used by every backend.
@@ -61,11 +61,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn signpost_is_never_a_browser() {
-        assert!(is_self(Path::new("/opt/signpost/signpost")));
-        assert!(is_self(Path::new(
-            r"C:\Program Files\Signpost\Signpost.exe"
-        )));
+    fn reroute_is_never_a_browser() {
+        assert!(is_self(Path::new("/opt/reroute/reroute")));
+        assert!(is_self(Path::new(r"C:\Program Files\Reroute\Reroute.exe")));
         assert!(!is_self(Path::new("/usr/bin/firefox")));
     }
 

@@ -1,6 +1,6 @@
 //! Becoming the default browser.
 //!
-//! Each OS has its own ceremony; the common shape is: describe Signpost to
+//! Each OS has its own ceremony; the common shape is: describe Reroute to
 //! the system (desktop file, registry keys, bundle id), then ask the system
 //! to make it the default. Windows never lets an application set itself as
 //! default silently, so [`register`] there ends with the Settings page open
@@ -21,13 +21,13 @@ use crate::PlatformError;
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(tag = "kind", content = "message", rename_all = "snake_case")]
 pub enum Outcome {
-    /// Signpost is now the default browser.
+    /// Reroute is now the default browser.
     Done,
     /// The system requires the user to confirm; the message says where.
     NeedsUserAction(String),
 }
 
-/// Is Signpost currently the default handler for `https`?
+/// Is Reroute currently the default handler for `https`?
 pub fn is_default() -> Result<bool, PlatformError> {
     #[cfg(target_os = "linux")]
     return linux::is_default();
@@ -52,7 +52,7 @@ pub fn install_icons(icons: &[(u32, &[u8])]) -> Result<(), PlatformError> {
     }
 }
 
-/// Ask the system to make Signpost the default browser.
+/// Ask the system to make Reroute the default browser.
 pub fn register() -> Result<Outcome, PlatformError> {
     #[cfg(target_os = "linux")]
     return linux::register();
@@ -66,14 +66,14 @@ pub fn register() -> Result<Outcome, PlatformError> {
 
 /// Run a system helper with an argument vector and return its stdout.
 /// The helper is looked up on `PATH` and must pass
-/// [`signpost_core::browser::check_executable`].
+/// [`reroute_core::browser::check_executable`].
 #[cfg(target_os = "linux")]
 pub(crate) fn run_tool(tool: &'static str, args: &[&str]) -> Result<String, PlatformError> {
     let program = find_on_path(tool).ok_or_else(|| PlatformError::Tool {
         tool,
         reason: "not found on PATH".into(),
     })?;
-    signpost_core::browser::check_executable(&program).map_err(|e| PlatformError::Tool {
+    reroute_core::browser::check_executable(&program).map_err(|e| PlatformError::Tool {
         tool,
         reason: e.to_string(),
     })?;

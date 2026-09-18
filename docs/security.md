@@ -1,10 +1,10 @@
 # Security model
 
-Signpost is a default browser that is not a browser: every link clicked
+Reroute is a default browser that is not a browser: every link clicked
 outside a browser passes through it, and it decides which real browser gets
 it. That position makes it a target for two things: being tricked into
 running something other than a browser, and being used to smuggle a hostile
-argument into a browser. This document lists what Signpost trusts, what it
+argument into a browser. This document lists what Reroute trusts, what it
 does not, and how it defends itself.
 
 ## Inputs and trust
@@ -17,7 +17,7 @@ does not, and how it defends itself.
 | Hurl import JSON | Pasted by the user | Medium | Same validation as a hand-written config |
 | Icon files | Paths from the config | Medium | Size cap, content sniffing, no execution |
 
-## URL validation (`signpost_core::url::SafeUrl`)
+## URL validation (`reroute_core::url::SafeUrl`)
 
 Every incoming string must pass **all** of these before it is matched
 against rules or handed to a browser:
@@ -39,17 +39,17 @@ URL can never be mistaken for a command-line option such as `--profile`.
 
 - Browsers are started with `std::process::Command` (`execve` /
   `CreateProcess`) and an **argument vector**. There is no shell anywhere in
-  Signpost, so quoting, `;`, `$(...)` or `%VAR%` have no meaning.
+  Reroute, so quoting, `;`, `$(...)` or `%VAR%` have no meaning.
 - Before spawning, the executable path must be absolute, exist, be a regular
   file and (on Unix) carry an execute bit. This check runs at launch time, not
   only when the configuration is saved, so a tampered file still cannot point
   at a directory or a non-executable.
 - The child is detached (new process group on Unix, `DETACHED_PROCESS` on
-  Windows) with `stdin`/`stdout`/`stderr` closed, and Signpost exits.
+  Windows) with `stdin`/`stdout`/`stderr` closed, and Reroute exits.
 - System helpers used for default-browser registration (`xdg-settings`,
   `update-desktop-database`, `explorer.exe`) are located on `PATH` or
   `%SystemRoot%` and pass the same executable check. On Linux they are
-  best-effort only: the authoritative step is Signpost's own edit of
+  best-effort only: the authoritative step is Reroute's own edit of
   `~/.config/mimeapps.list`, verified after writing.
 
 ## Configuration file
@@ -66,7 +66,7 @@ URL can never be mistaken for a command-line option such as `--profile`.
 ## Rule engine
 
 - Regular expressions use the Rust `regex` crate: matching is linear in the
-  input, so a hostile pattern or URL cannot hang Signpost (no catastrophic
+  input, so a hostile pattern or URL cannot hang Reroute (no catastrophic
   backtracking). Compiled size is capped at 1 MiB.
 - Domain matching is done on the parsed host with an explicit dot boundary;
   `*.github.com` cannot match `github.com.evil.example`.
@@ -91,7 +91,7 @@ rendered inside `<img>`, where scripts do not execute.
 
 ## Zero network
 
-Signpost never opens a socket: no update check, no telemetry, no remote
+Reroute never opens a socket: no update check, no telemetry, no remote
 icons. `deny.toml` bans HTTP client crates from the dependency graph and CI
 enforces it with `cargo deny`. Updates come from your package manager or the
 Releases page.
@@ -111,14 +111,14 @@ access (`winreg`) and process spawning, uses safe wrappers.
   `cargo audit` / `npm audit` on every push.
 - Release builds use `panic = "abort"`, LTO and symbol stripping.
 
-## What Signpost does not protect against
+## What Reroute does not protect against
 
 - A compromised user account: anyone who can edit `config.toml` can already
-  run programs as you. Signpost does not try to sign its configuration.
+  run programs as you. Reroute does not try to sign its configuration.
 - Malicious `.desktop` files or registry entries: they can only *propose*
   a browser entry, which then goes through the same executable checks. The
   same files already control your default browser at the OS level.
-- Where the browser goes after receiving the URL. Signpost stops at the
+- Where the browser goes after receiving the URL. Reroute stops at the
   process boundary.
 
 Please report vulnerabilities as described in [SECURITY.md](../SECURITY.md).

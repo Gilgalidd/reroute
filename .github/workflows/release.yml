@@ -52,7 +52,7 @@ jobs:
         with:
           projectPath: apps/desktop
           tagName: ${{ github.ref_name }}
-          releaseName: Signpost ${{ github.ref_name }}
+          releaseName: Reroute ${{ github.ref_name }}
           releaseBody: See CHANGELOG.md for details.
           releaseDraft: true
           prerelease: ${{ contains(github.ref_name, '-') }}

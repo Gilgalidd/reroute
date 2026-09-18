@@ -8,8 +8,8 @@
 #![allow(clippy::needless_pass_by_value)]
 
 use base64::Engine;
+use reroute_core::{Brand, Browser, BrowserId, Config, LaunchId, SafeUrl};
 use serde::{Deserialize, Serialize};
-use signpost_core::{Brand, Browser, BrowserId, Config, LaunchId, SafeUrl};
 use tauri::{AppHandle, State};
 
 use crate::state::AppState;
@@ -38,7 +38,7 @@ pub struct LaunchContext {
     url: Option<UrlView>,
     url_error: Option<String>,
     config_error: Option<String>,
-    settings: signpost_core::Settings,
+    settings: reroute_core::Settings,
     browsers: Vec<BrowserView>,
 }
 
@@ -53,7 +53,7 @@ fn browser_view(browser: &Browser) -> BrowserView {
         browser
             .icon
             .as_deref()
-            .and_then(|path| match signpost_platform::icons::load_icon(path) {
+            .and_then(|path| match reroute_platform::icons::load_icon(path) {
                 Ok(icon) => Some(format!(
                     "data:{};base64,{}",
                     icon.mime,
@@ -115,11 +115,7 @@ pub fn pick(
         let mut config = state.config().clone();
         if let Err(error) = config
             .remember_domain(url.host(), browser, launch)
-            .and_then(|()| {
-                state
-                    .save(config)
-                    .map_err(signpost_core::ConfigError::Parse)
-            })
+            .and_then(|()| state.save(config).map_err(reroute_core::ConfigError::Parse))
         {
             log::warn!("could not remember the domain: {error}");
         }
@@ -156,7 +152,7 @@ pub fn save_config(state: State<'_, AppState>, config: Config) -> Result<(), Str
 #[tauri::command]
 pub fn discover_browsers(state: State<'_, AppState>) -> Result<Config, String> {
     let mut config = state.config().clone();
-    let added = config.merge_discovered(signpost_platform::discover::installed_browsers());
+    let added = config.merge_discovered(reroute_platform::discover::installed_browsers());
     log::info!("discovery added {added} browser(s)");
     state.save(config.clone())?;
     Ok(config)
@@ -192,7 +188,7 @@ pub fn test_url(state: State<'_, AppState>, url: String) -> TestResult {
         }
     };
     let config = state.config();
-    let matched = signpost_core::rules::find_match(&config.rulesets, &parsed).map(|m| {
+    let matched = reroute_core::rules::find_match(&config.rulesets, &parsed).map(|m| {
         let (browser, launch) = config.resolve(m.browser, m.launch).map_or_else(
             |_| ("(unknown)".to_owned(), None),
             |(b, l)| (b.name.clone(), l.map(|l| l.name.clone())),
@@ -211,19 +207,19 @@ pub fn test_url(state: State<'_, AppState>, url: String) -> TestResult {
     }
 }
 
-/// Is Signpost the system's default browser?
+/// Is Reroute the system's default browser?
 #[tauri::command]
 pub fn default_browser_status() -> Result<bool, String> {
-    signpost_platform::register::is_default().map_err(|e| e.to_string())
+    reroute_platform::register::is_default().map_err(|e| e.to_string())
 }
 
-/// Ask the system to make Signpost the default browser.
+/// Ask the system to make Reroute the default browser.
 #[tauri::command]
-pub fn register_default_browser() -> Result<signpost_platform::register::Outcome, String> {
-    if let Err(error) = signpost_platform::register::install_icons(crate::APP_ICONS) {
+pub fn register_default_browser() -> Result<reroute_platform::register::Outcome, String> {
+    if let Err(error) = reroute_platform::register::install_icons(crate::APP_ICONS) {
         log::warn!("icons not installed: {error}");
     }
-    signpost_platform::register::register().map_err(|e| e.to_string())
+    reroute_platform::register::register().map_err(|e| e.to_string())
 }
 
 /// Result of importing a Hurl settings file.
@@ -237,7 +233,7 @@ pub struct ImportReport {
 /// Merge a Hurl `UserSettings.json` (pasted as text) into the configuration.
 #[tauri::command]
 pub fn import_hurl(state: State<'_, AppState>, json: String) -> Result<ImportReport, String> {
-    let imported = signpost_core::import::hurl::import(&json)?;
+    let imported = reroute_core::import::hurl::import(&json)?;
     let mut config = state.config().clone();
     let report = config.merge(imported.config);
     state.save(config)?;

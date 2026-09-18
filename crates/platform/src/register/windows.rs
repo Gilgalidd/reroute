@@ -1,6 +1,6 @@
 //! Windows: register a `ProgId` and a `StartMenuInternet` client under
 //! `HKEY_CURRENT_USER` (no administrator rights needed), then open the
-//! Settings page where the user must pick Signpost. Since Windows 8 there
+//! Settings page where the user must pick Reroute. Since Windows 8 there
 //! is no supported way for an application to set itself as default.
 
 use std::path::Path;
@@ -9,9 +9,9 @@ use super::Outcome;
 use crate::PlatformError;
 
 /// `ProgId` associated with `http`/`https`.
-pub const PROG_ID: &str = "SignpostURL";
+pub const PROG_ID: &str = "RerouteURL";
 /// Client name under `Software\Clients\StartMenuInternet`.
-pub const CLIENT: &str = "Signpost";
+pub const CLIENT: &str = "Reroute";
 
 /// One registry string value: (`subkey` under `HKCU`, value name, data).
 /// An empty value name means the key's default value.
@@ -25,8 +25,8 @@ pub fn registry_entries(exe: &Path) -> Vec<Entry> {
     let client_key = format!(r"Software\Clients\StartMenuInternet\{CLIENT}");
     let prog_key = format!(r"Software\Classes\{PROG_ID}");
     vec![
-        (prog_key.clone(), "", "Signpost URL".into()),
-        (prog_key.clone(), "FriendlyTypeName", "Signpost URL".into()),
+        (prog_key.clone(), "", "Reroute URL".into()),
+        (prog_key.clone(), "FriendlyTypeName", "Reroute URL".into()),
         (
             format!(r"{prog_key}\DefaultIcon"),
             "",
@@ -94,7 +94,7 @@ pub fn register() -> Result<Outcome, PlatformError> {
     }
     open_default_apps_settings()?;
     Ok(Outcome::NeedsUserAction(
-        "Windows only lets you choose the default browser yourself: in the Settings page that just opened, select Signpost.".into(),
+        "Windows only lets you choose the default browser yourself: in the Settings page that just opened, select Reroute.".into(),
     ))
 }
 
@@ -104,7 +104,7 @@ pub fn register() -> Result<Outcome, PlatformError> {
 fn open_default_apps_settings() -> Result<(), PlatformError> {
     let system_root = std::env::var_os("SystemRoot").unwrap_or_else(|| r"C:\Windows".into());
     let explorer = Path::new(&system_root).join("explorer.exe");
-    signpost_core::browser::check_executable(&explorer)
+    reroute_core::browser::check_executable(&explorer)
         .map_err(|e| PlatformError::Os(e.to_string()))?;
     std::process::Command::new(explorer)
         .arg(format!(
@@ -157,7 +157,7 @@ mod tests {
 
     #[test]
     fn entries_describe_a_complete_browser_registration() {
-        let entries = registry_entries(Path::new(r"C:\Program Files\Signpost\signpost.exe"));
+        let entries = registry_entries(Path::new(r"C:\Program Files\Reroute\reroute.exe"));
         let get = |k: &str, n: &str| {
             entries
                 .iter()
@@ -165,20 +165,20 @@ mod tests {
                 .map(|(_, _, d)| d.clone())
         };
         assert_eq!(
-            get(r"Software\Classes\SignpostURL\shell\open\command", "").unwrap(),
-            r#""C:\Program Files\Signpost\signpost.exe" "%1""#
+            get(r"Software\Classes\RerouteURL\shell\open\command", "").unwrap(),
+            r#""C:\Program Files\Reroute\reroute.exe" "%1""#
         );
         assert_eq!(
             get(
-                r"Software\Clients\StartMenuInternet\Signpost\Capabilities\URLAssociations",
+                r"Software\Clients\StartMenuInternet\Reroute\Capabilities\URLAssociations",
                 "https"
             )
             .unwrap(),
-            "SignpostURL"
+            "RerouteURL"
         );
         assert_eq!(
-            get(r"Software\RegisteredApplications", "Signpost").unwrap(),
-            r"Software\Clients\StartMenuInternet\Signpost\Capabilities"
+            get(r"Software\RegisteredApplications", "Reroute").unwrap(),
+            r"Software\Clients\StartMenuInternet\Reroute\Capabilities"
         );
         assert_eq!(entries.len(), 13);
     }

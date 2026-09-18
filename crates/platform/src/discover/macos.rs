@@ -3,7 +3,7 @@
 
 use std::path::{Path, PathBuf};
 
-use signpost_core::Browser;
+use reroute_core::Browser;
 
 /// The parts of an `Info.plist` we care about.
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -3,7 +3,7 @@
 
 use std::path::PathBuf;
 
-use signpost_core::Browser;
+use reroute_core::Browser;
 
 /// Split a registry `shell\open\command` value into program and arguments.
 ///
@@ -28,7 +28,7 @@ pub fn parse_command(command: &str) -> Option<(PathBuf, Vec<String>)> {
         .into_iter()
         .map(|a| {
             if a == "%1" {
-                signpost_core::URL_PLACEHOLDER.to_owned()
+                reroute_core::URL_PLACEHOLDER.to_owned()
             } else {
                 a
             }

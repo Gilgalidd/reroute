@@ -1,9 +1,9 @@
 {
-  "name": "signpost-desktop",
+  "name": "reroute-desktop",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Signpost desktop UI (Tauri + Svelte)",
+  "description": "Reroute desktop UI (Tauri + Svelte)",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

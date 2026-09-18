@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Signpost are documented here. The format follows
+All notable changes to Reroute are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
@@ -18,7 +18,7 @@ All notable changes to Signpost are documented here. The format follows
   browser registration, import from Hurl.
 - Strict URL validation: only `http`/`https`, no credentials, size-limited.
 - TOML configuration with atomic, private writes.
-- `signpost --make-default` for installers and scripts.
+- `reroute --make-default` for installers and scripts.
 
 ### Fixed
 

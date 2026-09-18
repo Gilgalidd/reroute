@@ -67,7 +67,7 @@ pub struct MergeReport {
     pub notes: Vec<String>,
 }
 
-/// Everything Signpost persists.
+/// Everything Reroute persists.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {

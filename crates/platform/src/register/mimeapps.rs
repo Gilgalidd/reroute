@@ -1,12 +1,12 @@
 //! Editing `mimeapps.list`, the freedesktop file that records default
 //! applications per MIME type. Writing it directly is what `xdg-mime` does
 //! under the hood on generic desktops, and every desktop environment reads
-//! it, so Signpost does not depend on the `xdg-utils` scripts (which on KDE
+//! it, so Reroute does not depend on the `xdg-utils` scripts (which on KDE
 //! shell out to `qtpaths`, a tool that is not always installed).
 //!
 //! Spec: <https://specifications.freedesktop.org/mime-apps-spec/latest/>
 
-/// MIME types Signpost claims when made the default browser.
+/// MIME types Reroute claims when made the default browser.
 pub const WEB_TYPES: &[&str] = &[
     "x-scheme-handler/http",
     "x-scheme-handler/https",
@@ -155,21 +155,26 @@ mod tests {
 
     #[test]
     fn sets_defaults_and_keeps_other_entries() {
-        let out = set_default_browser(EXISTING, "signpost.desktop");
+        let out = set_default_browser(EXISTING, "reroute.desktop");
         assert!(out.contains("application/pdf=okular.desktop\n"), "{out}");
         assert!(
-            out.contains("x-scheme-handler/http=signpost.desktop\n"),
+            out.contains("x-scheme-handler/http=reroute.desktop\n"),
             "{out}"
         );
         assert!(
-            out.contains("x-scheme-handler/https=signpost.desktop\n"),
+            out.contains("x-scheme-handler/https=reroute.desktop\n"),
             "{out}"
         );
-        assert!(out.contains("text/html=signpost.desktop\n"), "{out}");
-        assert!(out.contains("x-scheme-handler/http=signpost.desktop;firefox_firefox.desktop;chromium.desktop;\n"), "{out}");
+        assert!(out.contains("text/html=reroute.desktop\n"), "{out}");
+        assert!(
+            out.contains(
+                "x-scheme-handler/http=reroute.desktop;firefox_firefox.desktop;chromium.desktop;\n"
+            ),
+            "{out}"
+        );
         assert_eq!(
             default_web_handlers(&out).unwrap(),
-            vec!["signpost.desktop"; 3]
+            vec!["reroute.desktop"; 3]
         );
         assert_eq!(out.matches("[Default Applications]").count(), 1);
         assert_eq!(out.matches("[Added Associations]").count(), 1);
@@ -177,12 +182,12 @@ mod tests {
 
     #[test]
     fn creates_sections_when_missing() {
-        let out = set_default_browser("", "signpost.desktop");
+        let out = set_default_browser("", "reroute.desktop");
         assert!(out.starts_with("[Default Applications]\n"), "{out}");
         assert!(out.contains("\n[Added Associations]\n"), "{out}");
         assert_eq!(
             default_web_handlers(&out).unwrap(),
-            vec!["signpost.desktop"; 3]
+            vec!["reroute.desktop"; 3]
         );
         assert_eq!(
             default_web_handlers(EXISTING).unwrap(),
@@ -202,15 +207,15 @@ x-scheme-handler/https=a.desktop;b.desktop
 
     #[test]
     fn is_idempotent() {
-        let once = set_default_browser(EXISTING, "signpost.desktop");
-        let twice = set_default_browser(&once, "signpost.desktop");
+        let once = set_default_browser(EXISTING, "reroute.desktop");
+        let twice = set_default_browser(&once, "reroute.desktop");
         assert_eq!(once, twice);
     }
 
     #[test]
     fn preserves_comments_and_unknown_sections() {
         let text = "# my file\n[Removed Associations]\ntext/html=old.desktop;\n";
-        let out = set_default_browser(text, "signpost.desktop");
+        let out = set_default_browser(text, "reroute.desktop");
         assert!(out.starts_with("# my file\n"), "{out}");
         assert!(
             out.contains("[Removed Associations]\ntext/html=old.desktop;\n"),

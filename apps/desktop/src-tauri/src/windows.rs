@@ -13,11 +13,11 @@ pub const SETTINGS: &str = "settings";
 const PICKER_WIDTH: f64 = 560.0;
 const PICKER_HEIGHT: f64 = 340.0;
 
-fn theme(settings: &signpost_core::Settings) -> Option<tauri::Theme> {
+fn theme(settings: &reroute_core::Settings) -> Option<tauri::Theme> {
     match settings.theme {
-        signpost_core::Theme::Auto => None,
-        signpost_core::Theme::Light => Some(tauri::Theme::Light),
-        signpost_core::Theme::Dark => Some(tauri::Theme::Dark),
+        reroute_core::Theme::Auto => None,
+        reroute_core::Theme::Light => Some(tauri::Theme::Light),
+        reroute_core::Theme::Dark => Some(tauri::Theme::Dark),
     }
 }
 
@@ -31,7 +31,7 @@ pub fn open_picker(app: &AppHandle) -> tauri::Result<()> {
     let settings = app.state::<AppState>().config().settings.clone();
     let mut builder =
         WebviewWindowBuilder::new(app, PICKER, WebviewUrl::App("index.html#/picker".into()))
-            .title("Signpost")
+            .title("Reroute")
             .inner_size(PICKER_WIDTH, PICKER_HEIGHT)
             .min_inner_size(420.0, 280.0)
             .resizable(false)
@@ -82,7 +82,7 @@ pub fn open_settings(app: &AppHandle) -> tauri::Result<()> {
         SETTINGS,
         WebviewUrl::App("index.html#/settings".into()),
     )
-    .title("Signpost settings")
+    .title("Reroute settings")
     .inner_size(880.0, 640.0)
     .min_inner_size(640.0, 480.0)
     .center()

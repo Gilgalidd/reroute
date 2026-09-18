@@ -1,6 +1,6 @@
 [package]
-name = "signpost-core"
-description = "Platform-independent logic of Signpost: URL validation, browser model, rule engine and configuration."
+name = "reroute-core"
+description = "Platform-independent logic of Reroute: URL validation, browser model, rule engine and configuration."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

@@ -85,9 +85,9 @@ jobs:
       - uses: taiki-e/install-action@cargo-llvm-cov
       - uses: Swatinem/rust-cache@v2
       - name: Coverage of the pure crates
-        run: cargo llvm-cov -p signpost-core -p signpost-platform --lcov --output-path lcov.info
+        run: cargo llvm-cov -p reroute-core -p reroute-platform --lcov --output-path lcov.info
       - name: Summary
-        run: cargo llvm-cov report -p signpost-core -p signpost-platform --summary-only | tee coverage.txt
+        run: cargo llvm-cov report -p reroute-core -p reroute-platform --summary-only | tee coverage.txt
       - uses: actions/upload-artifact@v4
         with:
           name: coverage

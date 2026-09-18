@@ -10,7 +10,7 @@
 </script>
 
 <div class="about">
-  <h2>Signpost</h2>
+  <h2>Reroute</h2>
   <p>Choose a browser for each link. Free software under the MIT license.</p>
   {#if info}
     <dl>
@@ -23,7 +23,7 @@
     </dl>
   {/if}
   <p class="muted">
-    Signpost never connects to the network. It only forwards <code>http</code> and <code>https</code> links, and only to
+    Reroute never connects to the network. It only forwards <code>http</code> and <code>https</code> links, and only to
     executables listed in its configuration file.
   </p>
 </div>

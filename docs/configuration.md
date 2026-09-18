@@ -1,26 +1,26 @@
 # Configuration reference
 
-Signpost stores everything in a single TOML file, `config.toml`, created on
+Reroute stores everything in a single TOML file, `config.toml`, created on
 first run with the browsers it discovered. The settings window edits this
-file; you may also edit it by hand while Signpost is not running.
+file; you may also edit it by hand while Reroute is not running.
 
 | Platform | Path |
 |----------|------|
-| Linux    | `$XDG_CONFIG_HOME/signpost/config.toml` (usually `~/.config/signpost/config.toml`) |
-| macOS    | `~/Library/Application Support/dev.signpost.app/config.toml` |
-| Windows  | `%APPDATA%\signpost\signpost\config\config.toml` |
+| Linux    | `$XDG_CONFIG_HOME/reroute/config.toml` (usually `~/.config/reroute/config.toml`) |
+| macOS    | `~/Library/Application Support/dev.reroute.app/config.toml` |
+| Windows  | `%APPDATA%\reroute\reroute\config\config.toml` |
 
-Set the environment variable `SIGNPOST_CONFIG_DIR` to an absolute path to use
+Set the environment variable `REROUTE_CONFIG_DIR` to an absolute path to use
 another directory (handy for a portable install or for bug reports).
 
 Parsing is strict: an unknown key is an error, not a silent no-op. If the file
-cannot be read, Signpost still lets you open the link with the browsers it
+cannot be read, Reroute still lets you open the link with the browsers it
 can find, and shows the error in the picker.
 
 ## Top level
 
 ```toml
-version = 1        # format version; files from a newer Signpost are refused
+version = 1        # format version; files from a newer Reroute are refused
 
 [settings]         # see "Settings"
 [[browsers]]       # see "Browsers"

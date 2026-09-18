@@ -97,7 +97,7 @@
     {:else if context?.url_error}
       <Banner tone="error">This link was refused: {context.url_error}</Banner>
     {:else}
-      <div class="host">Signpost</div>
+      <div class="host">Reroute</div>
       <div class="href muted">No link to open.</div>
     {/if}
   </header>

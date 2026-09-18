@@ -82,7 +82,7 @@
 
 <div class="layout">
   <nav aria-label="Settings sections">
-    <div class="brand">Signpost</div>
+    <div class="brand">Reroute</div>
     {#each tabs as t (t.id)}
       <button type="button" class:active={tab === t.id} onclick={() => (tab = t.id)}>{t.label}</button>
     {/each}

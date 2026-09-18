@@ -1,12 +1,12 @@
-//! Operating-system integration for Signpost.
+//! Operating-system integration for Reroute.
 //!
 //! Everything here touches the host: the file system, the process table,
 //! the registry, Launch Services. The API is deliberately tiny so that the
 //! behaviour can be reviewed in one sitting:
 //!
 //! * [`discover::installed_browsers`] — list browsers the OS knows about.
-//! * [`launch::launch`] — spawn a [`signpost_core::LaunchPlan`].
-//! * [`register`] — make Signpost the default browser, or check if it is.
+//! * [`launch::launch`] — spawn a [`reroute_core::LaunchPlan`].
+//! * [`register`] — make Reroute the default browser, or check if it is.
 //! * [`icons::load_icon`] — read a local icon file for display.
 //! * [`paths::config_dir`] — where `config.toml` lives.
 //!

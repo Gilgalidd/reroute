@@ -1,6 +1,6 @@
 # Security policy
 
-Signpost sits between every link you click and the browser that opens it, so
+Reroute sits between every link you click and the browser that opens it, so
 it is held to a high standard. The threat model and the controls in place are
 described in [docs/security.md](docs/security.md).
 

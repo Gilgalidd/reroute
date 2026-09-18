@@ -1,6 +1,6 @@
 //! Recognise well-known browsers from their executable name.
 //!
-//! Signpost never downloads logos. When no icon file is available the UI
+//! Reroute never downloads logos. When no icon file is available the UI
 //! draws a coloured tile with the browser's initial; this module supplies a
 //! stable key and an accent colour for the browsers people actually use, so
 //! that "Firefox" is always orange and "Chrome" always blue.

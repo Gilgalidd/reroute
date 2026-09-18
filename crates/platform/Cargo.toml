@@ -1,6 +1,6 @@
 [package]
-name = "signpost-platform"
-description = "Operating-system integration for Signpost: browser discovery, process launching, default-browser registration and icon loading."
+name = "reroute-platform"
+description = "Operating-system integration for Reroute: browser discovery, process launching, default-browser registration and icon loading."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -13,7 +13,7 @@ publish = false
 workspace = true
 
 [dependencies]
-signpost-core = { workspace = true }
+reroute-core = { workspace = true }
 log = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }

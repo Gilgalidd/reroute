@@ -6,7 +6,7 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-use signpost_core::Browser;
+use reroute_core::Browser;
 
 /// The parts of a desktop entry we care about.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -104,14 +104,14 @@ pub fn parse_desktop_entry(text: &str) -> Option<DesktopEntry> {
 ///
 /// Handles the spec's quoting (double quotes, backslash escapes), removes
 /// field codes we cannot fill (`%f`, `%i`, `%c`…), and turns `%u`/`%U`
-/// into Signpost's [`signpost_core::URL_PLACEHOLDER`].
+/// into Reroute's [`reroute_core::URL_PLACEHOLDER`].
 pub fn split_exec(exec: &str) -> Option<(String, Vec<String>)> {
     let words = tokenize(exec)?;
     let mut program = None;
     let mut args = Vec::new();
     for word in words {
         let word = match word.as_str() {
-            "%u" | "%U" | "%f" | "%F" => signpost_core::URL_PLACEHOLDER.to_owned(),
+            "%u" | "%U" | "%f" | "%F" => reroute_core::URL_PLACEHOLDER.to_owned(),
             "%d" | "%D" | "%n" | "%N" | "%i" | "%c" | "%k" | "%v" | "%m" => continue,
             _ => word.replace("%%", "%"),
         };

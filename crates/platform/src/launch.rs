@@ -3,11 +3,11 @@
 //! The plan is executed with [`std::process::Command`], i.e. `execve` /
 //! `CreateProcess` with an argument vector. There is no shell, no string
 //! interpolation and no inherited standard streams. The child is detached
-//! so that Signpost can exit immediately afterwards.
+//! so that Reroute can exit immediately afterwards.
 
 use std::process::{Command, Stdio};
 
-use signpost_core::{LaunchError, LaunchPlan};
+use reroute_core::{LaunchError, LaunchPlan};
 
 /// Start the program described by `plan` and return without waiting.
 pub fn launch(plan: &LaunchPlan) -> Result<(), LaunchError> {

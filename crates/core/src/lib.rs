@@ -1,4 +1,4 @@
-//! Platform-independent core of Signpost, a browser picker.
+//! Platform-independent core of Reroute, a browser picker.
 //!
 //! This crate contains everything that can be reasoned about and tested
 //! without touching the operating system:

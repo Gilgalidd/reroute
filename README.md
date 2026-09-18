@@ -1,9 +1,9 @@
-# Signpost
+# Reroute
 
 **Choose a browser for each link.**
 
-Signpost registers itself as your default browser. When any application opens
-a link, Signpost either applies one of your rules silently or shows a small
+Reroute registers itself as your default browser. When any application opens
+a link, Reroute either applies one of your rules silently or shows a small
 picker with the browsers installed on your computer. It is a cross-platform
 re-implementation of the ideas behind [Hurl](https://github.com/U-C-S/Hurl),
 built in Rust with a focus on security and code that one person can maintain.
@@ -22,12 +22,12 @@ built in Rust with a focus on security and code that one person can maintain.
 
 Download the installer for your platform from the Releases page
 (`.deb`, `.rpm` or `.AppImage`; `.msi` or NSIS `.exe`; `.dmg`), install it,
-open Signpost and press **Make Signpost the default** in the General tab.
+open Reroute and press **Make Reroute the default** in the General tab.
 
 | Platform | What happens |
 |----------|--------------|
-| Linux    | `~/.config/mimeapps.list` (the freedesktop default-applications file) is updated; done. Also available as `signpost --make-default` for scripts. |
-| Windows  | Signpost registers itself and opens *Settings › Default apps* where you pick it (Windows does not allow apps to set themselves as default). |
+| Linux    | `~/.config/mimeapps.list` (the freedesktop default-applications file) is updated; done. Also available as `reroute --make-default` for scripts. |
+| Windows  | Reroute registers itself and opens *Settings › Default apps* where you pick it (Windows does not allow apps to set themselves as default). |
 | macOS    | macOS shows its own confirmation dialog. |
 
 Linux needs WebKitGTK 4.1 at runtime (`libwebkit2gtk-4.1-0`), which the
@@ -51,8 +51,8 @@ Click any link outside a browser. The picker appears:
 Right-click a tile (or press `Space`) for its launch options, such as a
 Chrome profile or a Firefox private window.
 
-Open the settings window from the ⚙ button, by running `signpost` with no
-argument, or with `signpost --settings`. Other flags: `--make-default`
+Open the settings window from the ⚙ button, by running `reroute` with no
+argument, or with `reroute --settings`. Other flags: `--make-default`
 (register as default browser and exit) and `--version`.
 
 ## Configure
@@ -61,9 +61,9 @@ Everything lives in one TOML file that you can also edit by hand:
 
 | Platform | Path |
 |----------|------|
-| Linux    | `~/.config/signpost/config.toml` |
-| macOS    | `~/Library/Application Support/dev.signpost.app/config.toml` |
-| Windows  | `%APPDATA%\signpost\signpost\config\config.toml` |
+| Linux    | `~/.config/reroute/config.toml` |
+| macOS    | `~/Library/Application Support/dev.reroute.app/config.toml` |
+| Windows  | `%APPDATA%\reroute\reroute\config\config.toml` |
 
 ```toml
 version = 1
@@ -102,7 +102,7 @@ The full reference is in [docs/configuration.md](docs/configuration.md).
 
 ## Status
 
-Pre-1.0. The configuration format is versioned (`version = 1`) and Signpost
+Pre-1.0. The configuration format is versioned (`version = 1`) and Reroute
 refuses files written by a newer version rather than guessing.
 
 ## License

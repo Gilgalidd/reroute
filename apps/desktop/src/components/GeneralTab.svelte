@@ -26,7 +26,7 @@
       const outcome = await api.registerDefaultBrowser();
       registerMessage =
         outcome.kind === "done"
-          ? { tone: "success", text: "Signpost is now your default browser." }
+          ? { tone: "success", text: "Reroute is now your default browser." }
           : { tone: "info", text: outcome.message };
       await refreshStatus();
     } catch (e) {
@@ -52,14 +52,14 @@
   <section class="card">
     <h3>Default browser</h3>
     {#if isDefault === true}
-      <Banner tone="success">Signpost is the default browser.</Banner>
+      <Banner tone="success">Reroute is the default browser.</Banner>
     {:else if isDefault === false}
-      <p>Signpost is not the default browser yet. Links will keep opening in your current browser.</p>
+      <p>Reroute is not the default browser yet. Links will keep opening in your current browser.</p>
     {:else}
       <p class="muted">Could not determine the default browser on this system.</p>
     {/if}
     <div class="row">
-      <button type="button" class="primary" onclick={register}>Make Signpost the default</button>
+      <button type="button" class="primary" onclick={register}>Make Reroute the default</button>
       <button type="button" onclick={refreshStatus}>Re-check</button>
     </div>
     {#if registerMessage}
