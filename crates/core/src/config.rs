@@ -298,6 +298,7 @@ impl Config {
 mod tests {
     use super::*;
     use crate::rules::Pattern;
+    use crate::testutil::abs;
 
     fn sample() -> Config {
         let launch = Launch {
@@ -307,9 +308,9 @@ mod tests {
         };
         let firefox = Browser {
             launches: vec![launch.clone()],
-            ..Browser::new("Firefox", "/usr/bin/firefox")
+            ..Browser::new("Firefox", abs("/usr/bin/firefox"))
         };
-        let chrome = Browser::new("Chrome", "/usr/bin/chrome");
+        let chrome = Browser::new("Chrome", abs("/usr/bin/chrome"));
         let rulesets = vec![Ruleset {
             name: "Work".into(),
             browser: firefox.id,
@@ -407,8 +408,8 @@ mod tests {
         let mut c = sample();
         let known_id = c.browsers[0].id;
         let added = c.merge_discovered(vec![
-            Browser::new("Firefox again", "/usr/bin/firefox"),
-            Browser::new("Brave", "/usr/bin/brave"),
+            Browser::new("Firefox again", abs("/usr/bin/firefox")),
+            Browser::new("Brave", abs("/usr/bin/brave")),
         ]);
         assert_eq!(added, 1);
         assert_eq!(c.browsers.len(), 3);
@@ -452,9 +453,9 @@ mod tests {
         };
         let their_firefox = Browser {
             launches: vec![their_launch.clone()],
-            ..Browser::new("FF", "/usr/bin/firefox")
+            ..Browser::new("FF", abs("/usr/bin/firefox"))
         };
-        let their_brave = Browser::new("Brave", "/usr/bin/brave");
+        let their_brave = Browser::new("Brave", abs("/usr/bin/brave"));
         theirs.rulesets.push(Ruleset {
             name: "To FF".into(),
             browser: their_firefox.id,

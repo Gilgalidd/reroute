@@ -101,6 +101,7 @@ fn write_private_file(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
 mod tests {
     use super::*;
     use crate::browser::Browser;
+    use crate::testutil::abs;
 
     #[test]
     fn missing_file_yields_default() {
@@ -116,7 +117,7 @@ mod tests {
         let mut config = Config::default();
         config
             .browsers
-            .push(Browser::new("Firefox", "/usr/bin/firefox"));
+            .push(Browser::new("Firefox", abs("/usr/bin/firefox")));
         store.save(&config).unwrap();
         assert_eq!(store.load().unwrap(), config);
         assert!(

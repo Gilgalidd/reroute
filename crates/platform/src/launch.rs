@@ -58,7 +58,11 @@ mod tests {
     #[test]
     fn refuses_missing_program_before_spawning() {
         let plan = LaunchPlan {
-            program: PathBuf::from("/nonexistent/browser"),
+            program: PathBuf::from(if cfg!(windows) {
+                r"C:\nonexistent\browser"
+            } else {
+                "/nonexistent/browser"
+            }),
             args: vec![],
         };
         assert!(matches!(launch(&plan), Err(LaunchError::NotFound(_))));

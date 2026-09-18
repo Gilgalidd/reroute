@@ -37,3 +37,16 @@ pub use error::{ConfigError, Error, LaunchError, PatternError, UrlError};
 pub use rules::{Match, Pattern, Ruleset};
 pub use store::ConfigStore;
 pub use url::SafeUrl;
+
+#[cfg(test)]
+pub(crate) mod testutil {
+    /// Turn a Unix-style path into one that is absolute on every OS: Windows
+    /// needs a drive letter for `Path::is_absolute` to hold.
+    pub fn abs(path: &str) -> String {
+        if cfg!(windows) {
+            format!("C:{path}")
+        } else {
+            path.to_owned()
+        }
+    }
+}

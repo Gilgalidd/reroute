@@ -199,6 +199,7 @@ pub fn check_executable(path: &Path) -> Result<(), LaunchError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::testutil::abs;
 
     fn url() -> SafeUrl {
         SafeUrl::parse("https://example.com/a?b=c").unwrap()
@@ -269,7 +270,7 @@ mod tests {
             Err(LaunchError::RelativePath(_))
         ));
         assert!(matches!(
-            check_executable(Path::new("/definitely/not/here")),
+            check_executable(Path::new(&abs("/definitely/not/here"))),
             Err(LaunchError::NotFound(_))
         ));
         let dir = tempfile::tempdir().unwrap();
