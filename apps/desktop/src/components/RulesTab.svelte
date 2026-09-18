@@ -24,6 +24,14 @@
     if (item) config.rulesets.splice(to, 0, item);
   }
 
+  /** Edit ruleset `i` in place. Element-level `bind:` inside `{#each}` is
+   * avoided on purpose: writing through the bound `config` prop is explicit
+   * and works the same whatever the compiler decides about the prop. */
+  function update(i: number, patch: Partial<Ruleset>) {
+    const set = config.rulesets[i];
+    if (set) Object.assign(set, patch);
+  }
+
   function launchesOf(browserId: string) {
     return config.browsers.find((b) => b.id === browserId)?.launches ?? [];
   }
@@ -52,17 +60,31 @@
     <Banner tone="info">Rules are currently disabled in General settings; the picker always asks.</Banner>
   {/if}
 
-  {#each config.rulesets as set, i (i)}
+  {#each config.rulesets as set, i}
     <fieldset class="card">
       <div class="row head">
-        <input type="text" class="grow" bind:value={set.name} placeholder="Ruleset name" />
-        <select bind:value={set.browser} onchange={() => (set.launch = null)} aria-label="Browser">
+        <input
+          type="text"
+          class="grow"
+          value={set.name}
+          placeholder="Ruleset name"
+          oninput={(e) => update(i, { name: e.currentTarget.value })}
+        />
+        <select
+          value={set.browser}
+          aria-label="Browser"
+          onchange={(e) => update(i, { browser: e.currentTarget.value, launch: null })}
+        >
           {#each config.browsers as b (b.id)}
             <option value={b.id}>{b.name}</option>
           {/each}
         </select>
-        <select bind:value={set.launch} aria-label="Launch option">
-          <option value={null}>Default launch</option>
+        <select
+          value={set.launch ?? ""}
+          aria-label="Launch option"
+          onchange={(e) => update(i, { launch: e.currentTarget.value || null })}
+        >
+          <option value="">Default launch</option>
           {#each launchesOf(set.browser) as l (l.id)}
             <option value={l.id}>{l.name}</option>
           {/each}
@@ -76,7 +98,7 @@
         spellcheck="false"
         placeholder={"domain:*.github.com\nregex:^https://open\\.spotify\\.com/\nexact:https://example.com/login"}
         value={set.patterns.join("\n")}
-        oninput={(e) => (set.patterns = splitLines(e.currentTarget.value))}
+        oninput={(e) => update(i, { patterns: splitLines(e.currentTarget.value) })}
       ></textarea>
       {#each problems(set.patterns) as problem (problem)}
         <span class="problem">{problem}</span>

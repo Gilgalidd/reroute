@@ -67,6 +67,8 @@
 </script>
 
 <svelte:window
+  onerror={(e) => (status = { tone: "error", text: `Unexpected error: ${e instanceof ErrorEvent ? e.message : "see the console"}` })}
+  onunhandledrejection={(e) => (status = { tone: "error", text: `Unexpected error: ${describeError(e.reason)}` })}
   onkeydown={(e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === "s") {
       e.preventDefault();

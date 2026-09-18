@@ -22,6 +22,13 @@ All notable changes to Signpost are documented here. The format follows
 
 ### Fixed
 
+- Settings: creating a browser or a launch option failed silently on
+  WebKitGTK in dev mode (`crypto.randomUUID` needs a secure context); ids
+  now fall back to `getRandomValues`. Unexpected JavaScript errors are shown
+  in the settings footer instead of being swallowed.
+- Settings: ruleset name, browser and launch selection were not saved
+  (element bindings inside the rules loop); they are written explicitly now.
+
 - Linux: desktop entries restricted with `OnlyShowIn`/`NotShowIn` (such as
   the snap Chromium stub whose `Exec` is `/usr/bin/false`) are skipped.
 - Linux: registering from an unpackaged binary now installs the application
