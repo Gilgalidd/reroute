@@ -21,6 +21,10 @@ pub struct DesktopEntry {
     pub mime_types: Vec<String>,
     /// `NoDisplay=true` or `Hidden=true`.
     pub hidden: bool,
+    /// `OnlyShowIn=` split on `;` (empty when absent).
+    pub only_show_in: Vec<String>,
+    /// `NotShowIn=` split on `;` (empty when absent).
+    pub not_show_in: Vec<String>,
 }
 
 impl DesktopEntry {
@@ -30,6 +34,33 @@ impl DesktopEntry {
             .iter()
             .any(|m| m == "x-scheme-handler/https" || m == "x-scheme-handler/http")
     }
+
+    /// Should the entry be offered on the given desktop environment
+    /// (`XDG_CURRENT_DESKTOP`, colon-separated)? Entries restricted to another
+    /// environment (e.g. a snap's `OnlyShowIn=UbuntuFrame;` stub whose `Exec`
+    /// is `/usr/bin/false`) are not real browsers for this session.
+    pub fn shown_on(&self, current_desktop: &str) -> bool {
+        if self.hidden {
+            return false;
+        }
+        let current: Vec<&str> = current_desktop
+            .split(':')
+            .filter(|d| !d.is_empty())
+            .collect();
+        let listed = |d: &String| current.contains(&d.as_str());
+        if !self.only_show_in.is_empty() && !self.only_show_in.iter().any(listed) {
+            return false;
+        }
+        !self.not_show_in.iter().any(listed)
+    }
+}
+
+fn split_list(value: &str) -> Vec<String> {
+    value
+        .split(';')
+        .filter(|s| !s.is_empty())
+        .map(str::to_owned)
+        .collect()
 }
 
 /// Parse the `[Desktop Entry]` group of a `.desktop` file. Returns `None`
@@ -59,13 +90,9 @@ pub fn parse_desktop_entry(text: &str) -> Option<DesktopEntry> {
             "Name" => value.clone_into(&mut entry.name),
             "Exec" => value.clone_into(&mut entry.exec),
             "Icon" => entry.icon = Some(value.to_owned()),
-            "MimeType" => {
-                entry.mime_types = value
-                    .split(';')
-                    .filter(|s| !s.is_empty())
-                    .map(str::to_owned)
-                    .collect();
-            }
+            "MimeType" => entry.mime_types = split_list(value),
+            "OnlyShowIn" => entry.only_show_in = split_list(value),
+            "NotShowIn" => entry.not_show_in = split_list(value),
             "NoDisplay" | "Hidden" if value.eq_ignore_ascii_case("true") => entry.hidden = true,
             _ => {}
         }
@@ -233,7 +260,8 @@ pub fn installed_browsers() -> Vec<Browser> {
 
 fn browser_from_entry(text: &str, dirs: &[PathBuf]) -> Option<Browser> {
     let entry = parse_desktop_entry(text)?;
-    if entry.hidden || !entry.handles_http() {
+    let desktop = std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default();
+    if !entry.shown_on(&desktop) || !entry.handles_http() {
         return None;
     }
     let (program, args) = split_exec(&entry.exec)?;
@@ -274,6 +302,25 @@ mod tests {
         )
         .unwrap();
         assert!(!plain.handles_http());
+    }
+
+    #[test]
+    fn only_show_in_and_not_show_in_are_honoured() {
+        let stub = parse_desktop_entry("[Desktop Entry]\nType=Application\nName=Chromium\nExec=/usr/bin/false\nOnlyShowIn=UbuntuFrame;\nMimeType=x-scheme-handler/http;\n").unwrap();
+        assert!(!stub.shown_on("KDE"));
+        assert!(!stub.shown_on(""));
+        assert!(stub.shown_on("UbuntuFrame"));
+        assert!(stub.shown_on("GNOME:UbuntuFrame"));
+        let excluded = parse_desktop_entry(
+            "[Desktop Entry]\nType=Application\nName=X\nExec=x\nNotShowIn=KDE;\n",
+        )
+        .unwrap();
+        assert!(!excluded.shown_on("KDE"));
+        assert!(excluded.shown_on("GNOME"));
+        let plain =
+            parse_desktop_entry("[Desktop Entry]\nType=Application\nName=X\nExec=x\n").unwrap();
+        assert!(plain.shown_on("KDE"));
+        assert!(plain.shown_on(""));
     }
 
     #[test]
