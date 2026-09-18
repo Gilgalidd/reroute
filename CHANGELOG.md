@@ -6,6 +6,10 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.1.0] - 2026-09-18
+
 ### Added
 
 - Picker window with keyboard navigation (1–9, arrows, Enter, Esc) and a
@@ -37,3 +41,6 @@ All notable changes to Reroute are documented here. The format follows
 - Linux: default-browser registration edits `mimeapps.list` directly and
   verifies it, because `xdg-settings` on KDE needs `qtpaths` and restores
   the previous browser when its own write fails.
+
+[Unreleased]: https://github.com/Gilgalidd/reroute/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Gilgalidd/reroute/releases/tag/v0.1.0
