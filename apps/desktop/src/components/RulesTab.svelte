@@ -96,6 +96,7 @@
       <textarea
         rows="3"
         spellcheck="false"
+        aria-label="Patterns, one per line"
         placeholder={"domain:*.github.com\nregex:^https://open\\.spotify\\.com/\nexact:https://example.com/login"}
         value={set.patterns.join("\n")}
         oninput={(e) => update(i, { patterns: splitLines(e.currentTarget.value) })}

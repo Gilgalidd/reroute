@@ -97,8 +97,11 @@ fast path can skip them entirely.
 - Styling: CSS custom properties in `app.css`, light/dark via
   `prefers-color-scheme` or `data-theme`; no inline styles (CSP).
 
-Pure helpers (`keys.ts`, `patterns.ts`) have Vitest tests; components are
-kept thin enough to be verified by `svelte-check` and manual testing.
+Pure helpers (`keys.ts`, `patterns.ts`, `config.ts`) have Vitest tests. The
+two windows have component tests (`routes/*.test.ts`) that render them under
+jsdom against a fake IPC bridge (`src/test/ipc.ts`) and drive them like a
+user would: pick with a digit key, add a launch option, rename a ruleset,
+save, and check the payload sent to Rust.
 
 ## Design decisions
 

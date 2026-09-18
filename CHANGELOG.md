@@ -6,6 +6,11 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Component tests for the picker and settings windows (Vitest, jsdom,
+  Testing Library) driven through a fake IPC bridge.
+
 ### Fixed
 
 - Linux packaging: the desktop-entry template file had kept its old name,

@@ -84,6 +84,7 @@ See [architecture.md](architecture.md). Rule of thumb when adding code:
 | Rust unit + property tests | `cargo test`, `proptest` | `cargo test --workspace` |
 | Cross-platform parsers | same, run on the three OS runners in CI | — |
 | Front-end helpers | Vitest | `npm test` in `apps/desktop` |
+| Front-end windows | Vitest + jsdom + Testing Library, with a fake IPC bridge (`src/test/ipc.ts`) | `npm test` in `apps/desktop` |
 | Type checks | `svelte-check`, `tsc` | `npm run check` |
 | Lints | clippy (pedantic, warnings are errors), rustfmt | `cargo clippy --workspace --all-targets -- -D warnings` |
 | Supply chain | `cargo deny`, `cargo audit`, `npm audit` | `cargo deny check`, `cargo audit` |

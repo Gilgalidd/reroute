@@ -9,7 +9,7 @@ pub const CONFIG_DIR_ENV: &str = "REROUTE_CONFIG_DIR";
 /// Directory holding `config.toml`:
 ///
 /// * Linux: `$XDG_CONFIG_HOME/reroute` (usually `~/.config/reroute`)
-/// * macOS: `~/Library/Application Support/dev.reroute.desktop`
+/// * macOS: `~/Library/Application Support/dev.reroute.reroute`
 /// * Windows: `%APPDATA%\reroute\reroute\config`
 ///
 /// `REROUTE_CONFIG_DIR` takes precedence when set to an absolute path.

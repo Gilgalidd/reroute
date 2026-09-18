@@ -7,7 +7,7 @@ file; you may also edit it by hand while Reroute is not running.
 | Platform | Path |
 |----------|------|
 | Linux    | `$XDG_CONFIG_HOME/reroute/config.toml` (usually `~/.config/reroute/config.toml`) |
-| macOS    | `~/Library/Application Support/dev.reroute.desktop/config.toml` |
+| macOS    | `~/Library/Application Support/dev.reroute.reroute/config.toml` |
 | Windows  | `%APPDATA%\reroute\reroute\config\config.toml` |
 
 Set the environment variable `REROUTE_CONFIG_DIR` to an absolute path to use
