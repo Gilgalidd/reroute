@@ -49,7 +49,14 @@ cd apps/desktop && npm run tauri dev -- -- -- "https://example.com/"
 
 # build installers into target/release/bundle/
 cd apps/desktop && npm run tauri build
+
+# a standalone production binary without installers (target/release/reroute)
+cargo build --release -p reroute --features custom-protocol
 ```
+
+`custom-protocol` makes Tauri embed `apps/desktop/dist`; `tauri build`
+enables it for you, a bare `cargo build --release` does not and produces a
+binary that still loads the Vite dev server.
 
 `just check`, `just dev`, `just dev-url https://…` and `just bundle` wrap the
 same commands.

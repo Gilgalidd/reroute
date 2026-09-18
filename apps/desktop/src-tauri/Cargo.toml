@@ -16,6 +16,11 @@ workspace = true
 name = "reroute_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[features]
+# `tauri build` enables this automatically; pass `--features custom-protocol`
+# when building with cargo directly, otherwise the binary loads the dev server.
+custom-protocol = ["tauri/custom-protocol"]
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 

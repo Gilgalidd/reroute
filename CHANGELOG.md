@@ -13,6 +13,10 @@ All notable changes to Reroute are documented here. The format follows
 
 ### Fixed
 
+- Linux: when the deb/rpm package is installed, registration reuses its
+  `Reroute.desktop` entry instead of adding a second user-level entry.
+- The `custom-protocol` cargo feature is declared so that direct cargo
+  release builds can embed the UI (see the development guide).
 - Linux packaging: the desktop-entry template file had kept its old name,
   which made `tauri build` fail. The bundle identifier is now
   `dev.reroute.desktop` (Tauri warns against identifiers ending in `.app`).

@@ -8,8 +8,35 @@ use std::path::{Path, PathBuf};
 use super::{run_tool, Outcome};
 use crate::PlatformError;
 
-/// Desktop-entry id registered with the system.
+/// Desktop-entry id written for unpackaged binaries.
 pub const DESKTOP_ID: &str = "reroute.desktop";
+/// Desktop-entry id installed by the deb/rpm packages (Tauri names it after
+/// the product). When present system-wide it is reused instead of writing a
+/// second, user-level entry.
+pub const PACKAGED_DESKTOP_ID: &str = "Reroute.desktop";
+
+/// System data directories that may hold the packaged desktop entry.
+fn system_data_dirs() -> Vec<PathBuf> {
+    std::env::var_os("XDG_DATA_DIRS")
+        .and_then(|v| v.to_str().map(str::to_owned))
+        .unwrap_or_else(|| "/usr/local/share:/usr/share".to_owned())
+        .split(':')
+        .filter(|d| !d.is_empty())
+        .map(PathBuf::from)
+        .collect()
+}
+
+/// The desktop id to register: the packaged one if installed, else ours.
+pub fn desktop_id() -> &'static str {
+    let packaged = system_data_dirs()
+        .iter()
+        .any(|d| d.join("applications").join(PACKAGED_DESKTOP_ID).is_file());
+    if packaged {
+        PACKAGED_DESKTOP_ID
+    } else {
+        DESKTOP_ID
+    }
+}
 
 /// Contents of the desktop entry pointing at `exe`.
 pub fn desktop_file_contents(exe: &Path) -> String {
@@ -116,13 +143,13 @@ pub fn ensure_desktop_file() -> Result<PathBuf, PlatformError> {
 /// when its own write fails), then `mimeapps.list` is written last so that
 /// it is authoritative. The result is verified before reporting success.
 pub fn register() -> Result<Outcome, PlatformError> {
-    ensure_desktop_file()?;
+    let id = desktop_id();
+    if id == DESKTOP_ID {
+        ensure_desktop_file()?;
+    }
     for (tool, args) in [
         ("update-desktop-database", vec![]),
-        (
-            "xdg-settings",
-            vec!["set", "default-web-browser", DESKTOP_ID],
-        ),
+        ("xdg-settings", vec!["set", "default-web-browser", id]),
     ] {
         if let Err(error) = run_tool(tool, &args) {
             log::info!("{error} (ignored)");
@@ -134,10 +161,7 @@ pub fn register() -> Result<Outcome, PlatformError> {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
         Err(e) => return Err(PlatformError::Os(format!("{}: {e}", path.display()))),
     };
-    write_atomically(
-        &path,
-        &super::mimeapps::set_default_browser(&current, DESKTOP_ID),
-    )?;
+    write_atomically(&path, &super::mimeapps::set_default_browser(&current, id))?;
     if is_default()? {
         Ok(Outcome::Done)
     } else {
@@ -154,11 +178,12 @@ pub fn is_default() -> Result<bool, PlatformError> {
     let path = mimeapps_path()?;
     if let Ok(text) = std::fs::read_to_string(&path) {
         if let Some(handlers) = super::mimeapps::default_web_handlers(&text) {
-            return Ok(handlers.iter().all(|h| h == DESKTOP_ID));
+            let id = desktop_id();
+            return Ok(handlers.iter().all(|h| h == id));
         }
     }
     let current = run_tool("xdg-settings", &["get", "default-web-browser"])?;
-    Ok(current.trim() == DESKTOP_ID)
+    Ok(current.trim() == desktop_id())
 }
 
 #[cfg(test)]
@@ -185,6 +210,21 @@ mod tests {
         std::env::remove_var("XDG_DATA_HOME");
         assert!(icon_path(dir.path(), 32).is_file());
         assert!(icon_path(dir.path(), 64).is_file());
+    }
+
+    #[test]
+    fn packaged_entry_is_preferred_when_installed() {
+        let dir = tempfile::tempdir().unwrap();
+        std::env::set_var("XDG_DATA_DIRS", dir.path());
+        assert_eq!(desktop_id(), DESKTOP_ID);
+        std::fs::create_dir_all(dir.path().join("applications")).unwrap();
+        std::fs::write(
+            dir.path().join("applications").join(PACKAGED_DESKTOP_ID),
+            "[Desktop Entry]\n",
+        )
+        .unwrap();
+        assert_eq!(desktop_id(), PACKAGED_DESKTOP_ID);
+        std::env::remove_var("XDG_DATA_DIRS");
     }
 
     #[test]
