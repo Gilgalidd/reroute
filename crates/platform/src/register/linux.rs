@@ -1,4 +1,7 @@
-//! Linux: a user-level desktop entry plus `xdg-settings` / `xdg-mime`.
+//! Linux: a user-level desktop entry plus a direct edit of `mimeapps.list`
+//! (see [`super::mimeapps`]). `xdg-settings` is also invoked when present,
+//! for desktops that keep their own notion of the default browser, but its
+//! failure is not fatal.
 
 use std::path::{Path, PathBuf};
 
@@ -32,15 +35,37 @@ fn quote_exec(path: &Path) -> String {
     out
 }
 
+fn home() -> Result<PathBuf, PlatformError> {
+    std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .ok_or_else(|| PlatformError::Os("HOME is not set".into()))
+}
+
 fn applications_dir() -> Result<PathBuf, PlatformError> {
     let base = match std::env::var_os("XDG_DATA_HOME") {
         Some(d) => PathBuf::from(d),
-        None => Path::new(
-            &std::env::var_os("HOME").ok_or_else(|| PlatformError::Os("HOME is not set".into()))?,
-        )
-        .join(".local/share"),
+        None => home()?.join(".local/share"),
     };
     Ok(base.join("applications"))
+}
+
+/// `$XDG_CONFIG_HOME/mimeapps.list`, the user's default-application registry.
+fn mimeapps_path() -> Result<PathBuf, PlatformError> {
+    let base = match std::env::var_os("XDG_CONFIG_HOME") {
+        Some(d) => PathBuf::from(d),
+        None => home()?.join(".config"),
+    };
+    Ok(base.join("mimeapps.list"))
+}
+
+fn write_atomically(path: &Path, contents: &str) -> Result<(), PlatformError> {
+    let os = |e: std::io::Error| PlatformError::Os(format!("{}: {e}", path.display()));
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir).map_err(os)?;
+    }
+    let tmp = path.with_extension("list.tmp");
+    std::fs::write(&tmp, contents).map_err(os)?;
+    std::fs::rename(&tmp, path).map_err(os)
 }
 
 /// Write (or refresh) `~/.local/share/applications/signpost.desktop`.
@@ -57,23 +82,41 @@ pub fn ensure_desktop_file() -> Result<PathBuf, PlatformError> {
 /// Register the desktop entry and make it the default browser.
 pub fn register() -> Result<Outcome, PlatformError> {
     ensure_desktop_file()?;
-    // Best effort: refreshes the desktop database when the tool exists.
-    let _ = run_tool("update-desktop-database", &[]);
-    run_tool("xdg-settings", &["set", "default-web-browser", DESKTOP_ID])?;
-    run_tool(
-        "xdg-mime",
-        &[
-            "default",
-            DESKTOP_ID,
-            "x-scheme-handler/http",
-            "x-scheme-handler/https",
-        ],
+    let path = mimeapps_path()?;
+    let current = match std::fs::read_to_string(&path) {
+        Ok(text) => text,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(e) => return Err(PlatformError::Os(format!("{}: {e}", path.display()))),
+    };
+    write_atomically(
+        &path,
+        &super::mimeapps::set_default_browser(&current, DESKTOP_ID),
     )?;
+    // Best effort: some desktops keep their own setting, and the database
+    // refresh only matters for menus. Neither failure undoes the edit above.
+    for (tool, args) in [
+        ("update-desktop-database", vec![]),
+        (
+            "xdg-settings",
+            vec!["set", "default-web-browser", DESKTOP_ID],
+        ),
+    ] {
+        if let Err(error) = run_tool(tool, &args) {
+            log::info!("{error} (ignored)");
+        }
+    }
     Ok(Outcome::Done)
 }
 
-/// Compare `xdg-settings get default-web-browser` with our id.
+/// Read the `https` handler from `mimeapps.list`; fall back to
+/// `xdg-settings` when the file has no opinion.
 pub fn is_default() -> Result<bool, PlatformError> {
+    let path = mimeapps_path()?;
+    if let Ok(text) = std::fs::read_to_string(&path) {
+        if let Some(handler) = super::mimeapps::default_https_handler(&text) {
+            return Ok(handler == DESKTOP_ID);
+        }
+    }
     let current = run_tool("xdg-settings", &["get", "default-web-browser"])?;
     Ok(current.trim() == DESKTOP_ID)
 }
