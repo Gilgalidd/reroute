@@ -30,6 +30,9 @@ Nothing yet.
 
 ## [0.1.0] - 2026-09-18
 
+Tagged but never published: superseded by 0.1.1 before release. The tag is
+kept so that version comparisons resolve.
+
 ### Added
 
 - Picker window with keyboard navigation (1–9, arrows, Enter, Esc) and a
