@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { api, describeError } from "../lib/api";
   import { applyTheme } from "../lib/theme";
+  import { normalizeConfig } from "../lib/config";
   import type { Config } from "../lib/types";
   import Banner from "../components/Banner.svelte";
   import BrowsersTab from "../components/BrowsersTab.svelte";
@@ -25,8 +26,9 @@
   const dirty = $derived(draft !== null && JSON.stringify(draft) !== saved);
 
   function adopt(config: Config) {
-    draft = config;
-    saved = JSON.stringify(config);
+    const full = normalizeConfig(config);
+    draft = full;
+    saved = JSON.stringify(full);
   }
 
   async function load() {

@@ -6,7 +6,11 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- Settings: adding a launch option to a browser that had none failed with
+  "undefined is not an object": Rust omits empty collections from the
+  configuration it sends, and the UI now fills them in on load.
 
 ## [0.1.0] - 2026-09-18
 
