@@ -145,15 +145,21 @@ pub fn ensure_desktop_file() -> Result<PathBuf, PlatformError> {
 pub fn register() -> Result<Outcome, PlatformError> {
     let id = desktop_id();
     if id == DESKTOP_ID {
-        ensure_desktop_file()?;
-    }
-    for (tool, args) in [
-        ("update-desktop-database", vec![]),
-        ("xdg-settings", vec!["set", "default-web-browser", id]),
-    ] {
-        if let Err(error) = run_tool(tool, &args) {
-            log::info!("{error} (ignored)");
+        let path = ensure_desktop_file()?;
+        // Refresh only the directory we just wrote into. Called without an
+        // argument the tool tries the system directories, which need root and
+        // which the package manager already refreshed.
+        if let Some(dir) = path.parent().and_then(std::path::Path::to_str) {
+            if let Err(error) = run_tool("update-desktop-database", &[dir]) {
+                log::info!("{error} (ignored)");
+            }
         }
+    }
+    // Some desktops keep their own notion of the default browser. On KDE this
+    // one needs `qtpaths` and fails without it, which is why the authoritative
+    // step below is our own edit of mimeapps.list.
+    if let Err(error) = run_tool("xdg-settings", &["set", "default-web-browser", id]) {
+        log::debug!("{error} (ignored)");
     }
     let path = mimeapps_path()?;
     let current = match std::fs::read_to_string(&path) {

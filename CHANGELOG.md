@@ -6,7 +6,12 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- Linux: registering no longer prints a spurious `update-desktop-database`
+  failure. The database is refreshed only for the directory Reroute writes
+  into, and only when it writes a user-level entry; the packaged entry is
+  already registered by the package manager.
 
 ## [0.1.1] - 2026-09-18
 
