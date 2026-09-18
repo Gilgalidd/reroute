@@ -49,6 +49,36 @@ fn applications_dir() -> Result<PathBuf, PlatformError> {
     Ok(base.join("applications"))
 }
 
+/// Path of the `size`×`size` application icon inside a hicolor theme rooted
+/// at `data_dir` (`$XDG_DATA_HOME` or `/usr/share`). Packaged installs use
+/// the same layout, so `Icon=signpost` in the desktop entry resolves either way.
+pub fn icon_path(data_dir: &Path, size: u32) -> PathBuf {
+    data_dir
+        .join("icons/hicolor")
+        .join(format!("{size}x{size}"))
+        .join("apps")
+        .join("signpost.png")
+}
+
+/// Install the application icons into the user's hicolor theme so that the
+/// desktop entry (and therefore the window title bar and task bar under
+/// Wayland) shows a logo when Signpost runs from outside a package.
+pub fn install_icons(icons: &[(u32, &[u8])]) -> Result<(), PlatformError> {
+    let data_dir = match std::env::var_os("XDG_DATA_HOME") {
+        Some(d) => PathBuf::from(d),
+        None => home()?.join(".local/share"),
+    };
+    for (size, png) in icons {
+        let path = icon_path(&data_dir, *size);
+        let os = |e: std::io::Error| PlatformError::Os(format!("{}: {e}", path.display()));
+        if let Some(dir) = path.parent() {
+            std::fs::create_dir_all(dir).map_err(os)?;
+        }
+        std::fs::write(&path, png).map_err(os)?;
+    }
+    Ok(())
+}
+
 /// `$XDG_CONFIG_HOME/mimeapps.list`, the user's default-application registry.
 fn mimeapps_path() -> Result<PathBuf, PlatformError> {
     let base = match std::env::var_os("XDG_CONFIG_HOME") {
@@ -141,6 +171,20 @@ mod tests {
         assert!(text.contains("Exec=\"/opt/sign post/bin/signpost\" %u"));
         assert!(text.contains("x-scheme-handler/https;"));
         assert!(text.starts_with("[Desktop Entry]\n"));
+    }
+
+    #[test]
+    fn icons_follow_the_hicolor_layout() {
+        assert_eq!(
+            icon_path(Path::new("/usr/share"), 128),
+            PathBuf::from("/usr/share/icons/hicolor/128x128/apps/signpost.png")
+        );
+        let dir = tempfile::tempdir().unwrap();
+        std::env::set_var("XDG_DATA_HOME", dir.path());
+        install_icons(&[(32, b"\x89PNG"), (64, b"\x89PNG")]).unwrap();
+        std::env::remove_var("XDG_DATA_HOME");
+        assert!(icon_path(dir.path(), 32).is_file());
+        assert!(icon_path(dir.path(), 64).is_file());
     }
 
     #[test]

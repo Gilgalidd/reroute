@@ -220,6 +220,9 @@ pub fn default_browser_status() -> Result<bool, String> {
 /// Ask the system to make Signpost the default browser.
 #[tauri::command]
 pub fn register_default_browser() -> Result<signpost_platform::register::Outcome, String> {
+    if let Err(error) = signpost_platform::register::install_icons(crate::APP_ICONS) {
+        log::warn!("icons not installed: {error}");
+    }
     signpost_platform::register::register().map_err(|e| e.to_string())
 }
 

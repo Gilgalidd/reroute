@@ -24,6 +24,9 @@ All notable changes to Signpost are documented here. The format follows
 
 - Linux: desktop entries restricted with `OnlyShowIn`/`NotShowIn` (such as
   the snap Chromium stub whose `Exec` is `/usr/bin/false`) are skipped.
+- Linux: registering from an unpackaged binary now installs the application
+  icons into `~/.local/share/icons/hicolor`, so the window and task-bar icon
+  resolve under Wayland.
 - Linux: default-browser registration edits `mimeapps.list` directly and
   verifies it, because `xdg-settings` on KDE needs `qtpaths` and restores
   the previous browser when its own write fails.

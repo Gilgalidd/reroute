@@ -39,6 +39,19 @@ pub fn is_default() -> Result<bool, PlatformError> {
     Err(PlatformError::Unsupported)
 }
 
+/// Install application icons where the desktop looks for them. Only Linux
+/// needs this (macOS bundles and Windows executables carry their own icon);
+/// `icons` pairs a square size with PNG bytes.
+pub fn install_icons(icons: &[(u32, &[u8])]) -> Result<(), PlatformError> {
+    #[cfg(target_os = "linux")]
+    return linux::install_icons(icons);
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = icons;
+        Ok(())
+    }
+}
+
 /// Ask the system to make Signpost the default browser.
 pub fn register() -> Result<Outcome, PlatformError> {
     #[cfg(target_os = "linux")]

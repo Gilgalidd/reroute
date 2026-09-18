@@ -23,6 +23,16 @@ use tauri::Manager;
 
 use crate::state::AppState;
 
+/// Application icons embedded for the Linux user-level registration (see
+/// `signpost_platform::register::install_icons`).
+pub const APP_ICONS: &[(u32, &[u8])] = &[
+    (32, include_bytes!("../icons/32x32.png")),
+    (64, include_bytes!("../icons/64x64.png")),
+    (128, include_bytes!("../icons/128x128.png")),
+    (256, include_bytes!("../icons/128x128@2x.png")),
+    (512, include_bytes!("../icons/icon.png")),
+];
+
 /// Entry point called from `main`.
 pub fn run() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
@@ -95,6 +105,9 @@ pub fn run() {
 /// `signpost --make-default`: for installers and scripts. Prints the outcome
 /// and exits non-zero on failure.
 fn make_default_from_cli() {
+    if let Err(error) = signpost_platform::register::install_icons(APP_ICONS) {
+        eprintln!("icons not installed: {error}");
+    }
     match signpost_platform::register::register() {
         Ok(signpost_platform::register::Outcome::Done) => {
             let verified = signpost_platform::register::is_default().unwrap_or(false);

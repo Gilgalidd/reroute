@@ -54,6 +54,10 @@ cd apps/desktop && npm run tauri build
 `just check`, `just dev`, `just dev-url https://…` and `just bundle` wrap the
 same commands.
 
+On Linux under Wayland the window icon comes from the desktop entry, which
+only exists after registering: run `signpost --make-default` once (it also
+installs the icons into `~/.local/share/icons/hicolor`).
+
 Set `RUST_LOG=debug` to see what Signpost decides and why; logs go to stderr.
 Set `SIGNPOST_CONFIG_DIR=/tmp/signpost-dev` to keep a scratch configuration
 while developing.
