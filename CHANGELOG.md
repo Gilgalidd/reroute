@@ -6,7 +6,14 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- Detection now fills in launch options: a private or incognito window for
+  browsers that support one, and one entry per profile for browsers that
+  have several. Profile names come from the browser's own configuration
+  (`profiles.ini` for the Firefox family, `Local State` for the Chromium
+  family). Options you already have keep their id and name, so rules and
+  renames survive; nothing is removed.
 
 ## [0.1.3] - 2026-09-22
 

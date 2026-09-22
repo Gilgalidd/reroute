@@ -193,12 +193,20 @@ impl Config {
     }
 
     /// Add discovered browsers that are not yet known, matching on the
-    /// executable path. Existing entries (and their ids) are untouched, so
-    /// rules keep working. Returns how many entries were added.
+    /// executable path, and give browsers already known any launch option
+    /// they lack. Existing entries and their ids are never changed, so
+    /// rules keep working and a renamed option stays renamed. Returns how
+    /// many browsers were added.
     pub fn merge_discovered(&mut self, discovered: Vec<Browser>) -> usize {
         let mut added = 0;
         for candidate in discovered {
-            if !self.browsers.iter().any(|b| b.path == candidate.path) {
+            if let Some(known) = self.browsers.iter_mut().find(|b| b.path == candidate.path) {
+                for launch in candidate.launches {
+                    if !known.launches.iter().any(|l| l.args == launch.args) {
+                        known.launches.push(launch);
+                    }
+                }
+            } else {
                 self.browsers.push(candidate);
                 added += 1;
             }
@@ -415,6 +423,41 @@ mod tests {
         assert_eq!(c.browsers.len(), 3);
         assert_eq!(c.browsers[0].id, known_id);
         assert_eq!(c.browsers[2].name, "Brave");
+    }
+
+    #[test]
+    fn merge_discovered_adds_missing_launch_options_to_known_browsers() {
+        let mut c = sample();
+        let firefox = c.browsers[0].id;
+        let kept = c.browsers[0].launches[0].id;
+
+        let mut found = Browser::new("Firefox", abs("/usr/bin/firefox"));
+        found.launches = vec![
+            // Same arguments as the one already there, under another name.
+            Launch {
+                id: LaunchId::new(),
+                name: "Private".into(),
+                args: vec!["-p".into()],
+            },
+            Launch {
+                id: LaunchId::new(),
+                name: "Profile: Work".into(),
+                args: vec!["-P".into(), "Work".into()],
+            },
+        ];
+        assert_eq!(
+            c.merge_discovered(vec![found]),
+            0,
+            "the browser was already known"
+        );
+
+        let launches = &c.browsers[0].launches;
+        assert_eq!(launches.len(), 2, "only the unknown option was added");
+        assert_eq!(launches[0].id, kept, "the existing option keeps its id");
+        assert_eq!(launches[0].name, "Private", "and its name");
+        assert_eq!(launches[1].name, "Profile: Work");
+        assert_eq!(c.browsers[0].id, firefox);
+        c.validate().unwrap();
     }
 
     #[test]

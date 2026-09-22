@@ -34,13 +34,24 @@
     if (item) config.browsers.splice(to, 0, item);
   }
 
+  /** Launch options across every browser, to report what detection added. */
+  function countLaunches(c: Config): number {
+    return c.browsers.reduce((total, b) => total + (b.launches?.length ?? 0), 0);
+  }
+
   async function detect() {
     message = null;
     try {
-      const before = config.browsers.length;
+      const browsersBefore = config.browsers.length;
+      const launchesBefore = countLaunches(config);
       const fresh = await api.discoverBrowsers();
       onreplace(fresh);
-      message = { tone: "info", text: `${fresh.browsers.length - before} new browser(s) added.` };
+      const browsers = fresh.browsers.length - browsersBefore;
+      const launches = countLaunches(fresh) - launchesBefore;
+      message = {
+        tone: "info",
+        text: `Added ${browsers} browser(s) and ${launches} launch option(s).`,
+      };
     } catch (e) {
       message = { tone: "error", text: describeError(e) };
     }
@@ -102,7 +113,10 @@
       </label>
 
       <h3>Launch options</h3>
-      <p class="muted">Profiles, private windows… shown on right-click in the picker.</p>
+      <p class="muted">
+        Profiles, private windows… shown on right-click in the picker. Detection fills these in
+        from the browser's own settings; your own entries and names are never changed.
+      </p>
       {#each selected.launches as launch, i (launch.id)}
         <div class="launch row">
           <input type="text" class="grow" bind:value={launch.name} placeholder="Private window" />

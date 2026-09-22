@@ -6,7 +6,7 @@
 
 use std::path::{Path, PathBuf};
 
-use reroute_core::Browser;
+use reroute_core::{Brand, Browser, Launch};
 
 #[cfg(target_os = "linux")]
 pub mod linux;
@@ -28,9 +28,38 @@ pub fn installed_browsers() -> Vec<Browser> {
     let mut found: Vec<Browser> = Vec::new();
 
     found.retain(|b| !is_self(&b.path));
+    for browser in &mut found {
+        browser.launches = launch_options(&browser.path);
+    }
     found.sort_by_key(|b| b.name.to_lowercase());
     found.dedup_by(|a, b| a.path == b.path);
     found
+}
+
+/// Offer what a browser can already do: open a private window, and open a
+/// given profile once it has more than one. The browser's own configuration
+/// is read for the profile names; nothing else is taken from it.
+pub fn launch_options(exe: &Path) -> Vec<Launch> {
+    let Some(brand) = Brand::from_program(exe) else {
+        return Vec::new();
+    };
+    let Some(home) = std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .map(PathBuf::from)
+    else {
+        return Vec::new();
+    };
+    launch_options_in(brand.key, &home, std::env::consts::OS)
+}
+
+/// The part of [`launch_options`] that only needs a home directory and an
+/// operating system name, so that it can be tested on any machine.
+pub(crate) fn launch_options_in(brand: &str, home: &Path, os: &str) -> Vec<Launch> {
+    let profiles = reroute_core::profiles::profile_files(brand, home, os)
+        .into_iter()
+        .find_map(|file| std::fs::read_to_string(file).ok())
+        .map_or_else(Vec::new, |text| reroute_core::profiles::parse(brand, &text));
+    reroute_core::profiles::launches(brand, &profiles)
 }
 
 /// Is `path` this very program? Guards against listing Reroute as a
@@ -65,6 +94,36 @@ mod tests {
         assert!(is_self(Path::new("/opt/reroute/reroute")));
         assert!(is_self(Path::new(r"C:\Program Files\Reroute\Reroute.exe")));
         assert!(!is_self(Path::new("/usr/bin/firefox")));
+    }
+
+    #[test]
+    fn profiles_and_private_windows_become_launch_options() {
+        let home = tempfile::tempdir().unwrap();
+        let firefox = home.path().join(".mozilla/firefox");
+        std::fs::create_dir_all(&firefox).unwrap();
+        std::fs::write(
+            firefox.join("profiles.ini"),
+            "[Profile0]\nName=default\n\n[Profile1]\nName=Work\n",
+        )
+        .unwrap();
+
+        let options = launch_options_in("firefox", home.path(), "linux");
+        let names: Vec<&str> = options.iter().map(|l| l.name.as_str()).collect();
+        assert_eq!(
+            names,
+            ["Private window", "Profile: default", "Profile: Work"]
+        );
+        assert_eq!(options[2].args, vec!["-P", "Work", "%URL%"]);
+    }
+
+    #[test]
+    fn a_browser_without_a_configuration_still_offers_private_browsing() {
+        let home = tempfile::tempdir().unwrap();
+        let options = launch_options_in("chrome", home.path(), "linux");
+        assert_eq!(options.len(), 1);
+        assert_eq!(options[0].name, "Incognito window");
+        // A browser Reroute has no flag for gets nothing rather than a guess.
+        assert!(launch_options_in("konqueror", home.path(), "linux").is_empty());
     }
 
     #[test]
