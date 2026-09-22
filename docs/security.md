@@ -92,7 +92,7 @@ rendered inside `<img>`, where scripts do not execute.
 ## Network use
 
 Reroute opens a socket for one thing only: asking which version is the
-newest, and only when you press the button in the settings window. There is
+newest, and only when you press the button in *Settings › About*. There is
 no telemetry, no remote icon, no background traffic, and no connection at
 all on the path that opens a link.
 

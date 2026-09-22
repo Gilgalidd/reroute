@@ -1,19 +1,21 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { beforeEach, describe, expect, it } from "vitest";
-import GeneralTab from "./GeneralTab.svelte";
-import { mockIpc, sparseConfig } from "../test/ipc";
-import { normalizeConfig } from "../lib/config";
+import AboutTab from "./AboutTab.svelte";
+import { mockIpc } from "../test/ipc";
 
 const PAGE = "https://github.com/Gilgalidd/reroute/releases/latest";
 
 function show(handlers: Record<string, () => unknown> = {}) {
-  const ipc = mockIpc({ default_browser_status: () => true, ...handlers });
-  render(GeneralTab, { props: { config: normalizeConfig(sparseConfig()) } });
+  const ipc = mockIpc({
+    app_info: () => ({ version: "0.1.2", config_path: "/tmp/config.toml", platform: "linux" }),
+    ...handlers,
+  });
+  render(AboutTab);
   return ipc;
 }
 
-describe("General tab, version check", () => {
+describe("About tab, version check", () => {
   beforeEach(() => {
     document.body.innerHTML = "";
   });
