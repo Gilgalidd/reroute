@@ -6,8 +6,11 @@ understand in an afternoon, so the bar is "clear and boring" rather than
 
 ## Ground rules
 
-- **No network.** Reroute never opens a socket. Pull requests that add an
-  HTTP client, telemetry or auto-update will be declined (see `deny.toml`).
+- **One network call, and only one.** The version check in
+  `reroute-platform` is the only reason Reroute may open a socket, and it
+  runs only when the user asks. Pull requests adding telemetry, remote
+  assets, self-installing updates or a second HTTP client will be declined;
+  `deny.toml` enforces the client rule.
 - **No shell.** Browsers are spawned with an argument vector, never through
   `sh -c` or `cmd /C`.
 - **No `unsafe`** outside `crates/platform/src/register/macos.rs`, and none

@@ -14,6 +14,7 @@
 //!   integrity checks, and [`ConfigStore`] for atomic, private I/O.
 //! * [`import`] — one-way converters from other tools (currently Hurl).
 //! * [`Brand`] — recognises well-known browsers for fallback icons.
+//! * [`release`] — comparing the running version with the published one.
 //!
 //! The crate deliberately has no dependency on any GUI or OS API so that
 //! its behaviour is fully covered by fast unit and property tests.
@@ -26,6 +27,7 @@ pub mod browser;
 pub mod config;
 pub mod error;
 pub mod import;
+pub mod release;
 pub mod rules;
 pub mod store;
 pub mod url;

@@ -246,6 +246,43 @@ pub fn import_hurl(state: State<'_, AppState>, json: String) -> Result<ImportRep
     })
 }
 
+/// Ask which version is the newest. This is the only command that reaches
+/// the network, and it runs only when the user presses the button. Nothing
+/// is downloaded: the answer is a version number and a link.
+#[tauri::command]
+pub async fn check_latest_release() -> Result<reroute_core::release::LatestRelease, String> {
+    let current = env!("CARGO_PKG_VERSION");
+    tauri::async_runtime::spawn_blocking(move || reroute_platform::release::latest_release(current))
+        .await
+        .map_err(|e| format!("the check could not run: {e}"))?
+        .map_err(|e| e.to_string())
+}
+
+/// Open the download page in a browser. The address is a constant, never
+/// something a server sent us.
+#[tauri::command]
+pub fn open_release_page(state: State<'_, AppState>) -> Result<(), String> {
+    let url = SafeUrl::parse(reroute_core::release::RELEASES_PAGE).map_err(|e| e.to_string())?;
+    let config = state.config();
+    let matched = if config.settings.rules_enabled {
+        reroute_core::rules::find_match(&config.rulesets, &url)
+    } else {
+        None
+    };
+    let (browser, launch) = match matched {
+        Some(found) => (found.browser, found.launch),
+        None => (
+            config
+                .visible_browsers()
+                .next()
+                .ok_or("no browser is configured")?
+                .id,
+            None,
+        ),
+    };
+    incoming::launch(&config, &url, browser, launch).map_err(|e| e.to_string())
+}
+
 /// Static facts for the About tab.
 #[derive(Serialize, Deserialize)]
 pub struct AppInfo {

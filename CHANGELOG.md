@@ -6,7 +6,13 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- A **Check for a new version** button in the settings, under *General*. It
+  asks GitHub which release is newest, says whether the running version is
+  behind, and offers to open the download page in a browser. Reroute
+  downloads and installs nothing by itself, sends nothing about you, and
+  makes no request unless the button is pressed.
 
 ## [0.1.2] - 2026-09-22
 

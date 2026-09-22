@@ -89,12 +89,30 @@ Icons are read by Rust, size-capped (2 MiB), type-checked by magic bytes
 (PNG, ICO, SVG, ICNS→PNG) and passed to the page as `data:` URLs. SVG is
 rendered inside `<img>`, where scripts do not execute.
 
-## Zero network
+## Network use
 
-Reroute never opens a socket: no update check, no telemetry, no remote
-icons. `deny.toml` bans HTTP client crates from the dependency graph and CI
-enforces it with `cargo deny`. Updates come from your package manager or the
-Releases page.
+Reroute opens a socket for one thing only: asking which version is the
+newest, and only when you press the button in the settings window. There is
+no telemetry, no remote icon, no background traffic, and no connection at
+all on the path that opens a link.
+
+That check is deliberately small:
+
+- One HTTPS GET of an address compiled into the binary, with a ten second
+  timeout and a size limit on the answer.
+- Nothing about you is sent: no version, no configuration, no browser list.
+  The request carries a bare `reroute` user agent and nothing else.
+- Nothing is downloaded, installed or executed. The answer is compared with
+  the running version, and the result is a number and a link.
+- The page Reroute offers to open is a constant, never an address taken
+  from the answer. A tampered or hostile answer can at worst display a wrong
+  version number.
+- An answer that does not parse, or that names a version older than or equal
+  to the running one, never claims an update is available.
+
+`deny.toml` allows one HTTP client in the dependency graph, only underneath
+`reroute-platform`; any other one fails CI. TLS goes through rustls, so
+OpenSSL is absent.
 
 ## Memory safety and `unsafe`
 

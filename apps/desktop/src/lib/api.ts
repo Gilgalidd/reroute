@@ -9,6 +9,7 @@ import type {
   ImportReport,
   LaunchContext,
   RegisterOutcome,
+  LatestRelease,
   TestResult,
   Uuid,
 } from "./types";
@@ -28,6 +29,11 @@ export const api = {
   registerDefaultBrowser: () => invoke<RegisterOutcome>("register_default_browser"),
   importHurl: (json: string) => invoke<ImportReport>("import_hurl", { json }),
   appInfo: () => invoke<AppInfo>("app_info"),
+
+  /** The only call that reaches the network, and only on demand. */
+  checkLatestRelease: () => invoke<LatestRelease>("check_latest_release"),
+  /** Open the download page in a browser. */
+  openReleasePage: () => invoke<void>("open_release_page"),
 
   /** Fired by the Rust side when the pending URL changes (macOS). */
   onContextChanged: (handler: () => void): Promise<UnlistenFn> =>

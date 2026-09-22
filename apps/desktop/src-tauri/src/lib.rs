@@ -72,6 +72,8 @@ pub fn run() {
             commands::register_default_browser,
             commands::import_hurl,
             commands::app_info,
+            commands::check_latest_release,
+            commands::open_release_page,
         ])
         .setup(move |app| {
             let handle = app.handle();

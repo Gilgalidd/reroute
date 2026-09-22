@@ -8,6 +8,7 @@
 //! * [`launch::launch`] — spawn a [`reroute_core::LaunchPlan`].
 //! * [`register`] — make Reroute the default browser, or check if it is.
 //! * [`icons::load_icon`] — read a local icon file for display.
+//! * [`release::latest_release`] — the one network request, on demand.
 //! * [`paths::config_dir`] — where `config.toml` lives.
 //!
 //! Each OS-specific module keeps a pure, unit-tested parsing layer
@@ -22,6 +23,7 @@ pub mod icons;
 pub mod launch;
 pub mod paths;
 pub mod register;
+pub mod release;
 
 /// Errors from OS integration.
 #[derive(Debug, thiserror::Error)]

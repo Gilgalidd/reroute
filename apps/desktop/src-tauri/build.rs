@@ -16,6 +16,8 @@ fn main() {
         "register_default_browser",
         "import_hurl",
         "app_info",
+        "check_latest_release",
+        "open_release_page",
     ];
     let attributes = tauri_build::Attributes::new()
         .app_manifest(tauri_build::AppManifest::new().commands(commands));

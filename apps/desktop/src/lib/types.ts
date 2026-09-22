@@ -78,6 +78,15 @@ export interface ImportReport {
   notes: string[];
 }
 
+export interface LatestRelease {
+  /** Published version, without any leading `v`. */
+  version: string;
+  /** Whether it is newer than the running one. */
+  newer: boolean;
+  /** Fixed download page; never a URL taken from a server answer. */
+  page: string;
+}
+
 export interface AppInfo {
   version: string;
   config_path: string;

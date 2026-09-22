@@ -2,7 +2,9 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "settings",
   "description": "The settings window may read and write the configuration and manage the default-browser registration.",
-  "windows": ["settings"],
+  "windows": [
+    "settings"
+  ],
   "permissions": [
     "core:default",
     "allow-get-config",
@@ -12,6 +14,8 @@
     "allow-default-browser-status",
     "allow-register-default-browser",
     "allow-import-hurl",
-    "allow-app-info"
+    "allow-app-info",
+    "allow-check-latest-release",
+    "allow-open-release-page"
   ]
 }

@@ -1,13 +1,39 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { api, describeError } from "../lib/api";
-  import type { Config, ImportReport } from "../lib/types";
+  import type { Config, ImportReport, LatestRelease } from "../lib/types";
   import Banner from "./Banner.svelte";
 
   let { config = $bindable() }: { config: Config } = $props();
 
   let isDefault = $state<boolean | null>(null);
   let registerMessage = $state<{ tone: "info" | "error" | "success"; text: string } | null>(null);
+  let checking = $state(false);
+  let latest = $state<LatestRelease | null>(null);
+  let versionError = $state<string | null>(null);
+
+  async function checkVersion() {
+    checking = true;
+    versionError = null;
+    latest = null;
+    try {
+      latest = await api.checkLatestRelease();
+    } catch (e) {
+      versionError = describeError(e);
+    } finally {
+      checking = false;
+    }
+  }
+
+  async function openReleasePage() {
+    versionError = null;
+    try {
+      await api.openReleasePage();
+    } catch (e) {
+      versionError = describeError(e);
+    }
+  }
+
   let hurlJson = $state("");
   let importReport = $state<ImportReport | null>(null);
   let importError = $state<string | null>(null);
@@ -81,6 +107,35 @@
         <option value="dark">Dark</option>
       </select>
     </label>
+  </section>
+
+  <section class="card">
+    <h3>Version</h3>
+    <div class="row">
+      <button type="button" onclick={checkVersion} disabled={checking}>
+        {checking ? "Checking…" : "Check for a new version"}
+      </button>
+      {#if latest?.newer}
+        <button type="button" class="primary" onclick={openReleasePage}>
+          Open the download page
+        </button>
+      {/if}
+    </div>
+    <div role="status" aria-live="polite">
+      {#if latest?.newer}
+        Version <strong>{latest.version}</strong> is available.
+      {:else if latest}
+        You have the latest version ({latest.version}).
+      {/if}
+    </div>
+    {#if versionError}
+      <Banner tone="error">{versionError}</Banner>
+    {/if}
+    <p class="muted">
+      Checking asks GitHub which version is newest, and nothing else: no download, no
+      installation, and nothing sent about you or your browsers. It happens only when you press
+      the button.
+    </p>
   </section>
 
   <section class="card">
