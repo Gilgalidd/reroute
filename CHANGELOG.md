@@ -6,8 +6,21 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.1.2] - 2026-09-22
+
+### Changed
+
+- macOS is now a single universal `.dmg` that runs natively on Apple Silicon
+  (M1 and later) and on Intel, instead of one download per architecture.
+
 ### Fixed
 
+- macOS: the app bundle is now signed ad hoc. Without any signature, Apple
+  Silicon Macs reported the downloaded app as "damaged" and refused to open
+  it, so only the Intel build could be used there (through Rosetta). The
+  release workflow now verifies both architectures and the signature.
 - Linux: registering no longer prints a spurious `update-desktop-database`
   failure. The database is refreshed only for the directory Reroute writes
   into, and only when it writes a user-level entry; the packaged entry is
@@ -70,6 +83,7 @@ kept so that version comparisons resolve.
   verifies it, because `xdg-settings` on KDE needs `qtpaths` and restores
   the previous browser when its own write fails.
 
-[Unreleased]: https://github.com/Gilgalidd/reroute/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/Gilgalidd/reroute/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/Gilgalidd/reroute/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Gilgalidd/reroute/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Gilgalidd/reroute/releases/tag/v0.1.0

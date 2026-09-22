@@ -122,5 +122,21 @@ if you fix a bug they found.
 3. The `release` workflow builds installers on the three platforms and
    attaches them to a draft GitHub release. Review, then publish.
 
-Code signing and notarisation are not configured; installers are unsigned
-until certificates are added to the workflow (`.github/workflows/release.yml`).
+macOS ships as one universal build (`--target universal-apple-darwin`): the
+same `.dmg` runs natively on Apple Silicon and on Intel. The workflow then
+checks, on the macOS runner, that the binary contains both `arm64` and
+`x86_64` and that the app bundle, both on disk and inside the `.dmg`, has a
+valid signature. A failed check fails the release.
+
+### Code signing
+
+- **macOS** apps are signed *ad hoc* (`"signingIdentity": "-"` in
+  `tauri.conf.json`). Apple Silicon refuses to run code without any
+  signature, and an unsigned bundle downloaded from the web is reported as
+  "damaged". Ad-hoc signing needs no certificate; users still confirm the
+  first launch because the app is not notarised. To notarise, add the
+  `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_ID`,
+  `APPLE_PASSWORD` and `APPLE_TEAM_ID` secrets and set `signingIdentity` to
+  the certificate's name; the Tauri bundler picks them up.
+- **Windows** installers are unsigned; SmartScreen asks for confirmation
+  until a code-signing certificate is configured.

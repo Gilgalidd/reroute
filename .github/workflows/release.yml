@@ -21,12 +21,11 @@ jobs:
           - name: windows-x86_64
             os: windows-latest
             args: ""
-          - name: macos-arm64
+          # One universal build: a single .dmg that runs natively on Apple
+          # Silicon (M-series) and on Intel Macs.
+          - name: macos-universal
             os: macos-latest
-            args: "--target aarch64-apple-darwin"
-          - name: macos-x86_64
-            os: macos-latest
-            args: "--target x86_64-apple-darwin"
+            args: "--target universal-apple-darwin"
     steps:
       - uses: actions/checkout@v5
       - name: Linux system dependencies
@@ -53,7 +52,46 @@ jobs:
           projectPath: apps/desktop
           tagName: ${{ github.ref_name }}
           releaseName: Reroute ${{ github.ref_name }}
-          releaseBody: See CHANGELOG.md for details.
+          releaseBody: |
+            Choose a browser for each link. What changed is listed in [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/CHANGELOG.md).
+
+            | Platform | File |
+            |---|---|
+            | Debian, Ubuntu | `Reroute_*_amd64.deb` |
+            | Fedora, openSUSE | `Reroute-*.x86_64.rpm` |
+            | Any Linux | `Reroute_*_amd64.AppImage` |
+            | Windows | `Reroute_*_x64-setup.exe` or `Reroute_*_x64_en-US.msi` |
+            | macOS, Apple Silicon (M1 and later) and Intel | `Reroute_*_universal.dmg` |
+
+            The installers are not signed with a paid certificate. Windows SmartScreen asks for confirmation. On macOS, open the app once with right-click › Open, or on macOS 15 and later click *Open Anyway* in System Settings › Privacy & Security.
           releaseDraft: true
           prerelease: ${{ contains(github.ref_name, '-') }}
           args: ${{ matrix.args }}
+      # Fail the release rather than ship a Mac build that will not open:
+      # the binary must contain both architectures and the bundle must carry
+      # a valid (ad-hoc) signature, which Apple Silicon requires.
+      - name: Verify the macOS bundle
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle=target/universal-apple-darwin/release/bundle
+          check_app() {
+            local app="$1" bin="$1/Contents/MacOS/reroute" archs
+            archs=" $(lipo -archs "$bin") "
+            echo "architectures of $bin:$archs"
+            [[ "$archs" == *" arm64 "* && "$archs" == *" x86_64 "* ]] || { echo "::error::$bin is not universal"; exit 1; }
+            codesign --verify --deep --strict --verbose=2 "$app"
+            codesign -dv "$app" 2>&1 | grep -E "^(Identifier|Format|Signature)="
+          }
+          echo "::group::Reroute.app"
+          check_app "$bundle/macos/Reroute.app"
+          echo "::endgroup::"
+          echo "::group::Reroute.app inside the .dmg"
+          dmg=$(ls "$bundle"/dmg/*.dmg)
+          echo "disk image: $dmg"
+          mnt=$(mktemp -d)
+          hdiutil attach -nobrowse -readonly -mountpoint "$mnt" "$dmg" >/dev/null
+          trap 'hdiutil detach "$mnt" >/dev/null || true' EXIT
+          check_app "$mnt/Reroute.app"
+          echo "::endgroup::"
