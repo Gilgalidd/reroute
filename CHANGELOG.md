@@ -6,6 +6,10 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.1.3] - 2026-09-22
+
 ### Added
 
 - A **Check for a new version** button in the settings, under *About*. It
@@ -89,7 +93,8 @@ kept so that version comparisons resolve.
   verifies it, because `xdg-settings` on KDE needs `qtpaths` and restores
   the previous browser when its own write fails.
 
-[Unreleased]: https://github.com/Gilgalidd/reroute/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/Gilgalidd/reroute/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/Gilgalidd/reroute/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Gilgalidd/reroute/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Gilgalidd/reroute/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Gilgalidd/reroute/releases/tag/v0.1.0

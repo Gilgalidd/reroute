@@ -2750,7 +2750,7 @@ dependencies = [
 
 [[package]]
 name = "reroute"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "base64 0.22.1",
  "env_logger",
@@ -2765,7 +2765,7 @@ dependencies = [
 
 [[package]]
 name = "reroute-core"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "proptest",
  "regex",
@@ -2782,7 +2782,7 @@ dependencies = [
 
 [[package]]
 name = "reroute-platform"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "core-foundation",
  "directories",
