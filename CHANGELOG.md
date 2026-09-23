@@ -6,6 +6,16 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.1.5] - 2026-09-23
+
+### Added
+
+- The configuration reference explains how to add profiles and private
+  windows by hand, with the arguments each browser family takes and where to
+  find a profile's name or directory.
+
 ### Changed
 
 - Detection no longer reads a browser's profile list. It still offers a
@@ -111,7 +121,8 @@ kept so that version comparisons resolve.
   verifies it, because `xdg-settings` on KDE needs `qtpaths` and restores
   the previous browser when its own write fails.
 
-[Unreleased]: https://github.com/Gilgalidd/reroute/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/Gilgalidd/reroute/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/Gilgalidd/reroute/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/Gilgalidd/reroute/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/Gilgalidd/reroute/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Gilgalidd/reroute/compare/v0.1.1...v0.1.2

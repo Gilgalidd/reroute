@@ -69,17 +69,84 @@ args = ["--private-window", "%URL%"]
 - `launches` are alternative argument lists shown on right-click. They have
   their own `id` so rules can target a profile directly.
 
-  **Detection adds one of these.** *Browsers › Detect installed* offers each
-  browser's private window (`--private-window`, `--incognito`,
-  `--inprivate`… depending on the browser), and nothing else: profiles are
-  yours to add, because only you know which ones deserve a place in the
-  picker. Entries you already have keep their id and their name, so rules
-  and renames survive a new detection; an entry is added only when no
-  existing one has the same arguments.
+  *Browsers › Detect installed* adds the browser's private window and
+  nothing else; profiles are yours to add, as described in
+  [Profiles and private windows](#profiles-and-private-windows). Entries you
+  already have keep their id and their name, so rules and renames survive a
+  new detection; an entry is added only when no existing one has the same
+  arguments.
 
-  To add a profile by hand, use the arguments the browser documents:
-  `-P <name>` or `--profile <directory>` for the Firefox family,
-  `--profile-directory=<directory>` for the Chromium family.
+## Profiles and private windows
+
+A launch option is just a different argument list, so anything a browser
+accepts on the command line can become an entry in the picker's right-click
+menu, and a target for a rule.
+
+### Private windows
+
+Detection adds this one for you. The argument differs by family:
+
+| Browser | Argument |
+|---------|----------|
+| Firefox, LibreWolf, Waterfox, Floorp, Zen, Tor, Mullvad | `--private-window` |
+| Chrome, Chromium, Brave, Vivaldi, Thorium | `--incognito` |
+| Edge | `--inprivate` |
+| Opera | `--private` |
+| GNOME Web | `--incognito-mode` |
+| Falkon | `--private-browsing` |
+
+Safari has no such argument, so nothing is offered for it.
+
+### Firefox profiles
+
+Firefox selects a profile either by name or by directory:
+
+```toml
+[[browsers.launches]]
+name = "Profile: Work"
+args = ["-P", "Work", "%URL%"]
+
+[[browsers.launches]]
+name = "Profile: Personal"
+args = ["--profile", "/home/you/.mozilla/firefox/abc123.personal", "%URL%"]
+```
+
+Open `about:profiles` in Firefox to see both: *Name* is what `-P` wants,
+*Root Directory* is what `--profile` wants. Prefer `--profile` with the
+directory when the profile was created by the profile selector of recent
+versions: those profiles are not listed in `profiles.ini`, so `-P` does not
+find them.
+
+Snap and Flatpak installations keep their profiles under their own home,
+for instance `~/snap/firefox/common/.mozilla/firefox/`; `about:profiles`
+shows the right path in every case.
+
+### Chromium profiles
+
+Chromium browsers select a profile by the name of its **directory**, not by
+the name you see in the browser:
+
+```toml
+[[browsers.launches]]
+name = "Profile: Work"
+args = ["--profile-directory=Profile 1", "%URL%"]
+
+[[browsers.launches]]
+name = "Profile: Personal"
+args = ["--profile-directory=Default", "%URL%"]
+```
+
+Open `chrome://version` in the profile you want and read *Profile Path*: the
+last part of it (`Default`, `Profile 1`, `Profile 2`…) is the value to use.
+The same works for Chrome, Edge, Brave, Vivaldi and the rest of the family.
+
+### One thing to expect
+
+If the browser is already running, it usually hands the link to the window
+already open and ignores the profile argument. Firefox accepts
+`--new-instance` to force a separate one, at the price of an error when that
+profile is already in use. This is how the browsers behave on their own;
+Reroute passes the arguments and nothing more.
 
 ## Rulesets
 
