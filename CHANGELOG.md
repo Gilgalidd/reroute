@@ -6,7 +6,16 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+
+- A new look, "Expressive": a warmer paper-and-ink palette, violet and coral
+  accents, rounder tiles, and a three-pixel gradient line along the top of the
+  picker. Browser icons are round, the `1`–`9` shortcuts sit in gradient
+  badges, a tile lifts under the pointer, and primary buttons carry the
+  gradient. The picker's grid is now a fixed four columns of equal tiles. Every
+  colour is a variable in one block at the top of `app.css`, light and dark
+  alike, and all motion respects `prefers-reduced-motion`. Nothing changed in
+  what the application does.
 
 ## [0.1.6] - 2026-09-23
 

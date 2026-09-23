@@ -1,52 +1,60 @@
-/* Design tokens. Light by default, dark via prefers-color-scheme or data-theme. */
+/* Design tokens — "Expressive" direction.
+   Light by default, dark via prefers-color-scheme or data-theme.
+   The gradient is reserved for number badges, primary buttons and the
+   picker's top strip; never page or card backgrounds. */
 :root {
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
 
-  --bg: #f6f7f9;
+  --bg: #f7f5f2;
   --surface: #ffffff;
-  --surface-2: #eef0f4;
-  --text: #16181d;
-  --text-muted: #5f6673;
-  --border: #d9dde5;
-  --accent: #2563eb;
+  --surface-2: #f1ede7;
+  --text: #1a1523;
+  --text-muted: #6b6478;
+  --border: #e4ddd3;
+  --accent: #6d4aff;
+  --accent-2: #ff6b4a;
   --accent-text: #ffffff;
-  --danger: #dc2626;
-  --success: #16a34a;
-  --focus: #93c5fd;
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-  --radius: 12px;
+  --danger: #e0344c;
+  --success: #1f9d55;
+  --focus: #a78bfa;
+  --shadow: 0 2px 4px rgba(30, 20, 60, 0.08), 0 12px 28px rgba(30, 20, 60, 0.16);
+  --radius-sm: 12px;
+  --radius: 18px;
+
+  /* Resolved where it is used, so it follows the active theme's accents.
+     The second stop sits at 180%, past the end of the box: the ramp stops
+     short of pure --accent-2, which is too light to carry white text. */
+  --gradient: linear-gradient(135deg, var(--accent), var(--accent-2) 180%);
+  --dur: 140ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #14161b;
-    --surface: #1d2027;
-    --surface-2: #262a33;
-    --text: #eceef2;
-    --text-muted: #9aa3b2;
-    --border: #343946;
-    --accent: #60a5fa;
-    --accent-text: #0b1220;
-    --danger: #f87171;
-    --success: #4ade80;
-    --focus: #1d4ed8;
-    --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    --bg: #15121f;
+    --surface: #1f1b2e;
+    --surface-2: #2a2440;
+    --text: #f2eefc;
+    --text-muted: #a79cc2;
+    --border: #3a3355;
+    --accent: #9b7bff;
+    --accent-2: #ff8a68;
+    --accent-text: #15121f;
+    --shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 16px 32px rgba(0, 0, 0, 0.5);
   }
 }
 :root[data-theme="dark"] {
-  --bg: #14161b;
-  --surface: #1d2027;
-  --surface-2: #262a33;
-  --text: #eceef2;
-  --text-muted: #9aa3b2;
-  --border: #343946;
-  --accent: #60a5fa;
-  --accent-text: #0b1220;
-  --danger: #f87171;
-  --success: #4ade80;
-  --focus: #1d4ed8;
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --bg: #15121f;
+  --surface: #1f1b2e;
+  --surface-2: #2a2440;
+  --text: #f2eefc;
+  --text-muted: #a79cc2;
+  --border: #3a3355;
+  --accent: #9b7bff;
+  --accent-2: #ff8a68;
+  --accent-text: #15121f;
+  --shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 16px 32px rgba(0, 0, 0, 0.5);
 }
 
 * {
@@ -79,8 +87,10 @@ button {
   cursor: pointer;
   border: 1px solid var(--border);
   background: var(--surface);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 6px 12px;
+  font-weight: 600;
+  transition: transform var(--dur) var(--ease), opacity var(--dur) var(--ease);
 }
 button:hover {
   background: var(--surface-2);
@@ -94,12 +104,15 @@ textarea:focus-visible,
   outline-offset: 1px;
 }
 button.primary {
-  background: var(--accent);
+  background: var(--gradient);
   color: var(--accent-text);
   border-color: transparent;
 }
 button.primary:hover {
-  filter: brightness(1.05);
+  filter: brightness(1.06);
+}
+button.primary:active:not(:disabled) {
+  transform: translateY(1px);
 }
 button.danger {
   color: var(--danger);
@@ -115,7 +128,7 @@ textarea {
   width: 100%;
   border: 1px solid var(--border);
   background: var(--surface);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 6px 10px;
   user-select: text;
 }
@@ -142,4 +155,13 @@ code {
 }
 .grow {
   flex: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

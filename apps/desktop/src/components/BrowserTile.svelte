@@ -67,36 +67,48 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    padding: 14px 8px 10px;
+    gap: 6px;
+    padding: 16px 10px 10px;
     border-radius: var(--radius);
     background: var(--surface);
     border: 1px solid var(--border);
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
     min-width: 0;
-    transition: transform 80ms ease, border-color 80ms ease;
+    font-weight: 400;
+    transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
+      border-color var(--dur) var(--ease);
   }
   .tile:hover,
   .tile.highlighted {
     border-color: var(--accent);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
   }
   .badge {
     position: absolute;
-    top: 6px;
+    top: 8px;
     left: 8px;
+    width: 19px;
+    height: 19px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--gradient);
+    color: #ffffff;
     font-size: 11px;
-    color: var(--text-muted);
+    font-weight: 700;
+    line-height: 1;
   }
   .icon {
     width: 44px;
     height: 44px;
-    border-radius: 10px;
+    border-radius: 50%;
     object-fit: contain;
   }
   .letter {
     display: grid;
     place-items: center;
-    font-weight: 700;
+    font-weight: 800;
     font-size: 20px;
     color: #fff;
     background: var(--tile-accent);
@@ -108,10 +120,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: 13px;
+    font-weight: 600;
   }
   .mode {
-    margin-top: -6px;
-    font-size: 11px;
+    margin-top: -4px;
+    font-size: 12px;
     color: var(--text-muted);
   }
   .more {
