@@ -6,7 +6,14 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+
+- Detection no longer reads a browser's profile list. It still offers a
+  private or incognito window, which needs nothing but the browser's name;
+  profiles are added by hand. Reading them meant following each browser
+  into its own configuration format, and Firefox has since moved its list
+  into a database of its own, which is more machinery than this feature is
+  worth.
 
 ## [0.1.4] - 2026-09-22
 

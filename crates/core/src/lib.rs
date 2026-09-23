@@ -15,7 +15,7 @@
 //! * [`import`] — one-way converters from other tools (currently Hurl).
 //! * [`Brand`] — recognises well-known browsers for fallback icons.
 //! * [`release`] — comparing the running version with the published one.
-//! * [`profiles`] — a browser's own profiles and its private window.
+//! * [`private`] — the argument a browser opens a private window with.
 //!
 //! The crate deliberately has no dependency on any GUI or OS API so that
 //! its behaviour is fully covered by fast unit and property tests.
@@ -28,7 +28,7 @@ pub mod browser;
 pub mod config;
 pub mod error;
 pub mod import;
-pub mod profiles;
+pub mod private;
 pub mod release;
 pub mod rules;
 pub mod store;

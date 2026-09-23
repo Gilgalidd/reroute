@@ -114,8 +114,9 @@
 
       <h3>Launch options</h3>
       <p class="muted">
-        Profiles, private windows… shown on right-click in the picker. Detection fills these in
-        from the browser's own settings; your own entries and names are never changed.
+        Profiles, private windows… shown on right-click in the picker. Detection adds a private
+        window; add profiles yourself with the arguments your browser documents. Your own entries
+        and names are never changed.
       </p>
       {#each selected.launches as launch, i (launch.id)}
         <div class="launch row">

@@ -69,16 +69,17 @@ args = ["--private-window", "%URL%"]
 - `launches` are alternative argument lists shown on right-click. They have
   their own `id` so rules can target a profile directly.
 
-  **Detection fills these in.** *Browsers › Detect installed* reads each
-  browser's own configuration and adds what it can already do: a private
-  window (`--private-window`, `--incognito`, `--inprivate`… depending on the
-  browser), and one entry per profile once a browser has more than one.
-  Firefox-family profiles come from `profiles.ini` and are selected with
-  `-P`; Chromium-family profiles come from `Local State` and are selected
-  with `--profile-directory`. Only the names are read. Entries you already
-  have keep their id and their name, so rules and renames survive a new
-  detection; an entry is added only when no existing one has the same
-  arguments.
+  **Detection adds one of these.** *Browsers › Detect installed* offers each
+  browser's private window (`--private-window`, `--incognito`,
+  `--inprivate`… depending on the browser), and nothing else: profiles are
+  yours to add, because only you know which ones deserve a place in the
+  picker. Entries you already have keep their id and their name, so rules
+  and renames survive a new detection; an entry is added only when no
+  existing one has the same arguments.
+
+  To add a profile by hand, use the arguments the browser documents:
+  `-P <name>` or `--profile <directory>` for the Firefox family,
+  `--profile-directory=<directory>` for the Chromium family.
 
 ## Rulesets
 
