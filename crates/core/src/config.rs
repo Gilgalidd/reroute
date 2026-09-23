@@ -192,21 +192,21 @@ impl Config {
         Ok((b, l))
     }
 
-    /// Add discovered browsers that are not yet known, matching on the
-    /// executable path, and give browsers already known any launch option
-    /// they lack. Existing entries and their ids are never changed, so
-    /// rules keep working and a renamed option stays renamed. Returns how
-    /// many browsers were added.
+    /// Add discovered browsers the configuration does not have yet.
+    ///
+    /// An entry is recognised by its executable **and** its arguments, so
+    /// the private entry of a browser counts as an entry of its own rather
+    /// than a duplicate of the ordinary one. Entries already there keep
+    /// their id and their name, so rules and renames survive a new
+    /// detection. Returns how many entries were added.
     pub fn merge_discovered(&mut self, discovered: Vec<Browser>) -> usize {
         let mut added = 0;
         for candidate in discovered {
-            if let Some(known) = self.browsers.iter_mut().find(|b| b.path == candidate.path) {
-                for launch in candidate.launches {
-                    if !known.launches.iter().any(|l| l.args == launch.args) {
-                        known.launches.push(launch);
-                    }
-                }
-            } else {
+            let known = self
+                .browsers
+                .iter()
+                .any(|b| b.path == candidate.path && b.args == candidate.args);
+            if !known {
                 self.browsers.push(candidate);
                 added += 1;
             }
@@ -426,38 +426,36 @@ mod tests {
     }
 
     #[test]
-    fn merge_discovered_adds_missing_launch_options_to_known_browsers() {
+    fn a_private_entry_is_not_taken_for_its_ordinary_one() {
         let mut c = sample();
         let firefox = c.browsers[0].id;
-        let kept = c.browsers[0].launches[0].id;
+        let renamed = "My Firefox";
+        c.browsers[0].name = renamed.to_owned();
 
-        let mut found = Browser::new("Firefox", abs("/usr/bin/firefox"));
-        found.launches = vec![
-            // Same arguments as the one already there, under another name.
-            Launch {
-                id: LaunchId::new(),
-                name: "Private".into(),
-                args: vec!["-p".into()],
-            },
-            Launch {
-                id: LaunchId::new(),
-                name: "Profile: Work".into(),
-                args: vec!["-P".into(), "Work".into()],
-            },
-        ];
+        let plain = Browser::new("Firefox", abs("/usr/bin/firefox"));
+        let private = Browser {
+            name: "Firefox (Private)".into(),
+            args: vec!["--private-window".into()],
+            ..Browser::new("Firefox", abs("/usr/bin/firefox"))
+        };
         assert_eq!(
-            c.merge_discovered(vec![found]),
-            0,
-            "the browser was already known"
+            c.merge_discovered(vec![plain, private]),
+            1,
+            "only the private entry is new"
         );
 
-        let launches = &c.browsers[0].launches;
-        assert_eq!(launches.len(), 2, "only the unknown option was added");
-        assert_eq!(launches[0].id, kept, "the existing option keeps its id");
-        assert_eq!(launches[0].name, "Private", "and its name");
-        assert_eq!(launches[1].name, "Profile: Work");
-        assert_eq!(c.browsers[0].id, firefox);
+        assert_eq!(c.browsers[0].id, firefox, "the known entry keeps its id");
+        assert_eq!(c.browsers[0].name, renamed, "and the name it was given");
+        assert_eq!(c.browsers.last().unwrap().name, "Firefox (Private)");
         c.validate().unwrap();
+
+        // Running detection again changes nothing.
+        let again = Browser {
+            name: "Firefox (Private)".into(),
+            args: vec!["--private-window".into()],
+            ..Browser::new("Firefox", abs("/usr/bin/firefox"))
+        };
+        assert_eq!(c.merge_discovered(vec![again]), 0);
     }
 
     #[test]

@@ -6,7 +6,7 @@
 
 use std::path::{Path, PathBuf};
 
-use reroute_core::{Brand, Browser, Launch};
+use reroute_core::{Brand, Browser};
 
 #[cfg(target_os = "linux")]
 pub mod linux;
@@ -28,19 +28,22 @@ pub fn installed_browsers() -> Vec<Browser> {
     let mut found: Vec<Browser> = Vec::new();
 
     found.retain(|b| !is_self(&b.path));
-    for browser in &mut found {
-        browser.launches = launch_options(&browser.path);
-    }
     found.sort_by_key(|b| b.name.to_lowercase());
     found.dedup_by(|a, b| a.path == b.path);
-    found
+    with_private_entries(found)
 }
 
-/// Offer what a browser can already do without any configuration of its
-/// own: open a window that keeps no history.
-pub fn launch_options(exe: &Path) -> Vec<Launch> {
-    Brand::from_program(exe)
-        .map_or_else(Vec::new, |brand| reroute_core::private::launches(brand.key))
+/// Put a private entry after each browser that has one, so that the picker
+/// offers both the ordinary window and the private one.
+fn with_private_entries(browsers: Vec<Browser>) -> Vec<Browser> {
+    let mut all = Vec::with_capacity(browsers.len());
+    for browser in browsers {
+        let private = Brand::from_program(&browser.path)
+            .and_then(|brand| reroute_core::private::private_entry(&browser, brand.key));
+        all.push(browser);
+        all.extend(private);
+    }
+    all
 }
 
 /// Is `path` this very program? Guards against listing Reroute as a
@@ -78,19 +81,35 @@ mod tests {
     }
 
     #[test]
-    fn a_known_browser_is_offered_its_private_window() {
-        let options = launch_options(Path::new("/usr/bin/firefox"));
-        assert_eq!(options.len(), 1);
-        assert_eq!(options[0].name, "Private window");
-        assert_eq!(options[0].args, ["--private-window", "%URL%"]);
-
+    fn a_private_entry_follows_each_browser_that_has_one() {
+        // Discovery gives every browser the arguments of its desktop entry.
+        let with_url = |name: &str, path: &str| Browser {
+            args: vec!["%URL%".to_owned()],
+            ..Browser::new(name, path)
+        };
+        let browsers = vec![
+            with_url("Firefox", "/usr/bin/firefox"),
+            with_url("Konqueror", "/usr/bin/konqueror"),
+            with_url("Chromium", "/usr/bin/chromium"),
+        ];
+        let all = with_private_entries(browsers);
+        let names: Vec<&str> = all.iter().map(|b| b.name.as_str()).collect();
         assert_eq!(
-            launch_options(Path::new("/usr/bin/chromium"))[0].name,
-            "Incognito window"
+            names,
+            [
+                "Firefox",
+                "Firefox (Private)",
+                // Reroute knows no argument for Konqueror, so it stays alone.
+                "Konqueror",
+                "Chromium",
+                "Chromium (Incognito)",
+            ]
         );
-        // A browser Reroute has no argument for gets nothing rather than a guess.
-        assert!(launch_options(Path::new("/usr/bin/konqueror")).is_empty());
-        assert!(launch_options(Path::new("/usr/bin/some-unknown-browser")).is_empty());
+        assert_eq!(
+            all[1].path, all[0].path,
+            "the same program, started differently"
+        );
+        assert_eq!(all[1].args, ["--private-window", "%URL%"]);
     }
 
     #[test]

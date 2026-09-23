@@ -15,7 +15,7 @@
 //! * [`import`] — one-way converters from other tools (currently Hurl).
 //! * [`Brand`] — recognises well-known browsers for fallback icons.
 //! * [`release`] — comparing the running version with the published one.
-//! * [`private`] — the argument a browser opens a private window with.
+//! * [`private`] — the second entry that opens a browser privately.
 //!
 //! The crate deliberately has no dependency on any GUI or OS API so that
 //! its behaviour is fully covered by fast unit and property tests.

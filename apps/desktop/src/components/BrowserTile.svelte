@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { BrowserView } from "../lib/types";
+  import { splitName } from "../lib/names";
 
   let {
     browser,
@@ -16,7 +17,8 @@
   } = $props();
 
   let element = $state<HTMLButtonElement | undefined>();
-  const initial = $derived(browser.name.trim().charAt(0).toUpperCase() || "?");
+  const shown = $derived(splitName(browser.name));
+  const initial = $derived(shown.base.charAt(0).toUpperCase() || "?");
   const accent = $derived(browser.brand?.color ?? "#64748b");
 
   $effect(() => {
@@ -42,7 +44,8 @@
   {:else}
     <span class="icon letter" style:--tile-accent={accent}>{initial}</span>
   {/if}
-  <span class="name">{browser.name}</span>
+  <span class="name" title={browser.name}>{shown.base}</span>
+  {#if shown.mode}<span class="mode">{shown.mode}</span>{/if}
   {#if browser.launches.length}
     <span
       class="more"
@@ -105,6 +108,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: 13px;
+  }
+  .mode {
+    margin-top: -6px;
+    font-size: 11px;
+    color: var(--text-muted);
   }
   .more {
     position: absolute;

@@ -69,12 +69,9 @@ args = ["--private-window", "%URL%"]
 - `launches` are alternative argument lists shown on right-click. They have
   their own `id` so rules can target a profile directly.
 
-  *Browsers › Detect installed* adds the browser's private window and
-  nothing else; profiles are yours to add, as described in
-  [Profiles and private windows](#profiles-and-private-windows). Entries you
-  already have keep their id and their name, so rules and renames survive a
-  new detection; an entry is added only when no existing one has the same
-  arguments.
+  Detection creates none of these: a browser's private mode becomes a
+  second **browser** entry instead, and profiles are yours to add, both
+  described in [Profiles and private windows](#profiles-and-private-windows).
 
 ## Profiles and private windows
 
@@ -84,7 +81,18 @@ menu, and a target for a rule.
 
 ### Private windows
 
-Detection adds this one for you. The argument differs by family:
+*Browsers › Detect installed* handles these: every browser it knows a
+private mode for gets a second entry beside it, `Firefox (Private)` next to
+`Firefox`, so both are one click away in the picker. The two entries share
+the executable and the icon but have their own id, so a rule can send a
+domain to the private one. A browser Reroute knows no argument for gets its
+ordinary entry and nothing else.
+
+Entries already in the configuration keep their id and their name, and one
+is added only when none has the same executable and arguments, so renames
+and rules survive a new detection.
+
+The argument differs by family:
 
 | Browser | Argument |
 |---------|----------|

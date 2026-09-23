@@ -40,8 +40,8 @@ design and a code base small enough for one person to maintain.
   `Space` opens the profile menu, `Esc` cancels, `,` opens settings.
 - **Finds your browsers** — desktop entries on Linux (including Flatpak and
   Snap), the registry on Windows, application bundles on macOS, with their
-  real icons. Detection also offers each browser's private window as a
-  launch option.
+  real icons. Each browser with a private mode gets a second entry for it,
+  so a private window is one click away.
 - **Zero shell, zero telemetry** — only `http` and `https` links are
   accepted, browsers are spawned with an argument vector, and the
   configuration file is private to your user. See [the security model](docs/security.md).

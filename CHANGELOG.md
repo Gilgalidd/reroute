@@ -6,7 +6,15 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+
+- A browser's private mode is now a **second entry** beside it, `Firefox
+  (Private)` next to `Firefox`, rather than an option behind a right-click.
+  Both are one click away in the picker, and a rule can send a domain to
+  either. Detection recognises an entry by its executable and its arguments
+  together, so running it again adds nothing. The launch option earlier
+  versions added stays where it is; remove it if you would rather keep only
+  the entry.
 
 ## [0.1.5] - 2026-09-23
 
