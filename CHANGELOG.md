@@ -6,7 +6,14 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- Settings: *Detect installed* and *Import from Hurl* could lose work. Both
+  wrote the configuration file straight away, from the last saved state:
+  detection threw away edits not saved yet, and an import was erased by the
+  next Save, because the window still held the configuration from before it.
+  Both now add to the settings being edited, and Save keeps them like any
+  other change.
 
 ## [0.1.8] - 2026-09-26
 

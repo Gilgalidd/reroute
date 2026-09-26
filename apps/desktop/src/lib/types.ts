@@ -77,6 +77,8 @@ export interface TestResult {
 export type RegisterOutcome = { kind: "done" } | { kind: "needs_user_action"; message: string };
 
 export interface ImportReport {
+  /** The draft with the import merged in, not saved yet. */
+  config: Config;
   browsers_added: number;
   rulesets_added: number;
   notes: string[];

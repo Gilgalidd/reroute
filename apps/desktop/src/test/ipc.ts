@@ -33,7 +33,7 @@ export function mockIpc(handlers: Record<string, Handler>) {
   w.__TAURI_INTERNALS__ = bridge;
   // `listen()` from @tauri-apps/api/event unregisters through this object.
   w.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => undefined };
-  return { calls, saved };
+  return { calls, saved, handlers };
 }
 
 /** A configuration as Rust serialises it: empty collections are omitted. */

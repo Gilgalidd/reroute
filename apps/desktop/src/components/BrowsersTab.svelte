@@ -1,10 +1,11 @@
 <script lang="ts">
   import { api, describeError } from "../lib/api";
+  import { normalizeConfig } from "../lib/config";
   import { newId } from "../lib/ids";
   import type { Browser, Config } from "../lib/types";
   import Banner from "./Banner.svelte";
 
-  let { config = $bindable(), onreplace }: { config: Config; onreplace: (c: Config) => void } = $props();
+  let { config = $bindable() }: { config: Config } = $props();
 
   let selectedId = $state<string | null>(null);
   let message = $state<{ tone: "info" | "error"; text: string } | null>(null);
@@ -34,23 +35,16 @@
     if (item) config.browsers.splice(to, 0, item);
   }
 
-  /** Launch options across every browser, to report what detection added. */
-  function countLaunches(c: Config): number {
-    return c.browsers.reduce((total, b) => total + (b.launches?.length ?? 0), 0);
-  }
-
+  /** Add the installed browsers to the draft; Save keeps them, like any edit. */
   async function detect() {
     message = null;
     try {
-      const browsersBefore = config.browsers.length;
-      const launchesBefore = countLaunches(config);
-      const fresh = await api.discoverBrowsers();
-      onreplace(fresh);
-      const browsers = fresh.browsers.length - browsersBefore;
-      const launches = countLaunches(fresh) - launchesBefore;
+      const before = config.browsers.length;
+      config = normalizeConfig(await api.discoverBrowsers($state.snapshot(config)));
+      const added = config.browsers.length - before;
       message = {
         tone: "info",
-        text: `Added ${browsers} browser(s) and ${launches} launch option(s).`,
+        text: added ? `Added ${added} browser(s). Press Save to keep them.` : "No new browser found.",
       };
     } catch (e) {
       message = { tone: "error", text: describeError(e) };

@@ -3,6 +3,13 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { beforeEach, describe, expect, it } from "vitest";
 import Settings from "./Settings.svelte";
 import { mockIpc, sparseConfig } from "../test/ipc";
+import type { Config } from "../lib/types";
+
+/** `config` plus one browser, as detection or an import would return it. */
+function withBrowser(config: Config, name: string): Config {
+  const id = `99999999-9999-9999-9999-${String(config.browsers.length).padStart(12, "0")}`;
+  return { ...config, browsers: [...config.browsers, { id, name, path: "/usr/bin/x", args: [], hidden: false, launches: [] }] };
+}
 
 function setup() {
   const ipc = mockIpc({
@@ -61,6 +68,38 @@ describe("Settings window", () => {
     await fireEvent.change(screen.getByLabelText("Show browsers as"), { target: { value: "list" } });
     await save();
     await waitFor(() => expect(ipc.saved).toHaveLength(1));
+    expect(ipc.saved[0]?.settings.picker_layout).toBe("list");
+  });
+
+  it("detects browsers into the draft, keeping unsaved edits, and saves only on Save", async () => {
+    const ipc = setup();
+    ipc.handlers.discover_browsers = (args) => withBrowser(args.config as Config, "Brave");
+    await fireEvent.click(await screen.findByRole("option", { name: "Firefox" }));
+    await fireEvent.input(screen.getByLabelText("Name"), { target: { value: "Firefox, edited" } });
+    await fireEvent.click(screen.getByRole("button", { name: "Detect installed" }));
+    expect(await screen.findByText(/Added 1 browser/)).toBeInTheDocument();
+    expect(ipc.saved).toHaveLength(0);
+    await save();
+    await waitFor(() => expect(ipc.saved).toHaveLength(1));
+    expect(ipc.saved[0]?.browsers.map((b) => b.name)).toEqual(["Firefox, edited", "Chromium", "Brave"]);
+  });
+
+  it("keeps a Hurl import through the next Save", async () => {
+    const ipc = setup();
+    ipc.handlers.import_hurl = (args) => ({
+      config: withBrowser(args.config as Config, "Edge"),
+      browsers_added: 1,
+      rulesets_added: 0,
+      notes: [],
+    });
+    await fireEvent.click(await screen.findByRole("button", { name: "General" }));
+    await fireEvent.input(screen.getByPlaceholderText(/Browsers/), { target: { value: "{}" } });
+    await fireEvent.click(screen.getByRole("button", { name: "Import" }));
+    expect(await screen.findByText(/Imported 1 browser/)).toBeInTheDocument();
+    await fireEvent.change(screen.getByLabelText("Show browsers as"), { target: { value: "list" } });
+    await save();
+    await waitFor(() => expect(ipc.saved).toHaveLength(1));
+    expect(ipc.saved[0]?.browsers.map((b) => b.name)).toContain("Edge");
     expect(ipc.saved[0]?.settings.picker_layout).toBe("list");
   });
 

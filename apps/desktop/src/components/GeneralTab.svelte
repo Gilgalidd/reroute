@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { api, describeError } from "../lib/api";
+  import { normalizeConfig } from "../lib/config";
   import type { Config, ImportReport } from "../lib/types";
   import Banner from "./Banner.svelte";
 
@@ -34,11 +35,14 @@
     }
   }
 
+  /** Merge Hurl's settings into the draft; Save keeps them, like any edit. */
   async function importHurl() {
     importError = null;
     importReport = null;
     try {
-      importReport = await api.importHurl(hurlJson);
+      const report = await api.importHurl($state.snapshot(config), hurlJson);
+      config = normalizeConfig(report.config);
+      importReport = report;
       hurlJson = "";
     } catch (e) {
       importError = describeError(e);
@@ -93,16 +97,15 @@
 
   <section class="card">
     <h3>Import from Hurl</h3>
-    <p class="muted">Paste the contents of Hurl's <code>UserSettings.json</code>. Browsers and rules are merged into your configuration and saved immediately.</p>
+    <p class="muted">Paste the contents of Hurl's <code>UserSettings.json</code>. Its browsers and rules are added to the settings here; press Save to keep them.</p>
     <textarea rows="5" bind:value={hurlJson} placeholder={"{ \"Browsers\": [...], \"Rulesets\": [...] }"} spellcheck="false"></textarea>
     <div class="row">
       <button type="button" onclick={importHurl} disabled={hurlJson.trim().length === 0}>Import</button>
-      <span class="muted">Reload this window afterwards to see the merged configuration.</span>
     </div>
     {#if importError}
       <Banner tone="error">{importError}</Banner>
     {:else if importReport}
-      <Banner tone="success">Imported {importReport.browsers_added} browser(s) and {importReport.rulesets_added} ruleset(s).</Banner>
+      <Banner tone="success">Imported {importReport.browsers_added} browser(s) and {importReport.rulesets_added} ruleset(s). Press Save to keep them.</Banner>
       {#if importReport.notes.length}
         <ul class="notes">
           {#each importReport.notes as note (note)}<li>{note}</li>{/each}

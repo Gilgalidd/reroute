@@ -93,7 +93,7 @@
   <section class="content">
     {#if draft}
       {#if tab === "browsers"}
-        <BrowsersTab bind:config={draft} onreplace={adopt} />
+        <BrowsersTab bind:config={draft} />
       {:else if tab === "rules"}
         <RulesTab bind:config={draft} />
       {:else if tab === "general"}

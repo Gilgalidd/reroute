@@ -23,11 +23,12 @@ export const api = {
 
   getConfig: () => invoke<Config>("get_config"),
   saveConfig: (config: Config) => invoke<void>("save_config", { config }),
-  discoverBrowsers: () => invoke<Config>("discover_browsers"),
+  /** Detection and import work on the unsaved draft and return it merged. */
+  discoverBrowsers: (config: Config) => invoke<Config>("discover_browsers", { config }),
   testUrl: (url: string) => invoke<TestResult>("test_url", { url }),
   defaultBrowserStatus: () => invoke<boolean>("default_browser_status"),
   registerDefaultBrowser: () => invoke<RegisterOutcome>("register_default_browser"),
-  importHurl: (json: string) => invoke<ImportReport>("import_hurl", { json }),
+  importHurl: (config: Config, json: string) => invoke<ImportReport>("import_hurl", { config, json }),
   appInfo: () => invoke<AppInfo>("app_info"),
 
   /** The only call that reaches the network, and only on demand. */

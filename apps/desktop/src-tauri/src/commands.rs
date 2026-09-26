@@ -148,14 +148,17 @@ pub fn save_config(state: State<'_, AppState>, config: Config) -> Result<(), Str
     state.save(config)
 }
 
-/// Add newly installed browsers to the configuration and return it.
+/// Add the installed browsers that `config` does not have yet.
+///
+/// `config` is the settings window's unsaved draft, and nothing is written
+/// here: the merged draft goes back to the window, and the user keeps or
+/// discards it with the other edits. Working on the saved file instead
+/// would drop unsaved edits, or be overwritten by the next Save.
 #[tauri::command]
-pub fn discover_browsers(state: State<'_, AppState>) -> Result<Config, String> {
-    let mut config = state.config().clone();
+pub fn discover_browsers(mut config: Config) -> Config {
     let added = config.merge_discovered(reroute_platform::discover::installed_browsers());
     log::info!("discovery added {added} browser(s)");
-    state.save(config.clone())?;
-    Ok(config)
+    config
 }
 
 /// Outcome of a dry run of the rules against a URL typed in the settings.
@@ -225,21 +228,23 @@ pub fn register_default_browser() -> Result<reroute_platform::register::Outcome,
 /// Result of importing a Hurl settings file.
 #[derive(Serialize)]
 pub struct ImportReport {
+    /// The draft with the import merged in, not saved yet.
+    config: Config,
     browsers_added: usize,
     rulesets_added: usize,
     notes: Vec<String>,
 }
 
-/// Merge a Hurl `UserSettings.json` (pasted as text) into the configuration.
+/// Merge a Hurl `UserSettings.json` (pasted as text) into the settings
+/// window's draft. Like [`discover_browsers`], nothing is saved here.
 #[tauri::command]
-pub fn import_hurl(state: State<'_, AppState>, json: String) -> Result<ImportReport, String> {
+pub fn import_hurl(mut config: Config, json: String) -> Result<ImportReport, String> {
     let imported = reroute_core::import::hurl::import(&json)?;
-    let mut config = state.config().clone();
     let report = config.merge(imported.config);
-    state.save(config)?;
     let mut notes = imported.notes;
     notes.extend(report.notes);
     Ok(ImportReport {
+        config,
         browsers_added: report.browsers_added,
         rulesets_added: report.rulesets_added,
         notes,
