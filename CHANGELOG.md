@@ -23,6 +23,10 @@ All notable changes to Reroute are documented here. The format follows
   browser's. The field used to split on spaces, so an argument containing
   one, such as `--profile-directory=Profile 1` from the configuration guide,
   could not be entered.
+- Picker: *Always use for this domain* no longer fails in silence. When the
+  host cannot become a rule (an IPv6 address), the picker says so before
+  opening anything. The box is hidden while rules are turned off, since the
+  rule it writes would not apply.
 
 ## [0.1.8] - 2026-09-26
 

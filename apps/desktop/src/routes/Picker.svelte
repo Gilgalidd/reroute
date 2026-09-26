@@ -140,7 +140,8 @@
   {/if}
 
   <footer class="row">
-    {#if canPick && context?.settings.offer_remember}
+    <!-- A remembered choice is a rule, so there is nothing to offer while rules are off. -->
+    {#if canPick && context?.settings.offer_remember && context.settings.rules_enabled}
       <label class="row remember">
         <input type="checkbox" bind:checked={remember} />
         <span>Always use for <strong>{context?.url?.host}</strong></span>

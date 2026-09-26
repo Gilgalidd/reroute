@@ -71,6 +71,14 @@ describe("Picker window", () => {
     expect(ipc.calls.some((c) => c.cmd === "pick")).toBe(false);
   });
 
+  it("offers to remember the domain only while rules are on", async () => {
+    const base = launchContext();
+    mockIpc({ launch_context: () => ({ ...base, settings: { ...base.settings, rules_enabled: false } }) });
+    render(Picker);
+    await screen.findByText("github.com", { selector: ".host" });
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
+
   it("dismisses on Escape and shows a refused URL", async () => {
     const ipc = mockIpc({
       launch_context: () => ({ ...launchContext(), url: null, url_error: "scheme `javascript` is not allowed" }),

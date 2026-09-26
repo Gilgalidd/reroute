@@ -277,10 +277,14 @@ impl Config {
         report
     }
 
-    /// Prepend a ruleset that sends `host` (and its subdomains) to the given
-    /// browser. Used by the picker's "remember for this domain" box. If a
-    /// ruleset already targets exactly this browser/launch, the pattern is
-    /// appended to it instead.
+    /// Send `host` and its subdomains to the given browser from now on. Used
+    /// by the picker's "Always use for this domain" box.
+    ///
+    /// The pattern joins the ruleset that already targets exactly this
+    /// browser and launch, or a new ruleset appended at the end. The end is
+    /// enough: the picker only appears when no rule matched the link, so no
+    /// earlier rule takes this host. Fails for a host that cannot be a
+    /// `domain:` pattern, such as an IPv6 address.
     pub fn remember_domain(
         &mut self,
         host: &str,
@@ -505,10 +509,11 @@ mod tests {
         c.remember_domain("other.example", chrome, None).unwrap();
         assert_eq!(c.rulesets.len(), 2);
         assert_eq!(c.rulesets[1].patterns.len(), 2);
-        // Different launch → different ruleset.
+        // Different browser → different ruleset.
         c.remember_domain("x.example", firefox, None).unwrap();
         assert_eq!(c.rulesets.len(), 3);
         assert!(c.remember_domain("bad host", chrome, None).is_err());
+        assert!(c.remember_domain("[::1]", chrome, None).is_err());
         c.validate().unwrap();
     }
 

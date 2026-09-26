@@ -106,18 +106,23 @@ pub fn pick(
     remember: bool,
 ) -> Result<(), String> {
     let url = state.pending().ok_or("there is no URL to open")?;
-    let launched = {
-        let config = state.config();
-        incoming::launch(&config, &url, browser, launch).map_err(|e| e.to_string())
-    };
-    launched?;
-    if remember {
+    // Build the remembered rule before opening anything: when the host
+    // cannot become a rule (an IPv6 address, for one), the picker says so
+    // and stays open, rather than dropping the user's choice in silence.
+    let remembered = if remember {
         let mut config = state.config().clone();
-        if let Err(error) = config
+        config
             .remember_domain(url.host(), browser, launch)
-            .and_then(|()| state.save(config).map_err(reroute_core::ConfigError::Parse))
-        {
-            log::warn!("could not remember the domain: {error}");
+            .map_err(|e| format!("cannot remember {}: {e}", url.host()))?;
+        Some(config)
+    } else {
+        None
+    };
+    incoming::launch(&state.config(), &url, browser, launch).map_err(|e| e.to_string())?;
+    if let Some(config) = remembered {
+        // The browser is open by now; a failed write is logged, not shown.
+        if let Err(error) = state.save(config) {
+            log::warn!("the browser opened, but the domain was not remembered: {error}");
         }
     }
     windows::finish_picker(&app);
