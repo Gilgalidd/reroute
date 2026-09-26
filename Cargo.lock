@@ -2752,7 +2752,7 @@ dependencies = [
 name = "reroute"
 version = "0.1.9"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.23.1",
  "env_logger",
  "log",
  "reroute-core",
