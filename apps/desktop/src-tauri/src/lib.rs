@@ -37,6 +37,14 @@ pub const APP_ICONS: &[(u32, &[u8])] = &[
 pub fn run() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
+    // GTK takes a window's application id from the program name, and the
+    // desktop finds the window's icon through the entry named after it. The
+    // binary is `reroute` but the entry is `Reroute.desktop`, so name the
+    // program before any window exists; otherwise KDE and GNOME show a
+    // generic icon.
+    #[cfg(target_os = "linux")]
+    glib::set_prgname(Some(reroute_platform::register::linux::APP_ID));
+
     let mode = cli::parse(std::env::args().skip(1));
     if mode == cli::Mode::Version {
         println!("reroute {}", env!("CARGO_PKG_VERSION"));

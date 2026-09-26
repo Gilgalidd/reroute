@@ -7,5 +7,5 @@ Icon={{icon}}
 Terminal=false
 Categories={{categories}}
 MimeType=x-scheme-handler/http;x-scheme-handler/https;text/html;
-StartupWMClass={{exec}}
+StartupWMClass=Reroute
 StartupNotify=false

@@ -6,7 +6,17 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- Linux: Reroute's windows showed a generic icon in the task bar and title
+  bar on Wayland (KDE, GNOME). The desktop finds a window's icon through the
+  entry named after the window's application id, and that id was the binary's
+  name, `reroute`, while the packages install `Reroute.desktop`. Reroute now
+  names itself `Reroute` at start-up, and an unpackaged binary registers
+  `Reroute.desktop` too. Registering removes the `reroute.desktop` entry
+  earlier versions wrote at user level, so the menu does not list Reroute
+  twice; if you had registered such a build, press *Make Reroute the
+  default* once more.
 
 ## [0.1.10] - 2026-09-26
 

@@ -8,12 +8,21 @@ use std::path::{Path, PathBuf};
 use super::{Outcome, run_tool};
 use crate::PlatformError;
 
-/// Desktop-entry id written for unpackaged binaries.
-pub const DESKTOP_ID: &str = "reroute.desktop";
-/// Desktop-entry id installed by the deb/rpm packages (Tauri names it after
-/// the product). When present system-wide it is reused instead of writing a
-/// second, user-level entry.
-pub const PACKAGED_DESKTOP_ID: &str = "Reroute.desktop";
+/// Program name Reroute gives GTK at start-up (see the app's `run`). On
+/// Wayland it is the window's application id, and the desktop finds the
+/// window's icon and name through the entry called `<id>.desktop`, case
+/// included. The binary itself is `reroute`, which matches no entry.
+pub const APP_ID: &str = "Reroute";
+
+/// Desktop-entry id, named after [`APP_ID`]. The deb and rpm packages install
+/// it system-wide (Tauri names the file after the product); an unpackaged
+/// binary writes the same id at user level, so the icon is found either way.
+pub const DESKTOP_ID: &str = "Reroute.desktop";
+
+/// Id of the user-level entry that versions up to 0.1.10 wrote, before the
+/// id followed [`APP_ID`]. Registering removes it so that the menu does not
+/// list Reroute twice.
+const LEGACY_DESKTOP_ID: &str = "reroute.desktop";
 
 /// System data directories that may hold the packaged desktop entry.
 fn system_data_dirs() -> Vec<PathBuf> {
@@ -26,27 +35,18 @@ fn system_data_dirs() -> Vec<PathBuf> {
         .collect()
 }
 
-/// The desktop id to register: the packaged one if installed, else ours.
-pub fn desktop_id() -> &'static str {
-    desktop_id_in(&system_data_dirs())
-}
-
-/// [`desktop_id`] for the given system data directories.
-fn desktop_id_in(data_dirs: &[PathBuf]) -> &'static str {
-    let packaged = data_dirs
+/// Is the packaged desktop entry installed in one of `data_dirs`? It is then
+/// used as it is, and no second, user-level entry is written.
+fn packaged_in(data_dirs: &[PathBuf]) -> bool {
+    data_dirs
         .iter()
-        .any(|d| d.join("applications").join(PACKAGED_DESKTOP_ID).is_file());
-    if packaged {
-        PACKAGED_DESKTOP_ID
-    } else {
-        DESKTOP_ID
-    }
+        .any(|d| d.join("applications").join(DESKTOP_ID).is_file())
 }
 
 /// Contents of the desktop entry pointing at `exe`.
 pub fn desktop_file_contents(exe: &Path) -> String {
     format!(
-        "[Desktop Entry]\nType=Application\nName=Reroute\nComment=Choose a browser for each link\nExec={} %u\nIcon=reroute\nTerminal=false\nCategories=Network;WebBrowser;\nMimeType=x-scheme-handler/http;x-scheme-handler/https;text/html;\nStartupNotify=false\nNoDisplay=false\n",
+        "[Desktop Entry]\nType=Application\nName=Reroute\nComment=Choose a browser for each link\nExec={} %u\nIcon=reroute\nTerminal=false\nCategories=Network;WebBrowser;\nMimeType=x-scheme-handler/http;x-scheme-handler/https;text/html;\nStartupWMClass={APP_ID}\nStartupNotify=false\nNoDisplay=false\n",
         quote_exec(exe)
     )
 }
@@ -135,7 +135,7 @@ fn write_atomically(path: &Path, contents: &str) -> Result<(), PlatformError> {
     std::fs::rename(&tmp, path).map_err(os)
 }
 
-/// Write (or refresh) `~/.local/share/applications/reroute.desktop`.
+/// Write (or refresh) `~/.local/share/applications/Reroute.desktop`.
 pub fn ensure_desktop_file() -> Result<PathBuf, PlatformError> {
     let exe = std::env::current_exe().map_err(|e| PlatformError::Os(e.to_string()))?;
     let dir = applications_dir()?;
@@ -153,8 +153,8 @@ pub fn ensure_desktop_file() -> Result<PathBuf, PlatformError> {
 /// when its own write fails), then `mimeapps.list` is written last so that
 /// it is authoritative. The result is verified before reporting success.
 pub fn register() -> Result<Outcome, PlatformError> {
-    let id = desktop_id();
-    if id == DESKTOP_ID {
+    remove_legacy_desktop_file()?;
+    if !packaged_in(&system_data_dirs()) {
         let path = ensure_desktop_file()?;
         // Refresh only the directory we just wrote into. Called without an
         // argument the tool tries the system directories, which need root and
@@ -168,7 +168,7 @@ pub fn register() -> Result<Outcome, PlatformError> {
     // Some desktops keep their own notion of the default browser. On KDE this
     // one needs `qtpaths` and fails without it, which is why the authoritative
     // step below is our own edit of mimeapps.list.
-    if let Err(error) = run_tool("xdg-settings", &["set", "default-web-browser", id]) {
+    if let Err(error) = run_tool("xdg-settings", &["set", "default-web-browser", DESKTOP_ID]) {
         log::debug!("{error} (ignored)");
     }
     let path = mimeapps_path()?;
@@ -177,7 +177,10 @@ pub fn register() -> Result<Outcome, PlatformError> {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
         Err(e) => return Err(PlatformError::Os(format!("{}: {e}", path.display()))),
     };
-    write_atomically(&path, &super::mimeapps::set_default_browser(&current, id))?;
+    write_atomically(
+        &path,
+        &super::mimeapps::set_default_browser(&current, DESKTOP_ID),
+    )?;
     if is_default()? {
         Ok(Outcome::Done)
     } else {
@@ -194,12 +197,25 @@ pub fn is_default() -> Result<bool, PlatformError> {
     let path = mimeapps_path()?;
     if let Ok(text) = std::fs::read_to_string(&path) {
         if let Some(handlers) = super::mimeapps::default_web_handlers(&text) {
-            let id = desktop_id();
-            return Ok(handlers.iter().all(|h| h == id));
+            return Ok(handlers.iter().all(|h| h == DESKTOP_ID));
         }
     }
     let current = run_tool("xdg-settings", &["get", "default-web-browser"])?;
-    Ok(current.trim() == desktop_id())
+    Ok(current.trim() == DESKTOP_ID)
+}
+
+/// Remove the user-level entry older versions wrote (see
+/// [`LEGACY_DESKTOP_ID`]). Only Reroute ever wrote a file of that name.
+fn remove_legacy_desktop_file() -> Result<(), PlatformError> {
+    let path = applications_dir()?.join(LEGACY_DESKTOP_ID);
+    match std::fs::remove_file(&path) {
+        Ok(()) => {
+            log::info!("removed the old desktop entry {}", path.display());
+            Ok(())
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(PlatformError::Os(format!("{}: {e}", path.display()))),
+    }
 }
 
 #[cfg(test)]
@@ -211,7 +227,14 @@ mod tests {
         let text = desktop_file_contents(Path::new("/opt/sign post/bin/reroute"));
         assert!(text.contains("Exec=\"/opt/sign post/bin/reroute\" %u"));
         assert!(text.contains("x-scheme-handler/https;"));
+        assert!(text.contains("StartupWMClass=Reroute\n"));
         assert!(text.starts_with("[Desktop Entry]\n"));
+    }
+
+    #[test]
+    fn the_desktop_entry_is_named_after_the_application_id() {
+        // Wayland looks the icon up through `<app id>.desktop`, exactly.
+        assert_eq!(DESKTOP_ID, format!("{APP_ID}.desktop"));
     }
 
     #[test]
@@ -227,17 +250,17 @@ mod tests {
     }
 
     #[test]
-    fn packaged_entry_is_preferred_when_installed() {
+    fn the_packaged_entry_is_found_when_installed() {
         let dir = tempfile::tempdir().unwrap();
         let dirs = [dir.path().to_path_buf()];
-        assert_eq!(desktop_id_in(&dirs), DESKTOP_ID);
+        assert!(!packaged_in(&dirs));
         std::fs::create_dir_all(dir.path().join("applications")).unwrap();
         std::fs::write(
-            dir.path().join("applications").join(PACKAGED_DESKTOP_ID),
+            dir.path().join("applications").join(DESKTOP_ID),
             "[Desktop Entry]\n",
         )
         .unwrap();
-        assert_eq!(desktop_id_in(&dirs), PACKAGED_DESKTOP_ID);
+        assert!(packaged_in(&dirs));
     }
 
     #[test]
