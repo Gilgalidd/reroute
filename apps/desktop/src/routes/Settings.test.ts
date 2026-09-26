@@ -13,7 +13,7 @@ function withBrowser(config: Config, name: string): Config {
 
 function setup() {
   const ipc = mockIpc({
-    get_config: () => sparseConfig(),
+    get_config: () => ({ config: sparseConfig(), load_error: null }),
     app_info: () => ({ version: "0.1.0", config_path: "/tmp/config.toml", platform: "linux" }),
     default_browser_status: () => true,
   });
@@ -101,6 +101,22 @@ describe("Settings window", () => {
     await waitFor(() => expect(ipc.saved).toHaveLength(1));
     expect(ipc.saved[0]?.browsers.map((b) => b.name)).toContain("Edge");
     expect(ipc.saved[0]?.settings.picker_layout).toBe("list");
+  });
+
+  it("warns that config.toml could not be read, and says where Save keeps it", async () => {
+    const ipc = mockIpc({
+      get_config: () => ({ config: { ...sparseConfig(), browsers: [], rulesets: [] }, load_error: "cannot parse configuration: line 3" }),
+      default_browser_status: () => true,
+    });
+    render(Settings);
+    expect(await screen.findByRole("alert")).toHaveTextContent("could not be read: cannot parse configuration: line 3");
+    expect(screen.getByRole("alert")).toHaveTextContent("config.toml.broken");
+    await fireEvent.click(screen.getByRole("button", { name: "General" }));
+    await fireEvent.change(screen.getByLabelText("Show browsers as"), { target: { value: "list" } });
+    await save();
+    await waitFor(() => expect(ipc.saved).toHaveLength(1));
+    expect(await screen.findByText(/kept as config.toml.broken/)).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("shows unexpected errors instead of swallowing them", async () => {

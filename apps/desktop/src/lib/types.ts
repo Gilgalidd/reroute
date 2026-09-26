@@ -76,6 +76,13 @@ export interface TestResult {
 
 export type RegisterOutcome = { kind: "done" } | { kind: "needs_user_action"; message: string };
 
+/** What the settings window edits (`get_config`). */
+export interface EditableConfig {
+  config: Config;
+  /** Why config.toml could not be read; `config` is then empty. */
+  load_error: string | null;
+}
+
 export interface ImportReport {
   /** The draft with the import merged in, not saved yet. */
   config: Config;

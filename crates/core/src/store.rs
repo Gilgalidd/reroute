@@ -7,6 +7,9 @@
 //!   may edit it.
 //! * A missing file is not an error: it yields [`Config::default`] so the
 //!   first run works without any setup.
+//! * A file that exists but cannot be read is an error, never a reset. The
+//!   application can then [`ConfigStore::set_aside`] it before saving, so the
+//!   user's rules survive in a file they can repair.
 
 use std::path::{Path, PathBuf};
 
@@ -58,6 +61,19 @@ impl ConfigStore {
         let tmp = self.path.with_extension("toml.tmp");
         write_private_file(&tmp, text.as_bytes()).map_err(|e| self.io(e))?;
         std::fs::rename(&tmp, &self.path).map_err(|e| self.io(e))
+    }
+
+    /// Move the file out of the way as `config.toml.broken`, replacing an
+    /// older one, and return where it went. Called before saving over a file
+    /// that could not be read: it may hold rules the user wants to recover.
+    /// A file that is already gone is not an error and yields `None`.
+    pub fn set_aside(&self) -> Result<Option<PathBuf>, Error> {
+        let kept = self.path.with_extension("toml.broken");
+        match std::fs::rename(&self.path, &kept) {
+            Ok(()) => Ok(Some(kept)),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(source) => Err(self.io(source)),
+        }
     }
 
     fn io(&self, source: std::io::Error) -> Error {
@@ -142,6 +158,23 @@ mod tests {
         let store = ConfigStore::in_dir(dir.path());
         std::fs::write(store.path(), "this is = not [valid").unwrap();
         assert!(matches!(store.load(), Err(Error::Config(_))));
+    }
+
+    #[test]
+    fn an_unreadable_file_is_set_aside_not_lost() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = ConfigStore::in_dir(dir.path());
+        std::fs::write(store.path(), "rules = [broken").unwrap();
+        assert!(store.load().is_err());
+
+        let kept = store.set_aside().unwrap().unwrap();
+        assert_eq!(kept, dir.path().join("config.toml.broken"));
+        assert_eq!(std::fs::read_to_string(&kept).unwrap(), "rules = [broken");
+        assert!(!store.path().exists());
+        assert_eq!(store.set_aside().unwrap(), None, "nothing left to move");
+
+        store.save(&Config::default()).unwrap();
+        assert!(kept.exists(), "saving does not touch the kept file");
     }
 
     #[cfg(unix)]

@@ -22,6 +22,8 @@
   let draft = $state<Config | null>(null);
   let saved = $state("");
   let status = $state<{ tone: "info" | "error" | "success"; text: string } | null>(null);
+  /** Why config.toml could not be read; the draft is then empty. */
+  let loadError = $state<string | null>(null);
 
   const dirty = $derived(draft !== null && JSON.stringify(draft) !== saved);
 
@@ -33,7 +35,9 @@
 
   async function load() {
     try {
-      adopt(await api.getConfig());
+      const editable = await api.getConfig();
+      adopt(editable.config);
+      loadError = editable.load_error;
     } catch (e) {
       status = { tone: "error", text: describeError(e) };
     }
@@ -45,7 +49,10 @@
       const snapshot = JSON.parse(JSON.stringify(draft)) as Config;
       await api.saveConfig(snapshot);
       adopt(snapshot);
-      status = { tone: "success", text: "Saved." };
+      status = loadError
+        ? { tone: "info", text: "Saved. The unreadable file is kept as config.toml.broken." }
+        : { tone: "success", text: "Saved." };
+      loadError = null;
     } catch (e) {
       status = { tone: "error", text: describeError(e) };
     }
@@ -91,6 +98,12 @@
   </nav>
 
   <section class="content">
+    {#if loadError}
+      <Banner tone="error">
+        config.toml could not be read: {loadError}. You are editing an empty configuration. Saving keeps the
+        unreadable file as config.toml.broken, next to it, so you can repair it or copy rules from it.
+      </Banner>
+    {/if}
     {#if draft}
       {#if tab === "browsers"}
         <BrowsersTab bind:config={draft} />

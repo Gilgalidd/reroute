@@ -64,7 +64,16 @@ impl AppState {
     }
 
     /// Validate, persist and adopt a new configuration.
+    ///
+    /// If the file could not be read at start-up, it is moved aside as
+    /// `config.toml.broken` first: the user may want the rules it holds, and
+    /// the empty configuration in memory must not overwrite them.
     pub fn save(&self, config: Config) -> Result<(), String> {
+        if self.config_error().is_some() {
+            if let Some(kept) = self.store.set_aside().map_err(|e| e.to_string())? {
+                log::warn!("unreadable configuration kept as {}", kept.display());
+            }
+        }
         self.store.save(&config).map_err(|e| e.to_string())?;
         *lock(&self.config) = config;
         *lock(&self.config_error) = None;

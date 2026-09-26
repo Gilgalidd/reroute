@@ -6,6 +6,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
   AppInfo,
   Config,
+  EditableConfig,
   ImportReport,
   LaunchContext,
   RegisterOutcome,
@@ -21,7 +22,7 @@ export const api = {
   dismiss: () => invoke<void>("dismiss"),
   openSettings: () => invoke<void>("open_settings"),
 
-  getConfig: () => invoke<Config>("get_config"),
+  getConfig: () => invoke<EditableConfig>("get_config"),
   saveConfig: (config: Config) => invoke<void>("save_config", { config }),
   /** Detection and import work on the unsaved draft and return it merged. */
   discoverBrowsers: (config: Config) => invoke<Config>("discover_browsers", { config }),

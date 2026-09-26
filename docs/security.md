@@ -58,6 +58,10 @@ URL can never be mistaken for a command-line option such as `--profile`.
   truncated configuration.
 - Created with mode `0600` in a `0700` directory on Unix. The file names
   programs to run, so other users must not be able to edit it.
+- A file that cannot be read is reported, never reset: links still open
+  (the picker says the configuration was not loaded), the settings window
+  shows the error, and the first save moves the file aside as
+  `config.toml.broken` instead of overwriting it.
 - `deny_unknown_fields`: a typo cannot silently disable a rule.
 - Newer format versions are refused, not guessed.
 - Every rule's `browser`/`launch` reference must resolve; every browser path

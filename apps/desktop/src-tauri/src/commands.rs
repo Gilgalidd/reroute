@@ -136,10 +136,22 @@ pub fn open_settings(app: AppHandle) -> Result<(), String> {
     windows::open_settings(&app).map_err(|e| e.to_string())
 }
 
+/// What the settings window edits.
+#[derive(Serialize)]
+pub struct EditableConfig {
+    config: Config,
+    /// Why `config.toml` could not be read, when it could not. `config` is
+    /// then empty, and saving keeps the old file as `config.toml.broken`.
+    load_error: Option<String>,
+}
+
 /// The full configuration, for editing.
 #[tauri::command]
-pub fn get_config(state: State<'_, AppState>) -> Config {
-    state.config().clone()
+pub fn get_config(state: State<'_, AppState>) -> EditableConfig {
+    EditableConfig {
+        config: state.config().clone(),
+        load_error: state.config_error(),
+    }
 }
 
 /// Validate and persist an edited configuration.

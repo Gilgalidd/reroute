@@ -14,6 +14,11 @@ All notable changes to Reroute are documented here. The format follows
   next Save, because the window still held the configuration from before it.
   Both now add to the settings being edited, and Save keeps them like any
   other change.
+- An unreadable `config.toml` (a typo is enough) could be overwritten, rules
+  and all. The settings window showed an empty configuration without saying
+  why, and the first Save replaced the file. It now shows the error, and
+  saving moves the old file aside as `config.toml.broken` so its rules can be
+  recovered.
 
 ## [0.1.8] - 2026-09-26
 
