@@ -104,6 +104,24 @@ describe("Picker window", () => {
     expect(await screen.findByText("Up to date (0.1.11)")).toBeInTheDocument();
   });
 
+  it("colours the update button with what Reroute's own check found", async () => {
+    const base = launchContext();
+    mockIpc({ launch_context: () => ({ ...base, update: { state: "available", version: "9.9.9" } }) });
+    render(Picker);
+    await screen.findByText("github.com", { selector: ".host" });
+    const button = screen.getByRole("button", { name: "Check for a new version" });
+    expect(button).toHaveClass("available");
+    expect(button).toHaveAttribute("title", "Version 9.9.9 is available");
+  });
+
+  it("asks to be shown once the link is on screen", async () => {
+    const ipc = mockIpc({ launch_context: () => launchContext() });
+    render(Picker);
+    await screen.findByText("github.com", { selector: ".host" });
+    const order = ipc.calls.map((c) => c.cmd).filter((cmd) => cmd === "launch_context" || cmd === "show_picker");
+    expect(order).toEqual(["launch_context", "show_picker"]);
+  });
+
   it("dismisses on Escape and shows a refused URL", async () => {
     const ipc = mockIpc({
       launch_context: () => ({ ...launchContext(), url: null, url_error: "scheme `javascript` is not allowed" }),

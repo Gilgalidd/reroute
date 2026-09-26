@@ -9,6 +9,7 @@
     "allow-launch-context",
     "allow-pick",
     "allow-dismiss",
+    "allow-show-picker",
     "allow-open-settings",
     "allow-check-latest-release",
     "allow-open-release-page"

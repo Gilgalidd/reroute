@@ -23,6 +23,7 @@ export function mockIpc(handlers: Record<string, Handler>) {
         return null;
       }
       if (cmd === "plugin:event|listen") return 1;
+      if (cmd === "show_picker") return null;
       if (cmd === "plugin:event|unlisten") return null;
       const handler = handlers[cmd];
       if (!handler) throw new Error(`unmocked command ${cmd}`);
@@ -40,7 +41,7 @@ export function mockIpc(handlers: Record<string, Handler>) {
 export function sparseConfig(): Config {
   return {
     version: 1,
-    settings: { rules_enabled: true, open_under_cursor: false, close_on_focus_loss: true, offer_remember: true, theme: "auto", picker_layout: "tiles" },
+    settings: { rules_enabled: true, open_under_cursor: false, close_on_focus_loss: true, offer_remember: true, theme: "auto", picker_layout: "tiles", run_in_background: true, check_for_updates: true },
     browsers: [
       { id: "11111111-1111-1111-1111-111111111111", name: "Firefox", path: "/snap/bin/firefox", args: ["%URL%"], hidden: false } as Config["browsers"][number],
       {
@@ -70,5 +71,6 @@ export function launchContext(): LaunchContext {
       icon: null,
       brand: null,
     })),
+    update: { state: "unknown" },
   };
 }

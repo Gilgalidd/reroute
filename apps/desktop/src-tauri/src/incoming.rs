@@ -62,11 +62,15 @@ pub fn handle_opened(app: &tauri::AppHandle, urls: &[tauri::Url]) {
     let Some(first) = urls.first() else { return };
     let state = app.state::<AppState>();
     match decide(&state, first.as_str()) {
-        Decision::Launched => crate::windows::finish_picker(app),
+        Decision::Launched => {
+            // A rule chose the browser: no picker for this link.
+            crate::windows::finish_picker(app);
+            return;
+        }
         Decision::Ask(url) => state.set_pending(url),
         Decision::Refused(message) => state.set_url_error(message),
     }
-    if let Err(error) = crate::windows::open_picker(app) {
+    if let Err(error) = crate::windows::request_picker(app) {
         log::error!("cannot open picker: {error}");
     }
 }

@@ -1,5 +1,6 @@
 //! The one network request Reroute makes: asking which version is the
-//! newest, when the user presses the button.
+//! newest, when the user presses an update button, and by itself at most
+//! once a day when the user leaves `check_for_updates` on.
 //!
 //! It is a single HTTPS GET of a fixed address, with a short timeout and a
 //! small size limit. Nothing about the user is sent: no version, no
@@ -8,7 +9,9 @@
 
 use std::time::Duration;
 
-use reroute_core::release::{LATEST_RELEASE_API, LatestRelease, interpret};
+use std::path::Path;
+
+use reroute_core::release::{LATEST_RELEASE_API, LastCheck, LatestRelease, interpret};
 
 use crate::PlatformError;
 
@@ -48,6 +51,28 @@ pub fn latest_release(current_version: &str) -> Result<LatestRelease, PlatformEr
         .ok_or_else(|| PlatformError::Os("the answer did not name a version".into()))
 }
 
+/// File in [`crate::paths::cache_dir`] that remembers the last automatic
+/// check between runs.
+pub const LAST_CHECK_FILE: &str = "last-version-check.json";
+
+/// The last automatic check recorded in `dir`, if any. A missing, damaged
+/// or oversized file reads as none, which only means asking again.
+pub fn load_last_check(dir: &Path) -> Option<LastCheck> {
+    let path = dir.join(LAST_CHECK_FILE);
+    if std::fs::metadata(&path).ok()?.len() > 4096 {
+        return None;
+    }
+    serde_json::from_str(&std::fs::read_to_string(path).ok()?).ok()
+}
+
+/// Record `check` in `dir`.
+pub fn store_last_check(dir: &Path, check: &LastCheck) -> Result<(), PlatformError> {
+    let os = |e: std::io::Error| PlatformError::Os(format!("{}: {e}", dir.display()));
+    std::fs::create_dir_all(dir).map_err(os)?;
+    let text = serde_json::to_string(check).map_err(|e| PlatformError::Os(e.to_string()))?;
+    std::fs::write(dir.join(LAST_CHECK_FILE), text).map_err(os)
+}
+
 /// Say what went wrong in terms a person can act on.
 fn describe(error: &ureq::Error) -> String {
     match error {
@@ -68,6 +93,20 @@ mod tests {
     fn errors_are_explained_rather_than_dumped() {
         assert!(describe(&ureq::Error::StatusCode(404)).contains("private"));
         assert!(describe(&ureq::Error::StatusCode(500)).contains("500"));
+    }
+
+    #[test]
+    fn the_last_check_survives_a_restart() {
+        let dir = tempfile::tempdir().unwrap();
+        assert_eq!(load_last_check(dir.path()), None);
+        let check = LastCheck {
+            checked_at: 1_790_000_000,
+            version: Some("0.1.12".into()),
+        };
+        store_last_check(dir.path(), &check).unwrap();
+        assert_eq!(load_last_check(dir.path()), Some(check));
+        std::fs::write(dir.path().join(LAST_CHECK_FILE), "not json").unwrap();
+        assert_eq!(load_last_check(dir.path()), None, "damaged reads as none");
     }
 
     #[test]

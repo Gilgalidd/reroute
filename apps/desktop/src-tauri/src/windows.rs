@@ -1,7 +1,14 @@
 //! Window management. Two windows exist: the picker (small, always on top,
 //! closes on focus loss) and the settings window.
+//!
+//! The picker is created hidden and shown by its own page once the page has
+//! read the pending link ([`show_picker`]), so it never appears empty or
+//! with the previous link. A Reroute running in the background keeps it
+//! loaded and hidden between clicks.
 
-use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
+use std::time::Duration;
+
+use tauri::{AppHandle, LogicalPosition, Manager, WebviewUrl, WebviewWindowBuilder};
 
 use crate::state::AppState;
 
@@ -21,34 +28,77 @@ fn theme(settings: &reroute_core::Settings) -> Option<tauri::Theme> {
     }
 }
 
-/// Show the picker, creating it if needed. An existing picker is told to
-/// reload its context (the pending URL may have changed).
-pub fn open_picker(app: &AppHandle) -> tauri::Result<()> {
-    if let Some(window) = app.get_webview_window(PICKER) {
+/// If the page has not asked to be shown by then, show the picker anyway:
+/// a link must never go unanswered because a page failed to load.
+const SHOW_AT_THE_LATEST: Duration = Duration::from_millis(1500);
+
+/// Ask for the picker for the pending link. An existing picker is told to
+/// read its context again; a new one reads it as it loads. Either way the
+/// page then calls [`show_picker`].
+pub fn request_picker(app: &AppHandle) -> tauri::Result<()> {
+    app.state::<AppState>().want_picker();
+    if app.get_webview_window(PICKER).is_some() {
         tauri::Emitter::emit_to(app, PICKER, "context-changed", ())?;
-        return window.set_focus();
+    } else {
+        create_picker(app)?;
     }
-    let settings = app.state::<AppState>().config().settings.clone();
-    let mut builder =
-        WebviewWindowBuilder::new(app, PICKER, WebviewUrl::App("index.html#/picker".into()))
-            .title("Reroute")
-            .inner_size(PICKER_WIDTH, PICKER_HEIGHT)
-            .min_inner_size(420.0, 280.0)
-            .resizable(false)
-            .always_on_top(true)
-            .skip_taskbar(true)
-            .focused(true)
-            .theme(theme(&settings));
-    builder = match settings
-        .open_under_cursor
-        .then(|| position_under_cursor(app))
-        .flatten()
-    {
-        Some((x, y)) => builder.position(x, y),
-        None => builder.center(),
-    };
-    builder.build()?;
+    let app = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(SHOW_AT_THE_LATEST);
+        let handle = app.clone();
+        let shown = app.run_on_main_thread(move || {
+            if let Err(error) = show_picker(&handle) {
+                log::error!("cannot show the picker: {error}");
+            }
+        });
+        if let Err(error) = shown {
+            log::error!("cannot show the picker: {error}");
+        }
+    });
     Ok(())
+}
+
+/// Load the picker without showing it, so that the next click finds WebKit
+/// and the page ready (Reroute running in the background).
+pub fn preload_picker(app: &AppHandle) -> tauri::Result<()> {
+    if app.get_webview_window(PICKER).is_none() {
+        create_picker(app)?;
+    }
+    Ok(())
+}
+
+fn create_picker(app: &AppHandle) -> tauri::Result<()> {
+    let settings = app.state::<AppState>().config().settings.clone();
+    WebviewWindowBuilder::new(app, PICKER, WebviewUrl::App("index.html#/picker".into()))
+        .title("Reroute")
+        .inner_size(PICKER_WIDTH, PICKER_HEIGHT)
+        .min_inner_size(420.0, 280.0)
+        .resizable(false)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .visible(false)
+        .theme(theme(&settings))
+        .build()?;
+    Ok(())
+}
+
+/// The page has read the pending link: show the picker, where the settings
+/// ask for it, if a link is waiting. Does nothing otherwise, so that the
+/// preloaded page and the safety timer can both call it freely.
+pub fn show_picker(app: &AppHandle) -> tauri::Result<()> {
+    if !app.state::<AppState>().take_picker_wish() {
+        return Ok(());
+    }
+    let Some(window) = app.get_webview_window(PICKER) else {
+        return Ok(());
+    };
+    let under_cursor = app.state::<AppState>().config().settings.open_under_cursor;
+    match under_cursor.then(|| position_under_cursor(app)).flatten() {
+        Some((x, y)) => window.set_position(LogicalPosition::new(x, y))?,
+        None => window.center()?,
+    }
+    window.show()?;
+    window.set_focus()
 }
 
 /// Logical top-left position that puts the picker under the mouse pointer
@@ -113,14 +163,25 @@ pub fn open_settings_or_wait(app: &AppHandle) {
     }
 }
 
-/// The picker is done (choice made or dismissed): close it, and exit the
-/// process unless the settings window is still in use.
+/// The picker is done (choice made or dismissed). A Reroute running in the
+/// background hides it for the next click; otherwise it closes, and the
+/// process exits unless the settings window is still in use.
 pub fn finish_picker(app: &AppHandle) {
+    let state = app.state::<AppState>();
+    state.clear_pending();
+    if state.stays_in_background() {
+        if let Some(window) = app.get_webview_window(PICKER)
+            && let Err(error) = window.hide()
+        {
+            log::warn!("cannot hide picker: {error}");
+        }
+        return;
+    }
     if app.get_webview_window(SETTINGS).is_some() {
-        if let Some(window) = app.get_webview_window(PICKER) {
-            if let Err(error) = window.close() {
-                log::warn!("cannot close picker: {error}");
-            }
+        if let Some(window) = app.get_webview_window(PICKER)
+            && let Err(error) = window.close()
+        {
+            log::warn!("cannot close picker: {error}");
         }
     } else {
         app.exit(0);

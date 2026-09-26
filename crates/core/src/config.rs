@@ -57,6 +57,12 @@ pub struct Settings {
     pub theme: Theme,
     /// Tiles or a list in the picker.
     pub picker_layout: PickerLayout,
+    /// Linux: keep Reroute running after its windows close, and start it
+    /// with the session, so that the picker opens at once after a click.
+    pub run_in_background: bool,
+    /// Ask once a day, when Reroute starts, whether a newer version is
+    /// published. The answer colours the update button in the picker.
+    pub check_for_updates: bool,
 }
 
 impl Default for Settings {
@@ -68,6 +74,8 @@ impl Default for Settings {
             offer_remember: true,
             theme: Theme::Auto,
             picker_layout: PickerLayout::Tiles,
+            run_in_background: true,
+            check_for_updates: true,
         }
     }
 }
@@ -166,13 +174,13 @@ impl Config {
                     ruleset: set.name.clone(),
                     browser: set.browser.to_string(),
                 })?;
-            if let Some(launch) = set.launch {
-                if browser.launch(launch).is_none() {
-                    return Err(ConfigError::UnknownLaunch {
-                        ruleset: set.name.clone(),
-                        launch: launch.to_string(),
-                    });
-                }
+            if let Some(launch) = set.launch
+                && browser.launch(launch).is_none()
+            {
+                return Err(ConfigError::UnknownLaunch {
+                    ruleset: set.name.clone(),
+                    launch: launch.to_string(),
+                });
             }
         }
         Ok(())
@@ -262,14 +270,14 @@ impl Config {
                 continue;
             };
             set.browser = browser;
-            if let Some(launch) = set.launch {
-                if !kept_launches.contains(&launch) {
-                    report.notes.push(format!(
+            if let Some(launch) = set.launch
+                && !kept_launches.contains(&launch)
+            {
+                report.notes.push(format!(
                         "ruleset `{}` now uses the default launch (its profile belonged to a browser that already existed)",
                         set.name
                     ));
-                    set.launch = None;
-                }
+                set.launch = None;
             }
             self.rulesets.push(set);
             report.rulesets_added += 1;

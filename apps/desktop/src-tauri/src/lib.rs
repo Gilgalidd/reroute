@@ -3,11 +3,14 @@
 //! Flow for a click on a link:
 //!
 //! 1. The OS starts `reroute <url>` (or, on macOS, sends an open-URL event).
-//! 2. [`incoming::decide`] validates the URL and evaluates the rules. If a
-//!    rule matches, the browser is launched and the process exits before any
-//!    window is created.
-//! 3. Otherwise the picker window is shown; the choice is launched through
-//!    the same code path and the process exits.
+//! 2. On Linux, if a Reroute already runs in the background, the new process
+//!    hands it the link and exits ([`resident`]); that Reroute continues
+//!    from step 3 with its picker already loaded.
+//! 3. [`incoming::decide`] validates the URL and evaluates the rules. If a
+//!    rule matches, the browser is launched and no window is shown.
+//! 4. Otherwise the picker is shown; the choice is launched through the same
+//!    code path. Then the process exits, or, running in the background,
+//!    hides the picker for the next click.
 //!
 //! Started without arguments, Reroute opens its settings window.
 
@@ -16,7 +19,10 @@
 mod cli;
 mod commands;
 mod incoming;
+#[cfg(target_os = "linux")]
+mod resident;
 mod state;
+mod updates;
 mod windows;
 
 use tauri::Manager;
@@ -57,14 +63,43 @@ pub fn run() {
         return;
     }
 
-    let state = AppState::load();
+    // A Reroute running in the background answers at once.
+    #[cfg(target_os = "linux")]
+    if resident::hand_over(&mode) {
+        return;
+    }
 
+    let state = AppState::load();
+    updates::restore(&state);
+
+    #[cfg(target_os = "linux")]
+    let listener = match resident::claim(&mode, &state) {
+        resident::Role::Resident(listener) => {
+            state.set_resident();
+            Some(listener)
+        }
+        resident::Role::Alone => None,
+        resident::Role::Done => return,
+    };
+
+    let mut picker_needed = false;
     if let cli::Mode::Pick(raw) = &mode {
         match incoming::decide(&state, raw) {
-            incoming::Decision::Launched => return,
-            incoming::Decision::Ask(url) => state.set_pending(url),
-            incoming::Decision::Refused(message) => state.set_url_error(message),
+            incoming::Decision::Launched => {}
+            incoming::Decision::Ask(url) => {
+                state.set_pending(url);
+                picker_needed = true;
+            }
+            incoming::Decision::Refused(message) => {
+                state.set_url_error(message);
+                picker_needed = true;
+            }
         }
+    }
+    let resident = state.stays_in_background();
+    if !resident && !picker_needed && mode != cli::Mode::Settings {
+        // A rule opened the link, or a background start that is not wanted.
+        return;
     }
 
     let app = tauri::Builder::default()
@@ -84,14 +119,24 @@ pub fn run() {
             commands::app_info,
             commands::check_latest_release,
             commands::open_release_page,
+            commands::show_picker,
         ])
         .setup(move |app| {
             let handle = app.handle();
-            match mode {
-                cli::Mode::Pick(_) => windows::open_picker(handle)?,
-                cli::Mode::Settings => windows::open_settings_or_wait(handle),
-                cli::Mode::Version | cli::Mode::MakeDefault => {}
+            if picker_needed {
+                windows::request_picker(handle)?;
+            } else if mode == cli::Mode::Settings {
+                windows::open_settings_or_wait(handle);
             }
+            #[cfg(target_os = "linux")]
+            if let Some(listener) = listener {
+                windows::preload_picker(handle)?;
+                resident::serve(listener, handle);
+                if let Err(error) = reroute_platform::autostart::set(true) {
+                    log::warn!("cannot start with the session: {error}");
+                }
+            }
+            updates::refresh_if_due(handle);
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -156,9 +201,17 @@ fn make_default_from_cli() {
     }
 }
 
-/// macOS delivers link clicks and dock re-activation as run-loop events.
-/// Other platforms have nothing to do here.
+/// Keep running when the last window closes while Reroute stays in the
+/// background. macOS also delivers link clicks and dock re-activation here.
 fn handle_run_event(app: &tauri::AppHandle, event: &tauri::RunEvent) {
+    // `code: None` is the last window closing; an explicit `exit` has a code.
+    if let tauri::RunEvent::ExitRequested {
+        api, code: None, ..
+    } = event
+        && app.state::<AppState>().stays_in_background()
+    {
+        api.prevent_exit();
+    }
     #[cfg(target_os = "macos")]
     match event {
         tauri::RunEvent::Opened { urls } => incoming::handle_opened(app, urls),
@@ -172,6 +225,4 @@ fn handle_run_event(app: &tauri::AppHandle, event: &tauri::RunEvent) {
         }
         _ => {}
     }
-    #[cfg(not(target_os = "macos"))]
-    let _ = (app, event);
 }

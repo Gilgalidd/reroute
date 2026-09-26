@@ -16,6 +16,8 @@
 //! * [`Brand`] — recognises well-known browsers for fallback icons.
 //! * [`release`] — comparing the running version with the published one.
 //! * [`private`] — the second entry that opens a browser privately.
+//! * [`control`] — what a new Reroute process asks the one running in the
+//!   background.
 //!
 //! The crate deliberately has no dependency on any GUI or OS API so that
 //! its behaviour is fully covered by fast unit and property tests.
@@ -26,6 +28,7 @@
 pub mod brand;
 pub mod browser;
 pub mod config;
+pub mod control;
 pub mod error;
 pub mod import;
 pub mod private;

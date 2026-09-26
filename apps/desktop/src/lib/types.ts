@@ -38,7 +38,18 @@ export interface Settings {
   offer_remember: boolean;
   theme: Theme;
   picker_layout: PickerLayout;
+  /** Linux: stay running and start with the session, for a faster picker. */
+  run_in_background: boolean;
+  /** Ask once a day, at start-up, whether a newer version is published. */
+  check_for_updates: boolean;
 }
+
+/** Where the running version stands; colours the picker's update button. */
+export type UpdateStatus =
+  | { state: "unknown" }
+  | { state: "current"; version: string }
+  | { state: "available"; version: string }
+  | { state: "failed"; reason: string };
 
 export interface Config {
   version: number;
@@ -66,6 +77,7 @@ export interface LaunchContext {
   config_error: string | null;
   settings: Settings;
   browsers: BrowserView[];
+  update: UpdateStatus;
 }
 
 export interface TestResult {

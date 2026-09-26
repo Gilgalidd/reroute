@@ -7,10 +7,11 @@ understand in an afternoon, so the bar is "clear and boring" rather than
 ## Ground rules
 
 - **One network call, and only one.** The version check in
-  `reroute-platform` is the only reason Reroute may open a socket, and it
-  runs only when the user asks. Pull requests adding telemetry, remote
-  assets, self-installing updates or a second HTTP client will be declined;
-  `deny.toml` enforces the client rule.
+  `reroute-platform` is the only reason Reroute may open a network
+  connection: when the user presses an update button, and by itself at most
+  once a day while `check_for_updates` is on. Pull requests adding
+  telemetry, remote assets, self-installing updates or a second HTTP client
+  will be declined; `deny.toml` enforces the client rule.
 - **No shell.** Browsers are spawned with an argument vector, never through
   `sh -c` or `cmd /C`.
 - **No `unsafe`** outside the two places listed in

@@ -53,7 +53,7 @@ pub fn desktop_file_contents(exe: &Path) -> String {
 
 /// Quote a path for the `Exec=` key (double quotes; escape `"`, `` ` ``,
 /// `$` and `\`).
-fn quote_exec(path: &Path) -> String {
+pub(crate) fn quote_exec(path: &Path) -> String {
     let raw = path.to_string_lossy();
     let mut out = String::with_capacity(raw.len() + 2);
     out.push('"');
@@ -67,7 +67,7 @@ fn quote_exec(path: &Path) -> String {
     out
 }
 
-fn home() -> Result<PathBuf, PlatformError> {
+pub(crate) fn home() -> Result<PathBuf, PlatformError> {
     std::env::var_os("HOME")
         .map(PathBuf::from)
         .ok_or_else(|| PlatformError::Os("HOME is not set".into()))
@@ -159,10 +159,10 @@ pub fn register() -> Result<Outcome, PlatformError> {
         // Refresh only the directory we just wrote into. Called without an
         // argument the tool tries the system directories, which need root and
         // which the package manager already refreshed.
-        if let Some(dir) = path.parent().and_then(std::path::Path::to_str) {
-            if let Err(error) = run_tool("update-desktop-database", &[dir]) {
-                log::info!("{error} (ignored)");
-            }
+        if let Some(dir) = path.parent().and_then(std::path::Path::to_str)
+            && let Err(error) = run_tool("update-desktop-database", &[dir])
+        {
+            log::info!("{error} (ignored)");
         }
     }
     // Some desktops keep their own notion of the default browser. On KDE this
@@ -195,10 +195,10 @@ pub fn register() -> Result<Outcome, PlatformError> {
 /// `xdg-settings` when the file has no opinion at all.
 pub fn is_default() -> Result<bool, PlatformError> {
     let path = mimeapps_path()?;
-    if let Ok(text) = std::fs::read_to_string(&path) {
-        if let Some(handlers) = super::mimeapps::default_web_handlers(&text) {
-            return Ok(handlers.iter().all(|h| h == DESKTOP_ID));
-        }
+    if let Ok(text) = std::fs::read_to_string(&path)
+        && let Some(handlers) = super::mimeapps::default_web_handlers(&text)
+    {
+        return Ok(handlers.iter().all(|h| h == DESKTOP_ID));
     }
     let current = run_tool("xdg-settings", &["get", "default-web-browser"])?;
     Ok(current.trim() == DESKTOP_ID)

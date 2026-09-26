@@ -12,6 +12,7 @@ import type {
   RegisterOutcome,
   LatestRelease,
   TestResult,
+  UpdateStatus,
   Uuid,
 } from "./types";
 
@@ -20,6 +21,8 @@ export const api = {
   pick: (browser: Uuid, launch: Uuid | null, remember: boolean) =>
     invoke<void>("pick", { browser, launch, remember }),
   dismiss: () => invoke<void>("dismiss"),
+  /** The picker's page has read the pending link; Rust shows the window. */
+  showPicker: () => invoke<void>("show_picker"),
   openSettings: () => invoke<void>("open_settings"),
 
   getConfig: () => invoke<EditableConfig>("get_config"),
@@ -32,7 +35,7 @@ export const api = {
   importHurl: (config: Config, json: string) => invoke<ImportReport>("import_hurl", { config, json }),
   appInfo: () => invoke<AppInfo>("app_info"),
 
-  /** The only call that reaches the network, and only on demand. */
+  /** Ask now which version is newest (an update button was pressed). */
   checkLatestRelease: () => invoke<LatestRelease>("check_latest_release"),
   /** Open the download page in a browser. */
   openReleasePage: () => invoke<void>("open_release_page"),
@@ -40,6 +43,10 @@ export const api = {
   /** Fired by the Rust side when the pending URL changes (macOS). */
   onContextChanged: (handler: () => void): Promise<UnlistenFn> =>
     listen("context-changed", () => handler()),
+
+  /** Fired when the automatic version check has an answer. */
+  onUpdateStatus: (handler: (status: UpdateStatus) => void): Promise<UnlistenFn> =>
+    listen<UpdateStatus>("update-status", (event) => handler(event.payload)),
 };
 
 /** Turn any thrown value into a readable message. */

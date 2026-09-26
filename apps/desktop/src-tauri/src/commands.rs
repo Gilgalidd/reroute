@@ -10,7 +10,7 @@
 use base64::Engine;
 use reroute_core::{Brand, Browser, BrowserId, Config, LaunchId, SafeUrl};
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 
 use crate::state::AppState;
 use crate::{incoming, windows};
@@ -40,6 +40,8 @@ pub struct LaunchContext {
     config_error: Option<String>,
     settings: reroute_core::Settings,
     browsers: Vec<BrowserView>,
+    /// Where the running version stands, for the update button's colour.
+    update: reroute_core::release::UpdateStatus,
 }
 
 #[derive(Serialize)]
@@ -93,7 +95,15 @@ pub fn launch_context(state: State<'_, AppState>) -> LaunchContext {
         config_error: state.config_error(),
         settings: config.settings.clone(),
         browsers: config.visible_browsers().map(browser_view).collect(),
+        update: state.update_status(),
     }
+}
+
+/// The picker's page has read the pending link: show its window, if a link
+/// is waiting (see `windows::show_picker`).
+#[tauri::command]
+pub fn show_picker(app: AppHandle) -> Result<(), String> {
+    windows::show_picker(&app).map_err(|e| e.to_string())
 }
 
 /// The user chose a browser for the pending URL.
@@ -161,8 +171,30 @@ pub fn get_config(state: State<'_, AppState>) -> EditableConfig {
 
 /// Validate and persist an edited configuration.
 #[tauri::command]
-pub fn save_config(state: State<'_, AppState>, config: Config) -> Result<(), String> {
-    state.save(config)
+pub fn save_config(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    config: Config,
+) -> Result<(), String> {
+    let background = config.settings.run_in_background;
+    state.save(config)?;
+    // Starting with the session follows the setting. Turning it on takes
+    // full effect at the next start. Turning it off lets this Reroute exit
+    // when its windows close (see `AppState::stays_in_background`): the
+    // picker it kept loaded and hidden goes now, so that it does not count
+    // as an open window.
+    #[cfg(target_os = "linux")]
+    if let Err(error) = reroute_platform::autostart::set(background) {
+        log::warn!("start with the session not updated: {error}");
+    }
+    if !background
+        && let Some(picker) = app.get_webview_window(windows::PICKER)
+        && !picker.is_visible().unwrap_or(true)
+        && let Err(error) = picker.close()
+    {
+        log::warn!("cannot close the hidden picker: {error}");
+    }
+    Ok(())
 }
 
 /// Add the installed browsers that `config` does not have yet.
@@ -268,16 +300,16 @@ pub fn import_hurl(mut config: Config, json: String) -> Result<ImportReport, Str
     })
 }
 
-/// Ask which version is the newest. This is the only command that reaches
-/// the network, and it runs only when the user presses the button. Nothing
-/// is downloaded: the answer is a version number and a link.
+/// Ask which version is the newest, when the user presses an update button.
+/// With the automatic check in `updates`, the only request that reaches the
+/// network. Nothing is downloaded: the answer is a version number and a link.
 #[tauri::command]
-pub async fn check_latest_release() -> Result<reroute_core::release::LatestRelease, String> {
-    let current = env!("CARGO_PKG_VERSION");
-    tauri::async_runtime::spawn_blocking(move || reroute_platform::release::latest_release(current))
+pub async fn check_latest_release(
+    app: AppHandle,
+) -> Result<reroute_core::release::LatestRelease, String> {
+    tauri::async_runtime::spawn_blocking(move || crate::updates::check_now(&app))
         .await
         .map_err(|e| format!("the check could not run: {e}"))?
-        .map_err(|e| e.to_string())
 }
 
 /// Open the download page in a browser: the one a rule picks for it, else

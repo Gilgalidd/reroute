@@ -8,8 +8,12 @@
 //! * [`launch::launch`] — spawn a [`reroute_core::LaunchPlan`].
 //! * [`register`] — make Reroute the default browser, or check if it is.
 //! * [`icons::load_icon`] — read a local icon file for display.
-//! * [`release::latest_release`] — the one network request, on demand.
+//! * [`release::latest_release`] — the one network request: on demand, and
+//!   at most once a day by itself.
 //! * [`paths::config_dir`] — where `config.toml` lives.
+//! * [`control`] (Unix) — the socket a new Reroute uses to reach the one
+//!   running in the background, and [`autostart`] (Linux), which starts
+//!   that one with the session.
 //!
 //! Each OS-specific module keeps a pure, unit-tested parsing layer
 //! (desktop entries, registry command lines, `Info.plist`) separate from
@@ -18,6 +22,10 @@
 #![cfg_attr(not(target_os = "macos"), forbid(unsafe_code))]
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used, clippy::panic))]
 
+#[cfg(target_os = "linux")]
+pub mod autostart;
+#[cfg(unix)]
+pub mod control;
 pub mod discover;
 pub mod icons;
 pub mod launch;

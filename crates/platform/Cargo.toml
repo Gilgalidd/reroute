@@ -16,6 +16,7 @@ workspace = true
 reroute-core = { workspace = true }
 log = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
 directories = "6"
 # One small HTTPS client for the version check. rustls, no OpenSSL.

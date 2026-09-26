@@ -18,6 +18,7 @@ fn main() {
         "app_info",
         "check_latest_release",
         "open_release_page",
+        "show_picker",
     ];
     let attributes = tauri_build::Attributes::new()
         .app_manifest(tauri_build::AppManifest::new().commands(commands));

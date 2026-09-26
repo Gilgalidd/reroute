@@ -23,7 +23,13 @@ the app only through a dozen typed IPC commands.
 OS opens "reroute https://…"            (macOS: RunEvent::Opened instead)
         │
         ▼
-cli::parse ──► AppState::load (config.toml; first run: discover browsers)
+cli::parse ──► resident::hand_over ─── a Reroute runs in the background ──► it
+        │                               takes the link (below) ──► exit(0)
+        ▼
+AppState::load (config.toml; first run: discover browsers)
+        │
+        ▼
+resident::claim ── run_in_background: stay running, picker preloaded
         │
         ▼
 incoming::decide
@@ -33,10 +39,16 @@ incoming::decide
                                               │ user picks (or "remember")
                                               ▼
                                         commands::pick ──► launch ──► exit(0)
+                                          (in the background: hide the picker)
 ```
 
 The fast path (rule matched) never creates a window or initialises the web
-view, so rule-based opening costs a few milliseconds.
+view, so rule-based opening costs a few milliseconds. With Reroute running in
+the background (Linux), the process the click starts hands its request over
+a local socket and exits in well under 0.1 s, and the picker, already loaded,
+appears about 0.1 s after the click instead of 0.8 s for a cold start. The
+picker window is always created hidden; its page asks to be shown
+(`show_picker`) once the new link is on screen.
 
 ## `reroute-core`
 
@@ -72,9 +84,11 @@ the real system.
 
 | File | Responsibility |
 |------|----------------|
-| `lib.rs` | `run()`: parse CLI, load state, fast path, build Tauri app, run loop (macOS URL events). |
-| `cli.rs` | `--settings`, `--make-default`, `--version`, first positional = URL. |
-| `state.rs` | `AppState`: config, pending URL, errors; mutex helpers. |
+| `lib.rs` | `run()`: parse CLI, hand over or claim, load state, fast path, build Tauri app, run loop (exit policy, macOS URL events). |
+| `cli.rs` | `--settings`, `--make-default`, `--version`, `--background`, first positional = URL. |
+| `state.rs` | `AppState`: config (reloaded when edited by hand), pending URL, errors, update status, background role. |
+| `resident.rs` | Linux: staying in the background; hand-over, claim, serving requests. |
+| `updates.rs` | The version check: once a day at start-up, and on demand. |
 | `incoming.rs` | `decide` and `launch`. |
 | `windows.rs` | Picker/settings window creation, focus-loss handling, exit policy. |
 | `commands.rs` | IPC commands; each is listed in `build.rs` so Tauri generates a permission for it. |

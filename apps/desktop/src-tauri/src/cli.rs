@@ -12,6 +12,9 @@ pub enum Mode {
     Version,
     /// Register as the default browser from the command line and exit.
     MakeDefault,
+    /// Start in the background with no window (Linux, `--background`): what
+    /// the session runs at login so that the picker opens at once later.
+    Background,
 }
 
 /// Interpret the arguments after the program name.
@@ -22,6 +25,7 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Mode {
             "--version" | "-V" => return Mode::Version,
             "--settings" => return Mode::Settings,
             "--make-default" => return Mode::MakeDefault,
+            "--background" => return Mode::Background,
             "--" => {}
             flag if flag.starts_with('-') && url.is_none() => {
                 log::warn!("ignoring unknown option {flag}");
@@ -75,6 +79,11 @@ mod tests {
     #[test]
     fn make_default_is_a_mode() {
         assert_eq!(parse_all(&["--make-default"]), Mode::MakeDefault);
+    }
+
+    #[test]
+    fn background_is_a_mode() {
+        assert_eq!(parse_all(&["--background"]), Mode::Background);
     }
 
     #[test]

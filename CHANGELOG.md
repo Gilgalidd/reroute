@@ -8,6 +8,16 @@ All notable changes to Reroute are documented here. The format follows
 
 ### Added
 
+- Linux: Reroute stays in the background and starts with your session, so
+  the picker appears about 0.1 s after a click instead of 0.8 s. The
+  process the click starts hands the link to the running Reroute over a
+  private local socket and exits. *Settings › General* turns it off.
+- Reroute checks by itself, once a day when it starts, whether a newer
+  version is out, and the update button in the picker shows the answer by
+  its colour: green when up to date, the accent colour when a newer version
+  is published, red when the check failed. The check can be turned off in
+  *Settings › General*; pressing the button still checks at once.
+
 - An update button beside ⚙ in the picker checks for a new version, like the
   one in *Settings › About*, and shows the result in place of the key hint,
   with a link to the download page when there is one. As before, Reroute

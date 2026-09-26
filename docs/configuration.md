@@ -37,6 +37,8 @@ version = 1        # format version; files from a newer Reroute are refused
 | `offer_remember` | `true` | Show the "Always use for this domain" checkbox. |
 | `theme` | `"auto"` | `"auto"`, `"light"` or `"dark"`. |
 | `picker_layout` | `"tiles"` | `"tiles"`, `"list"` (one browser per line, its name in full) or `"two-columns"` (the same list in two columns, read left to right). Also in *Settings › General*. |
+| `run_in_background` | `true` | Linux: keep Reroute running with its picker loaded, and start it with the session, so that the picker opens at once. Turned off, Reroute starts for each click and exits after it. |
+| `check_for_updates` | `true` | Ask once a day, when Reroute starts, whether a newer version is published; the picker's update button shows the answer by its colour. |
 
 ## Browsers
 

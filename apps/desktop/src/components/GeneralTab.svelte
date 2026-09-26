@@ -77,6 +77,8 @@
     <label class="row"><input type="checkbox" bind:checked={config.settings.offer_remember} /> Offer “always use for this domain” in the picker</label>
     <label class="row"><input type="checkbox" bind:checked={config.settings.close_on_focus_loss} /> Close the picker when it loses focus</label>
     <label class="row"><input type="checkbox" bind:checked={config.settings.open_under_cursor} /> Open the picker next to the mouse pointer</label>
+    <label class="row"><input type="checkbox" bind:checked={config.settings.run_in_background} /> Keep Reroute running in the background so the picker opens at once (Linux; starts with your session)</label>
+    <label class="row"><input type="checkbox" bind:checked={config.settings.check_for_updates} /> Check for a new version once a day, when Reroute starts</label>
     <label class="row">
       <span>Theme</span>
       <select bind:value={config.settings.theme} class="narrow">

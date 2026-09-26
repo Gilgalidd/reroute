@@ -48,10 +48,15 @@ design and a code base small enough for one person to maintain.
 - **Zero shell, zero telemetry** — only `http` and `https` links are
   accepted, browsers are spawned with an argument vector, and the
   configuration file is private to your user. See [the security model](docs/security.md).
-- **A version check you control** — the update button beside ⚙ in the
-  picker, or the one in *Settings › About*, tells you whether a newer
-  release exists and offers a link. Reroute downloads
-  and installs nothing by itself.
+- **Opens at once** — on Linux, Reroute stays in the background with its
+  picker ready and starts with your session: the picker appears about a
+  tenth of a second after a click. Turn it off in *Settings › General*.
+- **A version check you control** — once a day when Reroute starts, the
+  update button beside ⚙ in the picker turns green when you are up to date
+  and takes the accent colour when a newer release is out; press it, or
+  the one in *Settings › About*, for a link to the download page. Reroute
+  downloads and installs nothing by itself, and the daily check can be
+  turned off.
 - **Plain-text configuration** — one TOML file you can edit by hand, plus an
   importer for Hurl's `UserSettings.json`.
 

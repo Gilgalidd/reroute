@@ -16,6 +16,7 @@ does not, and how it defends itself.
 | Installed-browser metadata | `.desktop` files, registry, `Info.plist` | Medium | Only used to *propose* entries; executables are re-checked at launch |
 | Hurl import JSON | Pasted by the user | Medium | Same validation as a hand-written config |
 | Icon files | Paths from the config | Medium | Size cap, content sniffing, no execution |
+| Requests on the control socket (Linux, background mode) | The user's own processes | Low | Private directory, one-line protocol with a size cap, the same `SafeUrl` validation |
 
 ## URL validation (`reroute_core::url::SafeUrl`)
 
@@ -104,11 +105,18 @@ rendered inside `<img>`, where scripts do not execute.
 
 ## Network use
 
-Reroute opens a socket for one thing only: asking which version is the
-newest, and only when you press an update button: the one beside ⚙ in the
-picker or the one in *Settings › About*. There is
-no telemetry, no remote icon, no background traffic, and no connection at
-all on the path that opens a link.
+Reroute opens a network connection for one thing only: asking which version
+is the newest. It asks
+
+- when Reroute starts, at most once a day, while `check_for_updates` is on
+  (the default; *Settings › General* turns it off). The time of the last
+  attempt is recorded before asking, so a Reroute that exits quickly does
+  not ask again at the next click;
+- when you press an update button: the one beside ⚙ in the picker or the
+  one in *Settings › About*.
+
+There is no telemetry, no remote icon, and no connection at all on the path
+that opens a link: the check runs on a thread of its own.
 
 That check is deliberately small:
 
@@ -127,6 +135,26 @@ That check is deliberately small:
 `deny.toml` allows one HTTP client in the dependency graph, only underneath
 `reroute-platform`; any other one fails CI. TLS goes through rustls, so
 OpenSSL is absent.
+
+## Staying in the background (Linux)
+
+With `run_in_background` on (the default), the first Reroute keeps running
+with its picker loaded, and the session starts it at login through an XDG
+autostart entry. A later `reroute <url>` hands its request to it and exits.
+
+- The hand-over uses a Unix socket in `$XDG_RUNTIME_DIR/reroute/`. The
+  runtime directory belongs to the user with mode 0700 and Reroute's own
+  directory inside it is 0700 too, so only the user's own processes can
+  connect. They could already run `reroute <url>` themselves.
+- The protocol is one line, `open <url>` or `settings`, capped at 8 KiB and
+  refused if it holds a control character. The URL then goes through
+  `SafeUrl` exactly as one from the command line would.
+- The running Reroute is the one holding an exclusive lock on a file next to
+  the socket. The system drops that lock when the process ends, even in a
+  crash, so a leftover socket is never mistaken for a live one.
+- A Reroute that gets no answer handles the click itself: a hung background
+  process cannot swallow a link.
+- The long-running web view only ever shows Reroute's own pages.
 
 ## Memory safety and `unsafe`
 

@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { api, describeError } from "../lib/api";
   import { columnCount, mapKey, moveIndex } from "../lib/keys";
   import { applyTheme } from "../lib/theme";
-  import type { BrowserView, LatestRelease, LaunchContext } from "../lib/types";
+  import type { BrowserView, LaunchContext, UpdateStatus } from "../lib/types";
   import Banner from "../components/Banner.svelte";
   import BrowserTile from "../components/BrowserTile.svelte";
   import LaunchMenu from "../components/LaunchMenu.svelte";
@@ -16,19 +16,34 @@
   let menu = $state<{ browser: BrowserView; anchor: HTMLElement } | null>(null);
   let gridWidth = $state(560);
 
-  /** The version check, which runs only when the update button is pressed. */
-  type UpdateCheck =
-    | { state: "idle" }
-    | { state: "checking" }
-    | { state: "done"; release: LatestRelease }
-    | { state: "failed"; reason: string };
-  let update = $state<UpdateCheck>({ state: "idle" });
+  /** Where the running version stands: from Reroute's own check at start-up,
+   * then from the update button. It colours that button. */
+  let status = $state<UpdateStatus>({ state: "unknown" });
+  /** The button was pressed: its result replaces the key hint. */
+  let showStatus = $state(false);
+  let checking = $state(false);
+
+  const updateTitle = $derived.by(() => {
+    switch (status.state) {
+      case "current":
+        return `Up to date (${status.version})`;
+      case "available":
+        return `Version ${status.version} is available`;
+      case "failed":
+        return `Could not check for a new version: ${status.reason}`;
+      default:
+        return "Check for a new version";
+    }
+  });
 
   const browsers = $derived(context?.browsers ?? []);
   const layout = $derived(context?.settings.picker_layout ?? "tiles");
   const columns = $derived(columnCount(layout, gridWidth));
   const canPick = $derived(!!context?.url && browsers.length > 0);
 
+  /** Read the pending link, then ask to be shown. A picker kept loaded in
+   * the background still displays the previous link until this point, so
+   * the window only appears once the new one is on screen. */
   async function load() {
     try {
       context = await api.launchContext();
@@ -36,16 +51,26 @@
       highlighted = 0;
       remember = false;
       menu = null;
+      busy = false;
+      error = null;
+      showStatus = false;
+      if (!checking) status = context.update;
+      await tick();
     } catch (e) {
       error = describeError(e);
     }
+    void api.showPicker();
   }
 
   onMount(() => {
     void load();
-    const unlisten = api.onContextChanged(() => void load());
+    const unlistenContext = api.onContextChanged(() => void load());
+    const unlistenStatus = api.onUpdateStatus((next) => {
+      if (!checking) status = next;
+    });
     return () => {
-      void unlisten.then((f) => f());
+      void unlistenContext.then((f) => f());
+      void unlistenStatus.then((f) => f());
     };
   });
 
@@ -61,14 +86,20 @@
     }
   }
 
-  /** Ask which version is newest: Reroute's one network request, and only on this click. */
+  /** Ask now which version is newest (the update button). */
   async function checkForUpdate() {
-    if (update.state === "checking") return;
-    update = { state: "checking" };
+    if (checking) return;
+    checking = true;
+    showStatus = true;
     try {
-      update = { state: "done", release: await api.checkLatestRelease() };
+      const release = await api.checkLatestRelease();
+      status = release.newer
+        ? { state: "available", version: release.version }
+        : { state: "current", version: release.version };
     } catch (e) {
-      update = { state: "failed", reason: describeError(e) };
+      status = { state: "failed", reason: describeError(e) };
+    } finally {
+      checking = false;
     }
   }
 
@@ -175,26 +206,31 @@
       </label>
     {/if}
     <span class="grow"></span>
-    <!-- The update check reports where the key hint was. -->
+    <!-- The update button reports where the key hint was. -->
     <span class="hint muted" role="status">
-      {#if update.state === "idle"}
+      {#if !showStatus}
         1–9 · arrows · Enter · Esc
-      {:else if update.state === "checking"}
+      {:else if checking}
         Checking for a new version…
-      {:else if update.state === "failed"}
-        <span title={update.reason}>Could not check for a new version</span>
-      {:else if update.release.newer}
-        <button type="button" class="link" onclick={openDownloadPage}>Version {update.release.version} is available</button>
-      {:else}
-        Up to date ({update.release.version})
+      {:else if status.state === "failed"}
+        <span title={status.reason}>Could not check for a new version</span>
+      {:else if status.state === "available"}
+        <button type="button" class="link" onclick={openDownloadPage}>Version {status.version} is available</button>
+      {:else if status.state === "current"}
+        Up to date ({status.version})
       {/if}
     </span>
+    <!-- Coloured by what the last check found: green when up to date, the
+         accent colour when a newer version is out, red when it failed. -->
     <button
       type="button"
       class="icon"
-      title="Check for a new version"
+      class:current={status.state === "current"}
+      class:available={status.state === "available"}
+      class:failed={status.state === "failed"}
+      title={updateTitle}
       aria-label="Check for a new version"
-      disabled={update.state === "checking"}
+      disabled={checking}
       onclick={checkForUpdate}
     >
       <!-- Drawn rather than a text symbol: WebKit would search the fonts for one. -->
@@ -282,6 +318,16 @@
   .icon {
     display: inline-grid;
     place-items: center;
+  }
+  .icon.current {
+    color: var(--success);
+  }
+  .icon.available {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .icon.failed {
+    color: var(--danger);
   }
   .icon svg {
     width: 14px;
