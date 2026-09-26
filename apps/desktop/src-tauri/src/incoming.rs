@@ -1,6 +1,6 @@
 //! Deciding what to do with an incoming URL.
 
-use reroute_core::{BrowserId, Config, LaunchError, LaunchId, SafeUrl};
+use reroute_core::{BrowserId, Config, LaunchError, LaunchId, Match, SafeUrl};
 
 use crate::state::AppState;
 
@@ -25,16 +25,22 @@ pub fn decide(state: &AppState, raw: &str) -> Decision {
         }
     };
     let config = state.config();
-    if config.settings.rules_enabled {
-        if let Some(found) = reroute_core::rules::find_match(&config.rulesets, &url) {
-            log::info!("rule `{}` matched", found.pattern);
-            match launch(&config, &url, found.browser, found.launch) {
-                Ok(()) => return Decision::Launched,
-                Err(error) => log::warn!("rule matched but launch failed, asking instead: {error}"),
-            }
+    if let Some(found) = rule_for(&config, &url) {
+        log::info!("rule `{}` matched", found.pattern);
+        match launch(&config, &url, found.browser, found.launch) {
+            Ok(()) => return Decision::Launched,
+            Err(error) => log::warn!("rule matched but launch failed, asking instead: {error}"),
         }
     }
     Decision::Ask(url)
+}
+
+/// The rule that decides for `url`: the first match, when rules are on.
+pub fn rule_for(config: &Config, url: &SafeUrl) -> Option<Match> {
+    if !config.settings.rules_enabled {
+        return None;
+    }
+    reroute_core::rules::find_match(&config.rulesets, url)
 }
 
 /// Resolve the browser and launch, build the plan and spawn it.

@@ -280,18 +280,14 @@ pub async fn check_latest_release() -> Result<reroute_core::release::LatestRelea
         .map_err(|e| e.to_string())
 }
 
-/// Open the download page in a browser. The address is a constant, never
-/// something a server sent us.
+/// Open the download page in a browser: the one a rule picks for it, else
+/// the first in the list. The address is a constant, never something a
+/// server sent us.
 #[tauri::command]
 pub fn open_release_page(state: State<'_, AppState>) -> Result<(), String> {
     let url = SafeUrl::parse(reroute_core::release::RELEASES_PAGE).map_err(|e| e.to_string())?;
     let config = state.config();
-    let matched = if config.settings.rules_enabled {
-        reroute_core::rules::find_match(&config.rulesets, &url)
-    } else {
-        None
-    };
-    let (browser, launch) = match matched {
+    let (browser, launch) = match incoming::rule_for(&config, &url) {
         Some(found) => (found.browser, found.launch),
         None => (
             config
