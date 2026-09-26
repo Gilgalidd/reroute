@@ -23,6 +23,15 @@ All notable changes to Reroute are documented here. The format follows
   packages up to date, proposing each new version only once it is a week
   old. CI no longer runs npm install scripts or keeps its token on disk.
 
+### Changed
+
+- Rust edition 2024, and a pinned Rust toolchain (1.98) so that a new
+  compiler release cannot fail the build of unchanged code.
+- The documentation now says that Flatpak browsers get no private entry from
+  detection (Reroute sees `flatpak`, not the browser) and shows how to add
+  one by hand. `SECURITY.md` explains how to report a problem while the
+  repository is private.
+
 ### Fixed
 
 - Settings: *Detect installed* and *Import from Hurl* could lose work. Both

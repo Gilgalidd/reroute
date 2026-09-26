@@ -43,7 +43,8 @@ design and a code base small enough for one person to maintain.
 - **Finds your browsers** — desktop entries on Linux (including Flatpak and
   Snap), the registry on Windows, application bundles on macOS, with their
   real icons. Each browser with a private mode gets a second entry for it,
-  so a private window is one click away.
+  so a private window is one click away (Flatpak browsers excepted: add
+  theirs by hand, see the configuration guide).
 - **Zero shell, zero telemetry** — only `http` and `https` links are
   accepted, browsers are spawned with an argument vector, and the
   configuration file is private to your user. See [the security model](docs/security.md).

@@ -89,6 +89,25 @@ the executable and the icon but have their own id, so a rule can send a
 domain to the private one. A browser Reroute knows no argument for gets its
 ordinary entry and nothing else.
 
+Reroute recognises a browser by the name of the program it starts. A
+Flatpak browser starts `/usr/bin/flatpak`, so it is detected, but with no
+private entry and no brand colour. Add the private entry by hand: *Add*, the
+same executable, and the arguments of the detected entry with the private
+argument inserted right after the application id, before `@@u`:
+
+```text
+run
+--branch=stable
+--arch=x86_64
+--command=firefox
+--file-forwarding
+org.mozilla.firefox
+--private-window
+@@u
+%URL%
+@@
+```
+
 Entries already in the configuration keep their id and their name, and one
 is added only when none has the same executable and arguments, so renames
 and rules survive a new detection.

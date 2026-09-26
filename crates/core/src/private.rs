@@ -5,6 +5,11 @@
 //! browser, so that a private window is one click away in the picker rather
 //! than hidden behind a menu. A browser whose argument Reroute does not
 //! know gets its ordinary entry and nothing else.
+//!
+//! The browser is recognised by the program it starts (see
+//! [`crate::Brand`]), so one started through a wrapper such as
+//! `/usr/bin/flatpak` gets no private entry from detection; the
+//! configuration guide shows how to add it by hand.
 
 use crate::browser::{Browser, BrowserId};
 

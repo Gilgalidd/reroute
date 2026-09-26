@@ -6,10 +6,16 @@ described in [docs/security.md](docs/security.md).
 
 ## Reporting a vulnerability
 
-Please do **not** open a public issue for security problems. Use GitHub's
-private vulnerability reporting on this repository ("Security" tab →
-"Report a vulnerability"). You will receive an acknowledgement within a few
-days and a fix or mitigation plan as soon as possible.
+Please do **not** open an issue for a security problem.
+
+- **While the repository is private**, GitHub's private vulnerability
+  reporting is not available (it exists for public repositories only).
+  Report the problem privately to the repository owner, @Gilgalidd.
+- **Once it is public**, private vulnerability reporting will be turned on:
+  "Security" tab → "Report a vulnerability".
+
+You will receive an acknowledgement within a few days and a fix or
+mitigation plan as soon as possible.
 
 ## Supported versions
 
