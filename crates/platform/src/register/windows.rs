@@ -80,8 +80,8 @@ pub fn registry_entries(exe: &Path) -> Vec<Entry> {
 /// Write the entries and open Settings › Default apps.
 #[cfg(windows)]
 pub fn register() -> Result<Outcome, PlatformError> {
-    use winreg::enums::HKEY_CURRENT_USER;
     use winreg::RegKey;
+    use winreg::enums::HKEY_CURRENT_USER;
 
     let exe = std::env::current_exe().map_err(|e| PlatformError::Os(e.to_string()))?;
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
@@ -121,8 +121,8 @@ fn open_default_apps_settings() -> Result<(), PlatformError> {
 /// Read the user's choice for `https` and `http`.
 #[cfg(windows)]
 pub fn is_default() -> Result<bool, PlatformError> {
-    use winreg::enums::{HKEY_CURRENT_USER, KEY_READ};
     use winreg::RegKey;
+    use winreg::enums::{HKEY_CURRENT_USER, KEY_READ};
 
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     let choice = |scheme: &str| -> Option<String> {

@@ -8,7 +8,7 @@
 
 use std::time::Duration;
 
-use reroute_core::release::{interpret, LatestRelease, LATEST_RELEASE_API};
+use reroute_core::release::{LATEST_RELEASE_API, LatestRelease, interpret};
 
 use crate::PlatformError;
 

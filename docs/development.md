@@ -4,7 +4,7 @@
 
 | Tool | Version | Notes |
 |------|---------|-------|
-| Rust | stable ≥ 1.85 | `rustup` recommended; `rust-toolchain.toml` adds clippy and rustfmt |
+| Rust | 1.98 (edition 2024) | Install `rustup`; `rust-toolchain.toml` pins the version and adds clippy and rustfmt, so rustup fetches the right toolchain by itself |
 | Node.js | 22 LTS or newer | for the Svelte front end and the Tauri CLI |
 | Tauri system deps | — | see below |
 | `cargo-deny`, `cargo-audit`, `cargo-llvm-cov` | latest | optional locally, required by CI |

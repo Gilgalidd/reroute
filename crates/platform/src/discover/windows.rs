@@ -86,8 +86,8 @@ pub fn icon_from_default_icon(value: &str) -> Option<PathBuf> {
 /// Enumerate `HKLM`/`HKCU\Software\Clients\StartMenuInternet`.
 #[cfg(windows)]
 pub fn installed_browsers() -> Vec<Browser> {
-    use winreg::enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_READ};
     use winreg::RegKey;
+    use winreg::enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_READ};
 
     const ROOTS: &[(&str, winreg::HKEY)] = &[
         (r"Software\Clients\StartMenuInternet", HKEY_LOCAL_MACHINE),

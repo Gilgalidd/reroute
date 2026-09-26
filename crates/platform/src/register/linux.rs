@@ -5,7 +5,7 @@
 
 use std::path::{Path, PathBuf};
 
-use super::{run_tool, Outcome};
+use super::{Outcome, run_tool};
 use crate::PlatformError;
 
 /// Desktop-entry id written for unpackaged binaries.
@@ -28,7 +28,12 @@ fn system_data_dirs() -> Vec<PathBuf> {
 
 /// The desktop id to register: the packaged one if installed, else ours.
 pub fn desktop_id() -> &'static str {
-    let packaged = system_data_dirs()
+    desktop_id_in(&system_data_dirs())
+}
+
+/// [`desktop_id`] for the given system data directories.
+fn desktop_id_in(data_dirs: &[PathBuf]) -> &'static str {
+    let packaged = data_dirs
         .iter()
         .any(|d| d.join("applications").join(PACKAGED_DESKTOP_ID).is_file());
     if packaged {
@@ -68,12 +73,16 @@ fn home() -> Result<PathBuf, PlatformError> {
         .ok_or_else(|| PlatformError::Os("HOME is not set".into()))
 }
 
+/// `$XDG_DATA_HOME`, usually `~/.local/share`.
+fn user_data_dir() -> Result<PathBuf, PlatformError> {
+    match std::env::var_os("XDG_DATA_HOME") {
+        Some(d) => Ok(PathBuf::from(d)),
+        None => Ok(home()?.join(".local/share")),
+    }
+}
+
 fn applications_dir() -> Result<PathBuf, PlatformError> {
-    let base = match std::env::var_os("XDG_DATA_HOME") {
-        Some(d) => PathBuf::from(d),
-        None => home()?.join(".local/share"),
-    };
-    Ok(base.join("applications"))
+    Ok(user_data_dir()?.join("applications"))
 }
 
 /// Path of the `size`×`size` application icon inside a hicolor theme rooted
@@ -91,12 +100,13 @@ pub fn icon_path(data_dir: &Path, size: u32) -> PathBuf {
 /// desktop entry (and therefore the window title bar and task bar under
 /// Wayland) shows a logo when Reroute runs from outside a package.
 pub fn install_icons(icons: &[(u32, &[u8])]) -> Result<(), PlatformError> {
-    let data_dir = match std::env::var_os("XDG_DATA_HOME") {
-        Some(d) => PathBuf::from(d),
-        None => home()?.join(".local/share"),
-    };
+    install_icons_into(&user_data_dir()?, icons)
+}
+
+/// [`install_icons`] into the hicolor theme under `data_dir`.
+fn install_icons_into(data_dir: &Path, icons: &[(u32, &[u8])]) -> Result<(), PlatformError> {
     for (size, png) in icons {
-        let path = icon_path(&data_dir, *size);
+        let path = icon_path(data_dir, *size);
         let os = |e: std::io::Error| PlatformError::Os(format!("{}: {e}", path.display()));
         if let Some(dir) = path.parent() {
             std::fs::create_dir_all(dir).map_err(os)?;
@@ -211,9 +221,7 @@ mod tests {
             PathBuf::from("/usr/share/icons/hicolor/128x128/apps/reroute.png")
         );
         let dir = tempfile::tempdir().unwrap();
-        std::env::set_var("XDG_DATA_HOME", dir.path());
-        install_icons(&[(32, b"\x89PNG"), (64, b"\x89PNG")]).unwrap();
-        std::env::remove_var("XDG_DATA_HOME");
+        install_icons_into(dir.path(), &[(32, b"\x89PNG"), (64, b"\x89PNG")]).unwrap();
         assert!(icon_path(dir.path(), 32).is_file());
         assert!(icon_path(dir.path(), 64).is_file());
     }
@@ -221,16 +229,15 @@ mod tests {
     #[test]
     fn packaged_entry_is_preferred_when_installed() {
         let dir = tempfile::tempdir().unwrap();
-        std::env::set_var("XDG_DATA_DIRS", dir.path());
-        assert_eq!(desktop_id(), DESKTOP_ID);
+        let dirs = [dir.path().to_path_buf()];
+        assert_eq!(desktop_id_in(&dirs), DESKTOP_ID);
         std::fs::create_dir_all(dir.path().join("applications")).unwrap();
         std::fs::write(
             dir.path().join("applications").join(PACKAGED_DESKTOP_ID),
             "[Desktop Entry]\n",
         )
         .unwrap();
-        assert_eq!(desktop_id(), PACKAGED_DESKTOP_ID);
-        std::env::remove_var("XDG_DATA_DIRS");
+        assert_eq!(desktop_id_in(&dirs), PACKAGED_DESKTOP_ID);
     }
 
     #[test]

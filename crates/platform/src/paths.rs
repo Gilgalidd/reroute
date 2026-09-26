@@ -1,5 +1,6 @@
 //! Well-known locations.
 
+use std::ffi::OsString;
 use std::path::PathBuf;
 
 /// Environment variable that overrides the configuration directory. Handy
@@ -14,7 +15,13 @@ pub const CONFIG_DIR_ENV: &str = "REROUTE_CONFIG_DIR";
 ///
 /// `REROUTE_CONFIG_DIR` takes precedence when set to an absolute path.
 pub fn config_dir() -> Option<PathBuf> {
-    if let Some(dir) = std::env::var_os(CONFIG_DIR_ENV) {
+    config_dir_with(std::env::var_os(CONFIG_DIR_ENV))
+}
+
+/// [`config_dir`] with the override passed in rather than read from the
+/// environment, so that tests never have to change the process environment.
+fn config_dir_with(override_dir: Option<OsString>) -> Option<PathBuf> {
+    if let Some(dir) = override_dir {
         let dir = PathBuf::from(dir);
         if dir.is_absolute() {
             return Some(dir);
@@ -31,14 +38,14 @@ mod tests {
 
     #[test]
     fn override_must_be_absolute() {
-        // Environment is process-global; keep this the only test touching it.
-        std::env::set_var(CONFIG_DIR_ENV, "relative/dir");
-        let dir = config_dir().unwrap();
+        let dir = config_dir_with(Some("relative/dir".into())).unwrap();
         assert!(dir.is_absolute());
         assert!(!dir.ends_with("relative/dir"));
         let tmp = tempfile::tempdir().unwrap();
-        std::env::set_var(CONFIG_DIR_ENV, tmp.path());
-        assert_eq!(config_dir().unwrap(), tmp.path());
-        std::env::remove_var(CONFIG_DIR_ENV);
+        assert_eq!(
+            config_dir_with(Some(tmp.path().into())).unwrap(),
+            tmp.path()
+        );
+        assert!(config_dir_with(None).unwrap().is_absolute());
     }
 }

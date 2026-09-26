@@ -1,3 +1,6 @@
 [toolchain]
-channel = "stable"
+# Pinned on purpose: clippy runs with `pedantic` and `-D warnings`, so a new
+# Rust release can bring lints that fail CI on unchanged code. Move to a newer
+# version deliberately, in a commit of its own that fixes what it reports.
+channel = "1.98"
 components = ["clippy", "rustfmt"]

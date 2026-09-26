@@ -184,7 +184,7 @@ pub fn test_url(state: State<'_, AppState>, url: String) -> TestResult {
                 normalized: None,
                 error: Some(error.to_string()),
                 matched: None,
-            }
+            };
         }
     };
     let config = state.config();

@@ -152,14 +152,13 @@ fn tokenize(exec: &str) -> Option<Vec<String>> {
     Some(words)
 }
 
-/// Resolve a bare program name through `PATH`.
-fn resolve_program(name: &str) -> Option<PathBuf> {
+/// Resolve a bare program name through `search_path`, the value of `PATH`.
+fn resolve_program(name: &str, search_path: &str) -> Option<PathBuf> {
     let path = Path::new(name);
     if path.is_absolute() {
         return super::existing_absolute(path.to_path_buf());
     }
-    std::env::var_os("PATH")?
-        .to_str()?
+    search_path
         .split(':')
         .filter(|d| !d.is_empty())
         .map(|d| Path::new(d).join(name))
@@ -230,6 +229,7 @@ fn find_icon(name: &str, data_dirs: &[PathBuf]) -> Option<PathBuf> {
 /// Enumerate desktop entries and convert the HTTP handlers into browsers.
 pub fn installed_browsers() -> Vec<Browser> {
     let dirs = data_dirs();
+    let search_path = std::env::var("PATH").unwrap_or_default();
     let mut seen_ids = HashSet::new();
     let mut browsers = Vec::new();
     for dir in &dirs {
@@ -250,7 +250,7 @@ pub fn installed_browsers() -> Vec<Browser> {
             let Ok(text) = std::fs::read_to_string(&path) else {
                 continue;
             };
-            if let Some(browser) = browser_from_entry(&text, &dirs) {
+            if let Some(browser) = browser_from_entry(&text, &dirs, &search_path) {
                 browsers.push(browser);
             }
         }
@@ -258,14 +258,14 @@ pub fn installed_browsers() -> Vec<Browser> {
     browsers
 }
 
-fn browser_from_entry(text: &str, dirs: &[PathBuf]) -> Option<Browser> {
+fn browser_from_entry(text: &str, dirs: &[PathBuf], search_path: &str) -> Option<Browser> {
     let entry = parse_desktop_entry(text)?;
     let desktop = std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default();
     if !entry.shown_on(&desktop) || !entry.handles_http() {
         return None;
     }
     let (program, args) = split_exec(&entry.exec)?;
-    let path = resolve_program(&program)?;
+    let path = resolve_program(&program, search_path)?;
     let mut browser = Browser::new(entry.name, path);
     browser.args = args;
     browser.icon = entry.icon.as_deref().and_then(|i| find_icon(i, dirs));
@@ -361,11 +361,14 @@ mod tests {
         let bin = dir.path().join("bin");
         std::fs::create_dir(&bin).unwrap();
         std::fs::write(bin.join("mybrowser"), b"").unwrap();
-        std::env::set_var("PATH", &bin);
-        assert_eq!(resolve_program("mybrowser"), Some(bin.join("mybrowser")));
-        assert!(resolve_program("nothing-here").is_none());
+        let search_path = format!("/definitely/missing:{}", bin.display());
         assert_eq!(
-            resolve_program(bin.join("mybrowser").to_str().unwrap()),
+            resolve_program("mybrowser", &search_path),
+            Some(bin.join("mybrowser"))
+        );
+        assert!(resolve_program("nothing-here", &search_path).is_none());
+        assert_eq!(
+            resolve_program(bin.join("mybrowser").to_str().unwrap(), ""),
             Some(bin.join("mybrowser"))
         );
 
@@ -379,7 +382,7 @@ mod tests {
         assert!(find_icon("other", &[dir.path().to_path_buf()]).is_none());
 
         let entry = "[Desktop Entry]\nType=Application\nName=My Browser\nExec=mybrowser --x %u\nIcon=mybrowser\nMimeType=x-scheme-handler/https;\n";
-        let b = browser_from_entry(entry, &[dir.path().to_path_buf()]).unwrap();
+        let b = browser_from_entry(entry, &[dir.path().to_path_buf()], &search_path).unwrap();
         assert_eq!(b.name, "My Browser");
         assert_eq!(b.path, bin.join("mybrowser"));
         assert_eq!(b.args, vec!["--x", "%URL%"]);

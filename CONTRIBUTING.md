@@ -17,7 +17,9 @@ understand in an afternoon, so the bar is "clear and boring" rather than
   added without a `// SAFETY:` comment and a reviewer.
 - **Every behaviour is tested.** Pure logic lives in `crates/core` and must
   come with unit tests; parsers in `crates/platform` must be testable without
-  the real OS (feed them strings).
+  the real OS (feed them strings). Tests never change environment variables:
+  they run in parallel threads of one process, so a function that reads
+  `PATH` or `XDG_*` takes the value as a parameter and its tests pass their own.
 - **Public items are documented.** `missing_docs` is a warning in the
   workspace and CI treats warnings as errors.
 

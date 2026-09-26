@@ -33,11 +33,7 @@ pub fn bundle_info(plist: &plist::Value) -> Option<BundleInfo> {
         let has_ext = Path::new(&f)
             .extension()
             .is_some_and(|e| e.eq_ignore_ascii_case("icns"));
-        if has_ext {
-            f
-        } else {
-            format!("{f}.icns")
-        }
+        if has_ext { f } else { format!("{f}.icns") }
     });
     let handles_http = dict
         .get("CFBundleURLTypes")

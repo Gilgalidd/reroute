@@ -19,7 +19,7 @@ pub const BUNDLE_ID: &str = "dev.reroute.desktop";
 type OSStatus = i32;
 
 #[link(name = "CoreServices", kind = "framework")]
-extern "C" {
+unsafe extern "C" {
     fn LSSetDefaultHandlerForURLScheme(scheme: CFStringRef, bundle_id: CFStringRef) -> OSStatus;
     fn LSCopyDefaultHandlerForURLScheme(scheme: CFStringRef) -> CFStringRef;
 }
