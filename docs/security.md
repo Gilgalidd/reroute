@@ -83,9 +83,17 @@ The UI runs in the platform web view (WebKitGTK, WebView2, WKWebView) with:
   scripts, styles and fonts, `data:` for icons, and the Tauri IPC origin;
   no inline scripts, no inline styles, no remote content;
 - no global Tauri object (`withGlobalTauri: false`);
-- a least-privilege capability per window: the picker can only read its
-  context, launch, dismiss and open settings; the settings window cannot
-  launch a browser at all (`apps/desktop/src-tauri/capabilities/`);
+- a least-privilege capability per window
+  (`apps/desktop/src-tauri/capabilities/`), enforced by Tauri on every call:
+  - the picker can read its context, launch the chosen browser, dismiss
+    itself, open settings, and listen for the one event that tells it the
+    pending link changed;
+  - the settings window can read and save the configuration, detect
+    browsers, import from Hurl, test a URL, manage the default-browser
+    registration and check for a new version. It launches a browser for one
+    thing only, opening the download page, whose address is a constant;
+  - neither window gets Tauri's `core:default` set, so JavaScript cannot
+    create tray icons or menus, query windows or resolve paths;
 - no Tauri plugins beyond the core, hence no file-system, shell, HTTP or
   dialog APIs exposed to JavaScript.
 

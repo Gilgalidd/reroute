@@ -8,6 +8,10 @@ All notable changes to Reroute are documented here. The format follows
 
 ### Security
 
+- Each window gets only the Tauri permissions it uses. Both had Tauri's
+  default core set, which lets page scripts create tray icons and menus,
+  query windows or resolve paths; the picker now keeps one permission (to
+  listen for its update event) and the settings window none.
 - Each release now carries `SHA256SUMS`, the checksum of every installer,
   so a download can be checked. The installers are still not signed with a
   paid certificate.
