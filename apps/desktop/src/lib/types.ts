@@ -28,12 +28,16 @@ export interface Ruleset {
 
 export type Theme = "auto" | "light" | "dark";
 
+/** Tiles, a one-column list or a two-column list. */
+export type PickerLayout = "tiles" | "list" | "two-columns";
+
 export interface Settings {
   rules_enabled: boolean;
   open_under_cursor: boolean;
   close_on_focus_loss: boolean;
   offer_remember: boolean;
   theme: Theme;
+  picker_layout: PickerLayout;
 }
 
 export interface Config {

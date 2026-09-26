@@ -81,6 +81,14 @@
         <option value="dark">Dark</option>
       </select>
     </label>
+    <label class="row">
+      <span>Show browsers as</span>
+      <select bind:value={config.settings.picker_layout} class="narrow">
+        <option value="tiles">Tiles</option>
+        <option value="list">A list</option>
+        <option value="two-columns">A list in two columns</option>
+      </select>
+    </label>
   </section>
 
   <section class="card">

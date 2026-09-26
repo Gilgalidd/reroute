@@ -6,12 +6,15 @@
   let {
     browser,
     index,
+    row = false,
     highlighted,
     onpick,
     onmenu,
   }: {
     browser: BrowserView;
     index: number;
+    /** A line of a list rather than a square tile. */
+    row?: boolean;
     highlighted: boolean;
     onpick: () => void;
     onmenu: (anchor: HTMLElement) => void;
@@ -28,7 +31,7 @@
   });
 </script>
 
-<div class="cell" class:highlighted>
+<div class="cell" class:row class:highlighted>
   <button
     bind:this={element}
     class="tile"
@@ -40,7 +43,7 @@
       if (browser.launches.length && element) onmenu(element);
     }}
   >
-    {#if shortcut}<span class="badge">{shortcut}</span>{/if}
+    <span class="badge">{shortcut ?? ""}</span>
     {#if browser.icon}
       <img class="icon" src={browser.icon} alt="" draggable="false" />
     {:else}
@@ -143,5 +146,41 @@
   .more:hover {
     background: var(--surface-2);
     color: var(--text);
+  }
+
+  /* A line of a list: the same parts, left to right. The right padding
+     leaves room for the chevron. */
+  .row .tile {
+    flex-direction: row;
+    gap: 10px;
+    padding: 6px 30px 6px 10px;
+  }
+  .row .badge {
+    position: static;
+    flex: none;
+    width: 1ch;
+    text-align: center;
+  }
+  .row .icon {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+  }
+  .row .letter {
+    font-size: 13px;
+  }
+  .row .name {
+    width: auto;
+    min-width: 0;
+    text-align: left;
+  }
+  .row .mode {
+    margin-top: 0;
+    flex: none;
+  }
+  .row .more {
+    top: 50%;
+    transform: translateY(-50%);
   }
 </style>

@@ -55,6 +55,15 @@ describe("Settings window", () => {
     });
   });
 
+  it("saves the picker layout chosen in the General tab", async () => {
+    const ipc = setup();
+    await fireEvent.click(await screen.findByRole("button", { name: "General" }));
+    await fireEvent.change(screen.getByLabelText("Show browsers as"), { target: { value: "list" } });
+    await save();
+    await waitFor(() => expect(ipc.saved).toHaveLength(1));
+    expect(ipc.saved[0]?.settings.picker_layout).toBe("list");
+  });
+
   it("shows unexpected errors instead of swallowing them", async () => {
     setup();
     await screen.findByRole("option", { name: "Firefox" });

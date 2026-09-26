@@ -36,7 +36,7 @@ pub mod url;
 
 pub use brand::Brand;
 pub use browser::{Browser, BrowserId, Launch, LaunchId, LaunchPlan, URL_PLACEHOLDER};
-pub use config::{Config, MergeReport, Settings, Theme, CONFIG_VERSION};
+pub use config::{Config, MergeReport, PickerLayout, Settings, Theme, CONFIG_VERSION};
 pub use error::{ConfigError, Error, LaunchError, PatternError, UrlError};
 pub use rules::{Match, Pattern, Ruleset};
 pub use store::ConfigStore;

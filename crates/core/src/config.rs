@@ -28,6 +28,19 @@ pub enum Theme {
     Dark,
 }
 
+/// How the picker lays out the browsers.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PickerLayout {
+    /// Square tiles with a large icon, as many per row as the window holds.
+    #[default]
+    Tiles,
+    /// One browser per line, its name written in full.
+    List,
+    /// The same list, split in two columns.
+    TwoColumns,
+}
+
 /// Behavioural switches.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
@@ -42,6 +55,8 @@ pub struct Settings {
     pub offer_remember: bool,
     /// Colour scheme.
     pub theme: Theme,
+    /// Tiles or a list in the picker.
+    pub picker_layout: PickerLayout,
 }
 
 impl Default for Settings {
@@ -52,6 +67,7 @@ impl Default for Settings {
             close_on_focus_loss: true,
             offer_remember: true,
             theme: Theme::Auto,
+            picker_layout: PickerLayout::Tiles,
         }
     }
 }
@@ -346,6 +362,21 @@ mod tests {
         assert!(text.contains("version = 1"));
         assert_eq!(Config::from_toml(&text).unwrap(), Config::default());
         assert_eq!(Config::from_toml("").unwrap(), Config::default());
+    }
+
+    #[test]
+    fn picker_layout_is_optional_and_spelled_in_kebab_case() {
+        let older = Config::from_toml("[settings]\ntheme = \"dark\"\n").unwrap();
+        assert_eq!(older.settings.picker_layout, PickerLayout::Tiles);
+        for (text, layout) in [
+            ("tiles", PickerLayout::Tiles),
+            ("list", PickerLayout::List),
+            ("two-columns", PickerLayout::TwoColumns),
+        ] {
+            let config = Config::from_toml(&format!("[settings]\npicker_layout = \"{text}\"\n"));
+            assert_eq!(config.unwrap().settings.picker_layout, layout, "{text}");
+        }
+        assert!(Config::from_toml("[settings]\npicker_layout = \"grid\"\n").is_err());
     }
 
     #[test]

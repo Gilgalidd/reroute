@@ -1,5 +1,7 @@
 // Keyboard handling for the picker, kept free of DOM so it can be unit-tested.
 
+import type { PickerLayout } from "./types";
+
 export type PickerKey =
   | { kind: "select"; index: number }
   | { kind: "move"; delta: number }
@@ -47,6 +49,23 @@ export function mapKey(key: string, columns: number): PickerKey {
  */
 export function shortcutFor(index: number): string | null {
   return index >= 0 && index < 9 ? String(index + 1) : null;
+}
+
+/**
+ * Browsers per row of the picker, which is how far the up and down arrows
+ * move. The lists have the number of columns their name says; tiles fill
+ * the row, each taking 116px of the grid's `width` (a 104px minimum plus
+ * the gap, see `.grid` in Picker.svelte).
+ */
+export function columnCount(layout: PickerLayout, width: number): number {
+  switch (layout) {
+    case "list":
+      return 1;
+    case "two-columns":
+      return 2;
+    case "tiles":
+      return Math.max(1, Math.floor(width / 116));
+  }
 }
 
 /** Move a highlight index by `delta`, wrapping around `count` items. */

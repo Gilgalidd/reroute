@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { api, describeError } from "../lib/api";
-  import { mapKey, moveIndex } from "../lib/keys";
+  import { columnCount, mapKey, moveIndex } from "../lib/keys";
   import { applyTheme } from "../lib/theme";
   import type { BrowserView, LaunchContext } from "../lib/types";
   import Banner from "../components/Banner.svelte";
@@ -17,7 +17,8 @@
   let gridWidth = $state(560);
 
   const browsers = $derived(context?.browsers ?? []);
-  const columns = $derived(Math.max(1, Math.floor(gridWidth / 116)));
+  const layout = $derived(context?.settings.picker_layout ?? "tiles");
+  const columns = $derived(columnCount(layout, gridWidth));
   const canPick = $derived(!!context?.url && browsers.length > 0);
 
   async function load() {
@@ -115,11 +116,18 @@
       <button class="primary" type="button" onclick={() => api.openSettings()}>Open settings</button>
     </div>
   {:else}
-    <div class="grid" bind:clientWidth={gridWidth} aria-label="Browsers">
+    <div
+      class="grid"
+      class:list={layout === "list"}
+      class:two-columns={layout === "two-columns"}
+      bind:clientWidth={gridWidth}
+      aria-label="Browsers"
+    >
       {#each browsers as browser, i (browser.id)}
         <BrowserTile
           {browser}
           index={i}
+          row={layout !== "tiles"}
           highlighted={i === highlighted}
           onpick={() => pick(browser, null)}
           onmenu={(anchor) => {
@@ -191,6 +199,15 @@
     align-content: start;
     overflow-y: auto;
     padding: 2px;
+  }
+  /* The lists: one browser per line, in one column or two. */
+  .grid.list {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+  .grid.two-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
   }
   .empty {
     flex: 1;

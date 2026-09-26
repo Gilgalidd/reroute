@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapKey, moveIndex, shortcutFor } from "./keys";
+import { columnCount, mapKey, moveIndex, shortcutFor } from "./keys";
 
 describe("mapKey", () => {
   it("maps digits to tiles", () => {
@@ -33,6 +33,15 @@ describe("shortcutFor", () => {
     expect(shortcutFor(9)).toBeNull();
     expect(shortcutFor(12)).toBeNull();
     expect(shortcutFor(-1)).toBeNull();
+  });
+});
+
+describe("columnCount", () => {
+  it("is fixed for the lists and follows the width for tiles", () => {
+    expect(columnCount("list", 560)).toBe(1);
+    expect(columnCount("two-columns", 560)).toBe(2);
+    expect(columnCount("tiles", 560)).toBe(4);
+    expect(columnCount("tiles", 0)).toBe(1);
   });
 });
 

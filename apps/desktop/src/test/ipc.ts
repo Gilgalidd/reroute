@@ -40,7 +40,7 @@ export function mockIpc(handlers: Record<string, Handler>) {
 export function sparseConfig(): Config {
   return {
     version: 1,
-    settings: { rules_enabled: true, open_under_cursor: false, close_on_focus_loss: true, offer_remember: true, theme: "auto" },
+    settings: { rules_enabled: true, open_under_cursor: false, close_on_focus_loss: true, offer_remember: true, theme: "auto", picker_layout: "tiles" },
     browsers: [
       { id: "11111111-1111-1111-1111-111111111111", name: "Firefox", path: "/snap/bin/firefox", args: ["%URL%"], hidden: false } as Config["browsers"][number],
       {

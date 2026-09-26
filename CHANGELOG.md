@@ -6,6 +6,14 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The picker can show the browsers as a list instead of tiles, in one column
+  or two: *Settings › General › Show browsers as*, or `picker_layout` in the
+  configuration file. Each line carries the number key, the icon and the
+  full name, so long names such as `Chromium Web Browser (Incognito)` are no
+  longer cut. The arrow keys follow the layout. Tiles remain the default.
+
 ### Changed
 
 - The "Expressive" look of 0.1.7 is withdrawn: its gradient badges, round

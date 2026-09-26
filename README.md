@@ -38,6 +38,8 @@ design and a code base small enough for one person to maintain.
   and a rule is written for you.
 - **Keyboard first** — `1`–`9` picks a tile, arrows move, `Enter` confirms,
   `Space` opens the profile menu, `Esc` cancels, `,` opens settings.
+- **Tiles or a list** — the picker shows tiles, or a list in one or two
+  columns where every name is written in full.
 - **Finds your browsers** — desktop entries on Linux (including Flatpak and
   Snap), the registry on Windows, application bundles on macOS, with their
   real icons. Each browser with a private mode gets a second entry for it,

@@ -36,6 +36,7 @@ version = 1        # format version; files from a newer Reroute are refused
 | `close_on_focus_loss` | `true` | Dismiss the picker (opening nothing) when it loses focus. |
 | `offer_remember` | `true` | Show the "Always use for this domain" checkbox. |
 | `theme` | `"auto"` | `"auto"`, `"light"` or `"dark"`. |
+| `picker_layout` | `"tiles"` | `"tiles"`, `"list"` (one browser per line, its name in full) or `"two-columns"` (the same list in two columns, read left to right). Also in *Settings › General*. |
 
 ## Browsers
 
