@@ -79,6 +79,31 @@ describe("Picker window", () => {
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
   });
 
+  it("checks for a new version from the footer and offers the download page", async () => {
+    const ipc = mockIpc({
+      launch_context: () => launchContext(),
+      check_latest_release: () => ({ version: "9.9.9", newer: true, page: "https://example.org/" }),
+      open_release_page: () => null,
+    });
+    render(Picker);
+    await screen.findByText("github.com", { selector: ".host" });
+    expect(ipc.calls.some((c) => c.cmd === "check_latest_release")).toBe(false);
+    await fireEvent.click(screen.getByRole("button", { name: "Check for a new version" }));
+    await fireEvent.click(await screen.findByRole("button", { name: "Version 9.9.9 is available" }));
+    expect(ipc.calls.some((c) => c.cmd === "open_release_page")).toBe(true);
+  });
+
+  it("says when the running version is the newest", async () => {
+    mockIpc({
+      launch_context: () => launchContext(),
+      check_latest_release: () => ({ version: "0.1.11", newer: false, page: "https://example.org/" }),
+    });
+    render(Picker);
+    await screen.findByText("github.com", { selector: ".host" });
+    await fireEvent.click(screen.getByRole("button", { name: "Check for a new version" }));
+    expect(await screen.findByText("Up to date (0.1.11)")).toBeInTheDocument();
+  });
+
   it("dismisses on Escape and shows a refused URL", async () => {
     const ipc = mockIpc({
       launch_context: () => ({ ...launchContext(), url: null, url_error: "scheme `javascript` is not allowed" }),

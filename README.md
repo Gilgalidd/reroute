@@ -48,8 +48,9 @@ design and a code base small enough for one person to maintain.
 - **Zero shell, zero telemetry** — only `http` and `https` links are
   accepted, browsers are spawned with an argument vector, and the
   configuration file is private to your user. See [the security model](docs/security.md).
-- **A version check you control** — one button in *Settings › About* tells
-  you whether a newer release exists and offers a link. Reroute downloads
+- **A version check you control** — the update button beside ⚙ in the
+  picker, or the one in *Settings › About*, tells you whether a newer
+  release exists and offers a link. Reroute downloads
   and installs nothing by itself.
 - **Plain-text configuration** — one TOML file you can edit by hand, plus an
   importer for Hurl's `UserSettings.json`.

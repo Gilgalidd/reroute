@@ -73,8 +73,8 @@
 
   <p class="muted">
     Reroute forwards only <code>http</code> and <code>https</code> links, and only to executables
-    listed in its configuration file. The button above is the one time it uses the network: it asks
-    which version is newest and nothing else. No download, no installation, and nothing sent about
+    listed in its configuration file. The button above, like the update button in the picker, is the
+    one time it uses the network: it asks which version is newest and nothing else. No download, no installation, and nothing sent about
     you or your browsers.
   </p>
 </div>

@@ -6,6 +6,13 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- An update button beside ⚙ in the picker checks for a new version, like the
+  one in *Settings › About*, and shows the result in place of the key hint,
+  with a link to the download page when there is one. As before, Reroute
+  only asks when the button is pressed.
+
 ### Changed
 
 - Linux: the picker appears about twice as fast after a click, around 0.8 s

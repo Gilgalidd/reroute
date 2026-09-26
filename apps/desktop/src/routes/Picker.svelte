@@ -3,7 +3,7 @@
   import { api, describeError } from "../lib/api";
   import { columnCount, mapKey, moveIndex } from "../lib/keys";
   import { applyTheme } from "../lib/theme";
-  import type { BrowserView, LaunchContext } from "../lib/types";
+  import type { BrowserView, LatestRelease, LaunchContext } from "../lib/types";
   import Banner from "../components/Banner.svelte";
   import BrowserTile from "../components/BrowserTile.svelte";
   import LaunchMenu from "../components/LaunchMenu.svelte";
@@ -15,6 +15,14 @@
   let busy = $state(false);
   let menu = $state<{ browser: BrowserView; anchor: HTMLElement } | null>(null);
   let gridWidth = $state(560);
+
+  /** The version check, which runs only when the update button is pressed. */
+  type UpdateCheck =
+    | { state: "idle" }
+    | { state: "checking" }
+    | { state: "done"; release: LatestRelease }
+    | { state: "failed"; reason: string };
+  let update = $state<UpdateCheck>({ state: "idle" });
 
   const browsers = $derived(context?.browsers ?? []);
   const layout = $derived(context?.settings.picker_layout ?? "tiles");
@@ -50,6 +58,25 @@
     } catch (e) {
       error = describeError(e);
       busy = false;
+    }
+  }
+
+  /** Ask which version is newest: Reroute's one network request, and only on this click. */
+  async function checkForUpdate() {
+    if (update.state === "checking") return;
+    update = { state: "checking" };
+    try {
+      update = { state: "done", release: await api.checkLatestRelease() };
+    } catch (e) {
+      update = { state: "failed", reason: describeError(e) };
+    }
+  }
+
+  async function openDownloadPage() {
+    try {
+      await api.openReleasePage();
+    } catch (e) {
+      error = describeError(e);
     }
   }
 
@@ -148,7 +175,34 @@
       </label>
     {/if}
     <span class="grow"></span>
-    <span class="hint muted">1–9 · arrows · Enter · Esc</span>
+    <!-- The update check reports where the key hint was. -->
+    <span class="hint muted" role="status">
+      {#if update.state === "idle"}
+        1–9 · arrows · Enter · Esc
+      {:else if update.state === "checking"}
+        Checking for a new version…
+      {:else if update.state === "failed"}
+        <span title={update.reason}>Could not check for a new version</span>
+      {:else if update.release.newer}
+        <button type="button" class="link" onclick={openDownloadPage}>Version {update.release.version} is available</button>
+      {:else}
+        Up to date ({update.release.version})
+      {/if}
+    </span>
+    <button
+      type="button"
+      class="icon"
+      title="Check for a new version"
+      aria-label="Check for a new version"
+      disabled={update.state === "checking"}
+      onclick={checkForUpdate}
+    >
+      <!-- Drawn rather than a text symbol: WebKit would search the fonts for one. -->
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M20 12a8 8 0 1 1-2.34-5.66L20 8" />
+        <path d="M20 3v5h-5" />
+      </svg>
+    </button>
     <button type="button" title="Settings (,)" aria-label="Settings" onclick={() => api.openSettings()}>⚙</button>
     <button type="button" onclick={() => api.dismiss()}>Cancel</button>
   </footer>
@@ -224,5 +278,26 @@
   }
   .hint {
     font-size: 11px;
+  }
+  .icon {
+    display: inline-grid;
+    place-items: center;
+  }
+  .icon svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .link {
+    border: none;
+    background: none;
+    padding: 0;
+    font-size: inherit;
+    color: var(--accent);
+    text-decoration: underline;
   }
 </style>

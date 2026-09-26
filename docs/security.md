@@ -86,8 +86,9 @@ The UI runs in the platform web view (WebKitGTK, WebView2, WKWebView) with:
 - a least-privilege capability per window
   (`apps/desktop/src-tauri/capabilities/`), enforced by Tauri on every call:
   - the picker can read its context, launch the chosen browser, dismiss
-    itself, open settings, and listen for the one event that tells it the
-    pending link changed;
+    itself, open settings, check for a new version and open the download
+    page (both only from its update button), and listen for the one event
+    that tells it the pending link changed;
   - the settings window can read and save the configuration, detect
     browsers, import from Hurl, test a URL, manage the default-browser
     registration and check for a new version. It launches a browser for one
@@ -104,7 +105,8 @@ rendered inside `<img>`, where scripts do not execute.
 ## Network use
 
 Reroute opens a socket for one thing only: asking which version is the
-newest, and only when you press the button in *Settings › About*. There is
+newest, and only when you press an update button: the one beside ⚙ in the
+picker or the one in *Settings › About*. There is
 no telemetry, no remote icon, no background traffic, and no connection at
 all on the path that opens a link.
 
