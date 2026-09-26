@@ -6,6 +6,10 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.1.10] - 2026-09-26
+
 ### Changed
 
 - Dependencies brought up to date: Tauri 2.12, Vite 8 with its Svelte plugin 7,
@@ -235,7 +239,8 @@ kept so that version comparisons resolve.
   verifies it, because `xdg-settings` on KDE needs `qtpaths` and restores
   the previous browser when its own write fails.
 
-[Unreleased]: https://github.com/Gilgalidd/reroute/compare/v0.1.9...HEAD
+[Unreleased]: https://github.com/Gilgalidd/reroute/compare/v0.1.10...HEAD
+[0.1.10]: https://github.com/Gilgalidd/reroute/compare/v0.1.9...v0.1.10
 [0.1.9]: https://github.com/Gilgalidd/reroute/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/Gilgalidd/reroute/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/Gilgalidd/reroute/compare/v0.1.6...v0.1.7
