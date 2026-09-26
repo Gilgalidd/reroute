@@ -128,11 +128,19 @@ OpenSSL is absent.
 
 ## Memory safety and `unsafe`
 
-The workspace denies `unsafe_code`. The single exception is
-`crates/platform/src/register/macos.rs`, which calls two documented
-Launch Services C functions to read and set the default handler; each call
-has a `SAFETY:` comment. Everything else, including the Windows registry
-access (`winreg`) and process spawning, uses safe wrappers.
+The workspace denies `unsafe_code`. There are two exceptions, each with a
+`SAFETY:` comment:
+
+- `crates/platform/src/register/macos.rs` calls two documented Launch
+  Services C functions to read and set the default handler.
+- `use_shared_memory_rendering` in `apps/desktop/src-tauri/src/lib.rs`
+  (Linux) sets one environment variable, which Rust marks `unsafe` because
+  another thread could read the environment at the same time. It runs at the
+  very start of the program, before any other thread exists. The browsers
+  Reroute starts do not inherit that variable.
+
+Everything else, including the Windows registry access (`winreg`) and
+process spawning, uses safe wrappers.
 
 ## Supply chain
 

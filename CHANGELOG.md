@@ -6,7 +6,14 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+
+- Linux: the picker appears about twice as fast after a click, around 0.8 s
+  instead of 1.7 s on a KDE Wayland laptop. WebKitGTK's DMA-BUF renderer
+  brought the GPU up for each new window, which took nearly a second; Reroute
+  now tells WebKit to draw in shared memory, which a window this small does
+  not notice. Set `WEBKIT_DISABLE_DMABUF_RENDERER=0` to go back. The browsers
+  Reroute opens do not inherit the setting.
 
 ## [0.1.11] - 2026-09-26
 

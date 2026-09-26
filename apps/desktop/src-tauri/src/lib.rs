@@ -44,6 +44,8 @@ pub fn run() {
     // generic icon.
     #[cfg(target_os = "linux")]
     glib::set_prgname(Some(reroute_platform::register::linux::APP_ID));
+    #[cfg(target_os = "linux")]
+    use_shared_memory_rendering();
 
     let mode = cli::parse(std::env::args().skip(1));
     if mode == cli::Mode::Version {
@@ -110,6 +112,29 @@ pub fn run() {
     };
 
     app.run(|app, event| handle_run_event(app, &event));
+}
+
+/// Turn WebKitGTK's DMA-BUF renderer off, unless the user set the variable.
+///
+/// That renderer brings the GPU up when the first webview is created: about
+/// 0.9 s of the 1.9 s the picker took to appear after a click, on a KDE
+/// Wayland laptop, for a small window that needs no GPU. Without it WebKit
+/// draws in shared memory. `WEBKIT_DISABLE_DMABUF_RENDERER=0` in the
+/// environment brings the renderer back. The browsers Reroute starts do not
+/// inherit the variable: a WebKit-based one, such as GNOME Web, keeps its GPU.
+#[cfg(target_os = "linux")]
+#[allow(unsafe_code)]
+fn use_shared_memory_rendering() {
+    const NAME: &str = "WEBKIT_DISABLE_DMABUF_RENDERER";
+    if std::env::var_os(NAME).is_some() {
+        return;
+    }
+    // SAFETY: `set_var` is unsafe because another thread could read the
+    // environment at the same moment. There is none yet: this runs at the
+    // start of `run`, before Tauri, GTK or WebKit start any thread, and the
+    // code before it (logging, naming the program) starts none either.
+    unsafe { std::env::set_var(NAME, "1") };
+    reroute_platform::launch::keep_from_browsers(NAME);
 }
 
 /// `reroute --make-default`: for installers and scripts. Prints the outcome

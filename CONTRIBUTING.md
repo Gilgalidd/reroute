@@ -13,7 +13,8 @@ understand in an afternoon, so the bar is "clear and boring" rather than
   `deny.toml` enforces the client rule.
 - **No shell.** Browsers are spawned with an argument vector, never through
   `sh -c` or `cmd /C`.
-- **No `unsafe`** outside `crates/platform/src/register/macos.rs`, and none
+- **No `unsafe`** outside the two places listed in
+  [docs/security.md](docs/security.md#memory-safety-and-unsafe), and none
   added without a `// SAFETY:` comment and a reviewer.
 - **Every behaviour is tested.** Pure logic lives in `crates/core` and must
   come with unit tests; parsers in `crates/platform` must be testable without
