@@ -19,6 +19,10 @@ All notable changes to Reroute are documented here. The format follows
   why, and the first Save replaced the file. It now shows the error, and
   saving moves the old file aside as `config.toml.broken` so its rules can be
   recovered.
+- Settings: a launch option's arguments are typed one per line, like a
+  browser's. The field used to split on spaces, so an argument containing
+  one, such as `--profile-directory=Profile 1` from the configuration guide,
+  could not be entered.
 
 ## [0.1.8] - 2026-09-26
 

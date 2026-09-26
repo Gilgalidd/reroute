@@ -36,13 +36,14 @@ describe("Settings window", () => {
     const ipc = setup();
     await fireEvent.click(await screen.findByRole("option", { name: "Firefox" }));
     await fireEvent.click(screen.getByRole("button", { name: "Add launch option" }));
-    const [name, args] = screen.getAllByPlaceholderText(/Private window|--private-window/);
-    await fireEvent.input(name!, { target: { value: "Kiosk" } });
-    await fireEvent.input(args!, { target: { value: "--kiosk %URL%" } });
+    await fireEvent.input(screen.getByLabelText("Launch option name"), { target: { value: "Work" } });
+    await fireEvent.input(screen.getByLabelText("Launch option arguments, one per line"), {
+      target: { value: "--profile-directory=Profile 1\n%URL%" },
+    });
     await save();
     await waitFor(() => expect(ipc.saved).toHaveLength(1));
     expect(ipc.saved[0]?.browsers[0]?.launches).toEqual([
-      { id: expect.stringMatching(/^[0-9a-f-]{36}$/), name: "Kiosk", args: ["--kiosk", "%URL%"] },
+      { id: expect.stringMatching(/^[0-9a-f-]{36}$/), name: "Work", args: ["--profile-directory=Profile 1", "%URL%"] },
     ]);
   });
 

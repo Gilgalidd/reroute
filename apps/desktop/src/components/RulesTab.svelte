@@ -1,6 +1,7 @@
 <script lang="ts">
   import { api, describeError } from "../lib/api";
-  import { patternProblem, splitLines } from "../lib/patterns";
+  import { splitLines } from "../lib/lines";
+  import { patternProblem } from "../lib/patterns";
   import type { Config, Ruleset, TestResult } from "../lib/types";
   import Banner from "./Banner.svelte";
 

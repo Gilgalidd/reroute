@@ -2,6 +2,7 @@
   import { api, describeError } from "../lib/api";
   import { normalizeConfig } from "../lib/config";
   import { newId } from "../lib/ids";
+  import { splitLines } from "../lib/lines";
   import type { Browser, Config } from "../lib/types";
   import Banner from "./Banner.svelte";
 
@@ -50,10 +51,6 @@
       message = { tone: "error", text: describeError(e) };
     }
   }
-
-  function linesToArgs(text: string): string[] {
-    return text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
-  }
 </script>
 
 <div class="two-col">
@@ -95,7 +92,7 @@
       </label>
       <label>
         <span>Arguments, one per line. <code>%URL%</code> marks where the link goes (appended if absent).</span>
-        <textarea rows="3" value={selected.args.join("\n")} oninput={(e) => (selected.args = linesToArgs(e.currentTarget.value))}></textarea>
+        <textarea rows="3" value={selected.args.join("\n")} oninput={(e) => (selected.args = splitLines(e.currentTarget.value))}></textarea>
       </label>
       <label>
         <span>Icon file (PNG, SVG or ICO; optional)</span>
@@ -109,20 +106,20 @@
       <h3>Launch options</h3>
       <p class="muted">
         Other ways to start this browser, a profile for instance, shown on right-click in the
-        picker. Add them with the arguments your browser documents. Private windows are separate
-        entries in the list on the left.
+        picker. Add them with the arguments your browser documents, one per line. Private windows
+        are separate entries in the list on the left.
       </p>
       {#each selected.launches as launch, i (launch.id)}
-        <div class="launch row">
-          <input type="text" class="grow" bind:value={launch.name} placeholder="Private window" />
-          <input
-            type="text"
-            class="grow"
-            value={launch.args.join(" ")}
-            placeholder="--private-window %URL%"
+        <div class="launch">
+          <input type="text" bind:value={launch.name} placeholder="Work profile" aria-label="Launch option name" />
+          <textarea
+            rows="2"
+            value={launch.args.join("\n")}
+            placeholder={"--profile-directory=Profile 1\n%URL%"}
+            aria-label="Launch option arguments, one per line"
             spellcheck="false"
-            oninput={(e) => (launch.args = e.currentTarget.value.split(/\s+/).filter((a) => a.length > 0))}
-          />
+            oninput={(e) => (launch.args = splitLines(e.currentTarget.value))}
+          ></textarea>
           <button type="button" class="danger" aria-label="Remove launch option" onclick={() => selected.launches.splice(i, 1)}>✕</button>
         </div>
       {/each}
@@ -190,7 +187,10 @@
     font-size: 14px;
   }
   .launch {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr auto;
     gap: 6px;
+    align-items: start;
   }
   .actions {
     margin-top: 8px;

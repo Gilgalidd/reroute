@@ -24,18 +24,6 @@ export function parsePattern(text: string): ParsedPattern {
   return { kind: "exact", body: trimmed };
 }
 
-export function formatPattern(p: ParsedPattern): string {
-  return `${p.kind}:${p.body}`;
-}
-
-/** One pattern per line, blanks ignored. */
-export function splitLines(text: string): string[] {
-  return text
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0);
-}
-
 /** Cheap client-side sanity check, mirroring the Rust rules. */
 export function patternProblem(text: string): string | null {
   const { kind, body } = parsePattern(text);

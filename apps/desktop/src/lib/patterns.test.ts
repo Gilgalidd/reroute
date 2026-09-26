@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatPattern, parsePattern, patternProblem, splitLines } from "./patterns";
+import { parsePattern, patternProblem } from "./patterns";
 
 describe("parsePattern", () => {
   it("recognises the three kinds", () => {
@@ -12,12 +12,6 @@ describe("parsePattern", () => {
     expect(parsePattern("https://a.org/")).toEqual({ kind: "exact", body: "https://a.org/" });
     expect(parsePattern("glob:*")).toEqual({ kind: "exact", body: "glob:*" });
   });
-
-  it("round-trips through formatPattern", () => {
-    for (const text of ["domain:a.org", "regex:^x$", "exact:https://a.org/"]) {
-      expect(formatPattern(parsePattern(text))).toBe(text);
-    }
-  });
 });
 
 describe("patternProblem", () => {
@@ -28,11 +22,5 @@ describe("patternProblem", () => {
     expect(patternProblem("regex:(")).toBe("not a valid regular expression");
     expect(patternProblem("regex:^https://")).toBeNull();
     expect(patternProblem("https://a.org")).toBeNull();
-  });
-});
-
-describe("splitLines", () => {
-  it("drops blanks and trims", () => {
-    expect(splitLines(" a \n\n b\r\n")).toEqual(["a", "b"]);
   });
 });
