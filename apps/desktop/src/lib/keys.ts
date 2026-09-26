@@ -40,6 +40,15 @@ export function mapKey(key: string, columns: number): PickerKey {
   }
 }
 
+/**
+ * The digit that picks the tile at `index`, or `null` from the tenth tile
+ * on, which has no key. Tiles show this as their badge, so a number is
+ * only ever displayed when pressing it does something.
+ */
+export function shortcutFor(index: number): string | null {
+  return index >= 0 && index < 9 ? String(index + 1) : null;
+}
+
 /** Move a highlight index by `delta`, wrapping around `count` items. */
 export function moveIndex(current: number, delta: number, count: number): number {
   if (count <= 0) return 0;

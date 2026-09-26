@@ -27,6 +27,29 @@ describe("Picker window", () => {
     expect(pick?.args).toEqual({ browser: "22222222-2222-2222-2222-222222222222", launch: null, remember: true });
   });
 
+  it("numbers only the tiles a digit key can pick", async () => {
+    const base = launchContext();
+    const browsers = Array.from({ length: 11 }, (_, i) => ({
+      ...base.browsers[0]!,
+      id: `00000000-0000-0000-0000-${String(i).padStart(12, "0")}`,
+      name: `Browser ${i + 1}`,
+    }));
+    mockIpc({ launch_context: () => ({ ...base, browsers }) });
+    const { container } = render(Picker);
+    await screen.findByRole("button", { name: "Browser 11" });
+    const badges = Array.from(container.querySelectorAll(".badge"), (b) => b.textContent);
+    expect(badges).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "9"]);
+  });
+
+  it("opens the launch menu from the chevron without opening the browser", async () => {
+    const ipc = mockIpc({ launch_context: () => launchContext(), pick: () => null });
+    render(Picker);
+    await fireEvent.click(await screen.findByRole("button", { name: "Launch options for Chromium" }));
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Incognito" })).toBeInTheDocument();
+    expect(ipc.calls.some((c) => c.cmd === "pick")).toBe(false);
+  });
+
   it("dismisses on Escape and shows a refused URL", async () => {
     const ipc = mockIpc({
       launch_context: () => ({ ...launchContext(), url: null, url_error: "scheme `javascript` is not allowed" }),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapKey, moveIndex } from "./keys";
+import { mapKey, moveIndex, shortcutFor } from "./keys";
 
 describe("mapKey", () => {
   it("maps digits to tiles", () => {
@@ -20,6 +20,19 @@ describe("mapKey", () => {
     expect(mapKey("Escape", 1)).toEqual({ kind: "cancel" });
     expect(mapKey(",", 1)).toEqual({ kind: "settings" });
     expect(mapKey("x", 1)).toEqual({ kind: "none" });
+  });
+});
+
+describe("shortcutFor", () => {
+  it("labels exactly the tiles a digit can pick", () => {
+    for (let index = 0; index < 9; index++) {
+      const digit = shortcutFor(index);
+      expect(digit).not.toBeNull();
+      expect(mapKey(digit ?? "", 4)).toEqual({ kind: "select", index });
+    }
+    expect(shortcutFor(9)).toBeNull();
+    expect(shortcutFor(12)).toBeNull();
+    expect(shortcutFor(-1)).toBeNull();
   });
 });
 

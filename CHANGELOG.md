@@ -13,6 +13,20 @@ All notable changes to Reroute are documented here. The format follows
   interface is back to the one 0.1.6 shipped. The picker's grid again fits as
   many tiles per row as the window holds, and the arrow keys follow it.
 
+### Fixed
+
+- From the tenth browser on, tiles no longer show a number: only `1`–`9` have
+  a key, and a badge that does nothing when pressed was misleading.
+- The launch-options chevron on a tile is now a real button beside the tile
+  instead of a pretend one nested inside it, which is invalid HTML and was
+  unclear to screen readers. It looks and behaves the same.
+
+### Security
+
+- The production Content Security Policy now also sets
+  `frame-ancestors 'none'`, as the development one already did: no page may
+  embed Reroute's windows in a frame.
+
 ## [0.1.7] - 2026-09-23
 
 ### Changed
