@@ -6,7 +6,15 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+
+- Dependencies brought up to date: Tauri 2.12, Vite 8 with its Svelte plugin 7,
+  TypeScript 6, toml 1.x, shlex 2, base64 0.23, and for the platform code
+  winreg 0.56 (Windows) and icns 0.5 (macOS, now able to read the JPEG 2000
+  images of recent application icons). The configuration file Reroute writes
+  is unchanged.
+- `npm run check` also verifies that the Tauri crate and the Tauri npm
+  packages are on the same version, which the Tauri build requires.
 
 ## [0.1.9] - 2026-09-26
 

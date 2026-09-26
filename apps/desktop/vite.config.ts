@@ -14,8 +14,8 @@ export default defineConfig({
   },
   build: {
     target: ["es2022", "chrome110", "safari15"],
+    // Minified by Vite's default (Oxc since Vite 8, which ships no esbuild).
     sourcemap: false,
-    minify: "esbuild",
   },
   test: {
     // Pure helpers run in node; component tests opt into jsdom with a

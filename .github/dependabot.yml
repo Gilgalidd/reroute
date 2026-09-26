@@ -28,6 +28,11 @@ updates:
     groups:
       npm:
         update-types: [minor, patch]
+    ignore:
+      # svelte-check supports TypeScript 5 and 6 only. TypeScript 7, the
+      # native compiler, waits until it does; remove this rule then.
+      - dependency-name: typescript
+        versions: [">=7"]
 
   # Keeps the commit SHAs pinned in .github/workflows current, with their
   # version comments.
