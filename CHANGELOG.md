@@ -6,6 +6,10 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.1.8] - 2026-09-26
+
 ### Added
 
 - The picker can show the browsers as a list instead of tiles, in one column
@@ -173,7 +177,8 @@ kept so that version comparisons resolve.
   verifies it, because `xdg-settings` on KDE needs `qtpaths` and restores
   the previous browser when its own write fails.
 
-[Unreleased]: https://github.com/Gilgalidd/reroute/compare/v0.1.7...HEAD
+[Unreleased]: https://github.com/Gilgalidd/reroute/compare/v0.1.8...HEAD
+[0.1.8]: https://github.com/Gilgalidd/reroute/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/Gilgalidd/reroute/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/Gilgalidd/reroute/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/Gilgalidd/reroute/compare/v0.1.4...v0.1.5
