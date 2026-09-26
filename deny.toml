@@ -18,7 +18,15 @@ yanked = "deny"
 # Unmaintained crates deep inside Tauri's tree are Tauri's call; only our own
 # direct dependencies must be maintained.
 unmaintained = "workspace"
-ignore = []
+ignore = [
+    # glib 0.18 is the version GTK 3 uses, and GTK 3 is Tauri's Linux backend,
+    # so the crate is in the binary whether Reroute names it or not. Reroute
+    # calls only `glib::set_prgname` (apps/desktop/src-tauri/src/lib.rs) and
+    # never iterates a GVariant, where the unsound code is. The fix starts at
+    # glib 0.20, which the GTK 3 bindings will not move to. Remove this entry
+    # when Tauri's Linux backend leaves GTK 3.
+    { id = "RUSTSEC-2024-0429", reason = "glib 0.18 comes with GTK 3; Reroute uses set_prgname only, never VariantStrIter" },
+]
 
 [licenses]
 version = 2
