@@ -1,4 +1,5 @@
-import { defineConfig } from "vite";
+// `vitest/config` is Vite's defineConfig with the `test` section typed.
+import { defineConfig } from "vitest/config";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { svelteTesting } from "@testing-library/svelte/vite";
 
