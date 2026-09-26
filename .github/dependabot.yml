@@ -1,0 +1,42 @@
+# Weekly dependency updates, grouped so that one person can review them in
+# one sitting: minor and patch versions arrive together per ecosystem, and
+# each major version in a pull request of its own.
+#
+# A new version is only proposed once it is 7 days old. Most malicious
+# releases of hijacked packages are found and pulled within that time.
+#
+# The Rust toolchain is not listed: rust-toolchain.toml is bumped by hand,
+# on purpose (see the comment in that file).
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      cargo:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /apps/desktop
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      npm:
+        update-types: [minor, patch]
+
+  # Keeps the commit SHAs pinned in .github/workflows current, with their
+  # version comments.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        update-types: [minor, patch]

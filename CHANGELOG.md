@@ -6,6 +6,19 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
+### Security
+
+- Each release now carries `SHA256SUMS`, the checksum of every installer,
+  so a download can be checked. The installers are still not signed with a
+  paid certificate.
+- The release workflow builds nothing until the full CI has passed on the
+  tagged commit, and only the jobs that upload files may write to the
+  release.
+- GitHub Actions are pinned to commit SHAs instead of tags, which can be
+  moved to other code. Dependabot keeps them, the Rust crates and the npm
+  packages up to date, proposing each new version only once it is a week
+  old. CI no longer runs npm install scripts or keeps its token on disk.
+
 ### Fixed
 
 - Settings: *Detect installed* and *Import from Hurl* could lose work. Both

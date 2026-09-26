@@ -7,7 +7,7 @@
 | Rust | 1.98 (edition 2024) | Install `rustup`; `rust-toolchain.toml` pins the version and adds clippy and rustfmt, so rustup fetches the right toolchain by itself |
 | Node.js | 22 LTS or newer | for the Svelte front end and the Tauri CLI |
 | Tauri system deps | — | see below |
-| `cargo-deny`, `cargo-audit`, `cargo-llvm-cov` | latest | optional locally, required by CI |
+| `cargo-deny`, `cargo-llvm-cov` | latest | optional locally, required by CI |
 | `just` | optional | one-word shortcuts for the commands below |
 
 ### Linux (Debian/Ubuntu)
@@ -94,7 +94,7 @@ See [architecture.md](architecture.md). Rule of thumb when adding code:
 | Front-end windows | Vitest + jsdom + Testing Library, with a fake IPC bridge (`src/test/ipc.ts`) | `npm test` in `apps/desktop` |
 | Type checks | `svelte-check`, `tsc` | `npm run check` |
 | Lints | clippy (pedantic, warnings are errors), rustfmt | `cargo clippy --workspace --all-targets -- -D warnings` |
-| Supply chain | `cargo deny`, `cargo audit`, `npm audit` | `cargo deny check`, `cargo audit` |
+| Supply chain | `cargo deny` (licences, bans, sources, RustSec advisories), `npm audit` | `cargo deny check` |
 | Coverage | `cargo llvm-cov` | `cargo llvm-cov --workspace --lcov --output-path lcov.info` |
 
 Proptest writes failing cases to `proptest-regressions/`; commit those files
@@ -119,8 +119,11 @@ if you fix a bug they found.
 1. Update `CHANGELOG.md` and the `version` in the root `Cargo.toml`,
    `apps/desktop/package.json` and `apps/desktop/src-tauri/tauri.conf.json`.
 2. Tag: `git tag v0.2.0 && git push --tags`.
-3. The `release` workflow builds installers on the three platforms and
-   attaches them to a draft GitHub release. Review, then publish.
+3. The `release` workflow first runs the whole CI workflow again on the
+   tagged commit; if any check fails, nothing is built. It then builds the
+   installers on the three platforms, attaches them to a draft GitHub
+   release, and adds `SHA256SUMS` with the checksum of each. Review, then
+   publish.
 
 macOS ships as one universal build (`--target universal-apple-darwin`): the
 same `.dmg` runs natively on Apple Silicon and on Intel. The workflow then

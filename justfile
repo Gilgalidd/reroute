@@ -23,9 +23,6 @@ test:
 deny:
     cargo deny check
 
-audit:
-    cargo audit
-
 web-install:
     cd apps/desktop && npm ci
 

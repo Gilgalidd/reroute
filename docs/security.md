@@ -128,9 +128,20 @@ access (`winreg`) and process spawning, uses safe wrappers.
 
 ## Supply chain
 
-- Dependencies are pinned by `Cargo.lock` and `package-lock.json`.
-- CI runs `cargo deny` (licences, bans, sources, advisories) and
-  `cargo audit` / `npm audit` on every push.
+- Dependencies are pinned by `Cargo.lock` and `package-lock.json`, and the
+  Rust toolchain by `rust-toolchain.toml`.
+- CI runs `cargo deny` (licences, bans, sources and the RustSec advisory
+  database) and `npm audit` on every push.
+- GitHub Actions are pinned to full commit SHAs, never to tags, which their
+  owner (or someone who took over their account) can move to other code.
+  Checkouts keep no token on disk, and `npm ci --ignore-scripts` runs no
+  package's install script.
+- Dependabot proposes updates weekly, each version only once it is 7 days
+  old, when most hijacked releases have already been found and pulled.
+- A release builds nothing until the whole CI passes on the tagged commit.
+  Workflows are read-only; only the jobs that upload to the draft release
+  may write. The installers are not signed with a paid certificate, so each
+  release carries `SHA256SUMS` to check a download against.
 - Release builds use `panic = "abort"`, LTO and symbol stripping.
 
 ## What Reroute does not protect against
