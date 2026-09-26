@@ -8,7 +8,7 @@
 
 <style>
   .banner {
-    border-radius: var(--radius-sm);
+    border-radius: 8px;
     padding: 8px 12px;
     border: 1px solid var(--border);
     background: var(--surface-2);

@@ -137,16 +137,14 @@
     border-right: 1px solid var(--border);
   }
   .brand {
-    font-weight: 800;
+    font-weight: 700;
     font-size: 16px;
-    letter-spacing: -0.01em;
-    padding: 4px 10px 16px;
+    padding: 4px 10px 12px;
   }
   nav button {
     text-align: left;
     border: none;
     background: transparent;
-    border-radius: var(--radius-sm);
   }
   nav button.active {
     background: var(--accent);

@@ -73,10 +73,10 @@
     max-width: 240px;
     display: flex;
     flex-direction: column;
-    padding: 6px;
+    padding: 4px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: 10px;
     box-shadow: var(--shadow);
     z-index: 10;
   }
@@ -84,7 +84,7 @@
     text-align: left;
     border: none;
     background: transparent;
-    border-radius: var(--radius-sm);
+    border-radius: 6px;
     padding: 6px 10px;
   }
   .menu button.active {

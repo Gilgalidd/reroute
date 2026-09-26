@@ -14,12 +14,10 @@
   let remember = $state(false);
   let busy = $state(false);
   let menu = $state<{ browser: BrowserView; anchor: HTMLElement } | null>(null);
-
-  /** Tiles per row, mirroring `grid-template-columns` below: arrow keys move
-   * by this much and the picker window is not resizable. */
-  const columns = 4;
+  let gridWidth = $state(560);
 
   const browsers = $derived(context?.browsers ?? []);
+  const columns = $derived(Math.max(1, Math.floor(gridWidth / 116)));
   const canPick = $derived(!!context?.url && browsers.length > 0);
 
   async function load() {
@@ -92,8 +90,6 @@
 <svelte:window onkeydown={onkeydown} />
 
 <main class="picker">
-  <div class="strip" aria-hidden="true"></div>
-
   <header>
     {#if context?.url}
       <div class="host" title={context.url.href}>{context.url.host}</div>
@@ -119,7 +115,7 @@
       <button class="primary" type="button" onclick={() => api.openSettings()}>Open settings</button>
     </div>
   {:else}
-    <div class="grid" aria-label="Browsers">
+    <div class="grid" bind:clientWidth={gridWidth} aria-label="Browsers">
       {#each browsers as browser, i (browser.id)}
         <BrowserTile
           {browser}
@@ -168,23 +164,14 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding: 16px 16px 10px;
-  }
-  .strip {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--gradient);
+    padding: 12px 14px;
   }
   header {
     min-height: 40px;
   }
   .host {
-    font-weight: 800;
-    font-size: 18px;
-    letter-spacing: -0.01em;
+    font-weight: 600;
+    font-size: 15px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -199,9 +186,8 @@
   .grid {
     flex: 1;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    grid-auto-rows: minmax(100px, auto);
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+    gap: 10px;
     align-content: start;
     overflow-y: auto;
     padding: 2px;

@@ -6,7 +6,12 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+
+- The "Expressive" look of 0.1.7 is withdrawn: its gradient badges, round
+  icons and fixed four-column grid brought small visual defects, so the
+  interface is back to the one 0.1.6 shipped. The picker's grid again fits as
+  many tiles per row as the window holds, and the arrow keys follow it.
 
 ## [0.1.7] - 2026-09-23
 
