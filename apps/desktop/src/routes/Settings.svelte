@@ -22,7 +22,7 @@
   let draft = $state<Config | null>(null);
   let saved = $state("");
   let status = $state<{ tone: "info" | "error" | "success"; text: string } | null>(null);
-  /** Why config.toml could not be read; the draft is then empty. */
+  /** Why config.toml could not be read; the draft then holds only the installed browsers. */
   let loadError = $state<string | null>(null);
 
   const dirty = $derived(draft !== null && JSON.stringify(draft) !== saved);
@@ -100,7 +100,7 @@
   <section class="content">
     {#if loadError}
       <Banner tone="error">
-        config.toml could not be read: {loadError}. You are editing an empty configuration. Saving keeps the
+        config.toml could not be read: {loadError}. You are editing a new configuration with the browsers installed on this computer. Saving keeps the
         unreadable file as config.toml.broken, next to it, so you can repair it or copy rules from it.
       </Banner>
     {/if}

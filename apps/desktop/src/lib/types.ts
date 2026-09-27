@@ -91,7 +91,7 @@ export type RegisterOutcome = { kind: "done" } | { kind: "needs_user_action"; me
 /** What the settings window edits (`get_config`). */
 export interface EditableConfig {
   config: Config;
-  /** Why config.toml could not be read; `config` is then empty. */
+  /** Why config.toml could not be read; `config` then holds only the installed browsers. */
   load_error: string | null;
 }
 

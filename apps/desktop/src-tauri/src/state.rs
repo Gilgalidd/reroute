@@ -65,11 +65,20 @@ impl AppState {
             }
         };
 
-        if config.browsers.is_empty() && config_error.is_none() {
+        // First run: offer the installed browsers, and save them. With an
+        // unreadable file, offer them too, so that links still open, but
+        // save nothing: that file may hold rules the user wants back.
+        if config.browsers.is_empty() {
             let added = config.merge_discovered(reroute_platform::discover::installed_browsers());
-            log::info!("first run: discovered {added} browser(s)");
-            if let Err(error) = store.save(&config) {
-                log::warn!("could not save the initial configuration: {error}");
+            if config_error.is_none() {
+                log::info!("first run: discovered {added} browser(s)");
+                if let Err(error) = store.save(&config) {
+                    log::warn!("could not save the initial configuration: {error}");
+                }
+            } else {
+                log::info!(
+                    "offering {added} installed browser(s) until the configuration is repaired"
+                );
             }
         }
 

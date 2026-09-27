@@ -164,8 +164,9 @@ pub fn open_settings(app: AppHandle) -> Result<(), String> {
 #[derive(Serialize)]
 pub struct EditableConfig {
     config: Config,
-    /// Why `config.toml` could not be read, when it could not. `config` is
-    /// then empty, and saving keeps the old file as `config.toml.broken`.
+    /// Why `config.toml` could not be read, when it could not. `config` then
+    /// holds only the installed browsers, and saving keeps the old file as
+    /// `config.toml.broken`.
     load_error: Option<String>,
 }
 

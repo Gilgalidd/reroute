@@ -6,7 +6,13 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- An unreadable `config.toml` left the picker without a single browser, so
+  the link could not be opened, whatever the documentation said. The picker
+  now offers the browsers installed on the computer meanwhile. Nothing is
+  written until *Save*, which keeps the unreadable file as
+  `config.toml.broken`.
 
 ## [0.1.14] - 2026-09-27
 
