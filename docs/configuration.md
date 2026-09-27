@@ -2,7 +2,10 @@
 
 Reroute stores everything in a single TOML file, `config.toml`, created on
 first run with the browsers it discovered. The settings window edits this
-file; you may also edit it by hand while Reroute is not running.
+file, and you may edit it by hand too. A Reroute running in the background
+(Linux) reads it again when it has changed, at the next link or when the
+settings open. Keep the settings window closed while you edit by hand: its
+*Save* writes the whole file.
 
 | Platform | Path |
 |----------|------|
@@ -14,8 +17,10 @@ Set the environment variable `REROUTE_CONFIG_DIR` to an absolute path to use
 another directory (handy for a portable install or for bug reports).
 
 Parsing is strict: an unknown key is an error, not a silent no-op. If the file
-cannot be read, Reroute still lets you open the link with the browsers it
-can find, and shows the error in the picker.
+cannot be read, links still open: the picker offers the browsers installed
+on the computer and shows the error. The settings window shows it too, and
+its first *Save* moves the unreadable file aside as `config.toml.broken`, so
+the rules it holds can be recovered.
 
 ## Top level
 
@@ -37,7 +42,7 @@ version = 1        # format version; files from a newer Reroute are refused
 | `offer_remember` | `true` | Show the "Always use for this domain" checkbox. |
 | `theme` | `"auto"` | `"auto"`, `"light"` or `"dark"`. |
 | `picker_layout` | `"tiles"` | `"tiles"`, `"list"` (one browser per line, its name in full) or `"two-columns"` (the same list in two columns, read left to right). Also in *Settings › General*. |
-| `run_in_background` | `true` | Linux: keep Reroute running with its picker loaded, and start it with the session, so that the picker opens at once. Turned off, Reroute starts for each click and exits after it. |
+| `run_in_background` | `true` | Linux: keep Reroute running with its picker loaded, and start it with the session, so that the picker opens at once. Turned off, Reroute starts for each click and exits after it. *Settings › General* shows this option on Linux only. |
 | `check_for_updates` | `true` | Ask once a day, when Reroute starts, whether a newer version is published; the picker's update button shows the answer by its colour. |
 
 ## Browsers
@@ -213,7 +218,7 @@ on load.
 
 In *Settings › General*, paste the contents of Hurl's `UserSettings.json`.
 Browsers and rulesets are converted (`d$` → `domain:`, `s$` → `exact:`,
-`r$` → `regex:`), merged with your existing configuration by executable path,
-and saved. Anything that cannot be converted (UWP browsers, remote icons,
-regexes that only .NET understands) is listed instead of being dropped
-silently.
+`r$` → `regex:`) and merged, by executable path, into the settings being
+edited; press *Save* to keep them. Anything that cannot be converted (UWP
+browsers, remote icons, regexes that only .NET understands) is listed
+instead of being dropped silently.

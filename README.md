@@ -24,7 +24,7 @@ It is a cross-platform re-implementation of the ideas behind
 design and a code base small enough for one person to maintain.
 
 <p align="center">
-  <img src="docs/images/picker.png" width="560" alt="The Reroute picker: host, full URL, one tile per browser, a checkbox to remember the choice for the domain">
+  <img src="docs/images/picker.png" width="560" alt="The Reroute picker: host, full URL, one tile per browser, a checkbox to remember the choice for the domain, and the update button, green when Reroute is up to date">
 </p>
 
 ## Highlights
@@ -65,15 +65,19 @@ design and a code base small enough for one person to maintain.
 ```
 a link is clicked anywhere ──► the OS starts Reroute with the URL
                                       │
+              on Linux, handed to the Reroute already running in the background
+                                      │
                        URL validated (http/https only, no credentials)
                                       │
-                    ┌─── a rule matches ───► browser launched, Reroute exits
+                    ┌─── a rule matches ───► browser launched
                     │
                     └─── no rule ─────────► picker window ► your choice ► launch
 ```
 
 The rule path never creates a window, so links that match open as fast as
-with a plain default browser.
+with a plain default browser. On Linux the picker is already loaded in the
+background, so it appears about a tenth of a second after the click; on
+Windows and macOS, Reroute starts for each link and exits after it.
 
 ## Install
 
@@ -113,7 +117,9 @@ argument, or with `reroute --settings`.
   <img src="docs/images/settings.png" width="640" alt="The settings window, Rules tab: a ruleset with its browser, launch option and patterns, and a box to try a URL against the saved rules">
 </p>
 
-Command-line flags: `--settings`, `--make-default`, `--version`.
+Command-line flags: `--settings`, `--make-default`, `--version` (`-V`), and
+on Linux `--background`, which starts Reroute with no window, as the session
+does at login. Anything after the URL is ignored.
 
 ## Configure
 

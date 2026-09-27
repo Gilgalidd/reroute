@@ -69,6 +69,18 @@ Set `RUST_LOG=debug` to see what Reroute decides and why; logs go to stderr.
 Set `REROUTE_CONFIG_DIR=/tmp/reroute-dev` to keep a scratch configuration
 while developing.
 
+On Linux, mind the background mode. A development build that shares its
+configuration with an installed Reroute running in the background hands its
+links to that one and exits, and a build that stays in the background points
+`~/.config/autostart/Reroute.desktop` at itself. Give development builds
+their own `REROUTE_CONFIG_DIR` and `XDG_CONFIG_HOME`, or set
+`run_in_background = false` in the scratch configuration. `pkill -x reroute`
+stops a Reroute running in the background.
+
+Debug builds honour `WEBKIT_INSPECTOR_HTTP_SERVER=127.0.0.1:9222`, which
+serves WebKit's inspector for the picker and settings windows; release
+builds ignore it (see [security.md](security.md#memory-safety-and-unsafe)).
+
 Note that the Rust crate embeds `apps/desktop/dist`, so run `npm run build`
 (or `tauri dev`, which serves it live) before `cargo test --workspace`.
 The pure crates need nothing: `cargo test -p reroute-core -p reroute-platform`.
@@ -111,20 +123,35 @@ if you fix a bug they found.
 - [ ] `reroute javascript:alert(1)` shows a refusal, opens nothing.
 - [ ] Settings › General › Make default; then click a link in another app.
 - [ ] Rules › Try a URL reports the expected rule.
-- [ ] Corrupt `config.toml` on purpose: the picker still works and shows the
-      error; Settings shows it too.
+- [ ] Corrupt `config.toml` on purpose: the picker offers the installed
+      browsers and shows the error; Settings shows it too, and *Save* keeps
+      the file as `config.toml.broken`.
+- [ ] Linux: a second link shows the picker at once;
+      `~/.config/autostart/Reroute.desktop` exists; turning *Keep Reroute
+      running in the background* off removes it, and Reroute exits when its
+      windows close.
+- [ ] Windows: *Make Reroute the default* opens Settings › Default apps.
 
 ## Releasing
 
-1. Update `CHANGELOG.md` and the `version` in the root `Cargo.toml`,
-   `apps/desktop/package.json` and `apps/desktop/src-tauri/tauri.conf.json`.
-2. Tag: `git tag v0.2.0 && git push --tags`.
+1. Move the "Unreleased" notes of `CHANGELOG.md` under the new version, and
+   set that version in the root `Cargo.toml` (then `cargo update -w` for
+   `Cargo.lock`), in `apps/desktop/src-tauri/tauri.conf.json`, and with
+   `npm version --no-git-tag-version 0.2.0` in `apps/desktop` (which updates
+   `package.json` and `package-lock.json`).
+2. Tag and push: `git tag -a v0.2.0 -m "Reroute v0.2.0" && git push origin main v0.2.0`.
 3. The `release` workflow first runs the whole CI workflow again on the
    tagged commit; if any check fails, nothing is built. It then builds the
    installers on the three platforms, without any right to write, and a
    last job computes `SHA256SUMS`, attests the build provenance of each
    installer and attaches everything to a draft GitHub release. Review,
    then publish.
+
+A tag with a pre-release suffix, such as `v0.2.0-rc.1`, runs the same
+workflow and leaves a draft marked as a pre-release: a way to try the
+installers before a release. They keep the version of the manifests, since
+the MSI format accepts numbers only. Delete the draft and the tag
+afterwards.
 
 macOS ships as one universal build (`--target universal-apple-darwin`): the
 same `.dmg` runs natively on Apple Silicon and on Intel. The workflow then
@@ -140,7 +167,8 @@ valid signature. A failed check fails the release.
   "damaged". Ad-hoc signing needs no certificate; users still confirm the
   first launch because the app is not notarised. To notarise, add the
   `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_ID`,
-  `APPLE_PASSWORD` and `APPLE_TEAM_ID` secrets and set `signingIdentity` to
-  the certificate's name; the Tauri bundler picks them up.
+  `APPLE_PASSWORD` and `APPLE_TEAM_ID` secrets, pass them as environment
+  variables to the *Build the installers* step of `release.yml`, and set
+  `signingIdentity` to the certificate's name; the Tauri CLI picks them up.
 - **Windows** installers are unsigned; SmartScreen asks for confirmation
   until a code-signing certificate is configured.

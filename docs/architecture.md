@@ -6,7 +6,7 @@ Reroute is three Rust crates and one small Svelte front end.
 reroute/
 ├── crates/
 │   ├── core/          reroute-core      pure logic, no OS access, ~all tests live here
-│   └── platform/      reroute-platform  discovery, launching, default-browser registration, icons
+│   └── platform/      reroute-platform  discovery, launching, registration, icons, version check, background mode
 ├── apps/desktop/
 │   ├── src-tauri/     reroute           Tauri shell: windows, IPC commands, CLI
 │   └── src/           Svelte 5 + TypeScript UI (picker and settings windows)
@@ -15,7 +15,7 @@ reroute/
 
 The dependency direction is strict: `core` depends on nothing of ours,
 `platform` depends on `core`, the app depends on both. The front end talks to
-the app only through a dozen typed IPC commands.
+the app only through fifteen typed IPC commands.
 
 ## Life of a click
 
@@ -43,8 +43,10 @@ incoming::route
                                           (in the background: hide the picker)
 ```
 
-The fast path (rule matched) never creates a window or initialises the web
-view, so rule-based opening costs a few milliseconds. With Reroute running in
+A Reroute running in the background never exits: where the diagram says
+`exit(0)`, it hides the picker and waits for the next link. The fast path
+(rule matched) never creates a window or initialises the web view, so
+rule-based opening costs a few milliseconds. With Reroute running in
 the background (Linux), the process the click starts hands its request over
 a local socket and exits in well under 0.1 s, and the picker, already loaded,
 appears about 0.1 s after the click instead of 0.8 s for a cold start. The
@@ -62,6 +64,9 @@ picker window is always created hidden; its page asks to be shown
 | `store` | `ConfigStore`: atomic, private read/write. |
 | `import::hurl` | Converter for Hurl's `UserSettings.json`. |
 | `brand` | Executable name → brand key and accent colour for fallback tiles. |
+| `private` | The argument that opens a private window, per browser family. |
+| `control` | The one-line requests a new Reroute sends the one in the background: `open`, `open-activated` (with the click's activation token), `settings`. |
+| `release` | Version comparison, the once-a-day rule, the update status the picker shows. |
 
 Everything here is covered by unit tests and, for the URL and rule engines,
 property tests (`proptest`).
@@ -71,10 +76,13 @@ property tests (`proptest`).
 | Module | Linux | Windows | macOS |
 |--------|-------|---------|-------|
 | `discover` | `.desktop` entries with `x-scheme-handler/http(s)` in XDG data dirs, Flatpak and Snap exports | `HKLM/HKCU\Software\Clients\StartMenuInternet` | `.app` bundles whose `Info.plist` lists `http`/`https` |
-| `launch` | `Command` + new process group | `Command` + `DETACHED_PROCESS` | same as Linux |
-| `register` | user desktop entry + direct edit of `mimeapps.list` (`xdg-settings` best-effort first) | HKCU `ProgId` + `RegisteredApplications`, then opens *Default apps* | `LSSetDefaultHandlerForURLScheme` |
+| `launch` | `Command` + new process group; a thread waits for the child; the browser gets the click's activation token and none of an AppImage's variables | `Command` + `DETACHED_PROCESS` | same as Linux |
+| `register` | user desktop entry + direct edit of `mimeapps.list` (`xdg-settings` best-effort first) | HKCU `ProgId` + `RegisteredApplications`, then opens *Default apps* with `ShellExecuteW` | `LSSetDefaultHandlerForURLScheme` |
 | `icons` | file read + magic-byte sniffing | same | same, plus ICNS → PNG |
-| `paths` | `directories::ProjectDirs` (+ `REROUTE_CONFIG_DIR` override) | same | same |
+| `paths` | `directories::ProjectDirs` (+ `REROUTE_CONFIG_DIR` override); cache directory; control socket path | same | same |
+| `release` | one HTTPS GET (`ureq`, rustls); the last automatic check kept in the cache directory | same | same |
+| `control` | Unix socket and lock file in `$XDG_RUNTIME_DIR/reroute/` | — | — |
+| `autostart` | XDG autostart entry | — | — |
 
 Each backend separates a **pure parsing layer** (desktop-entry parser,
 registry command-line splitter, plist reader, registry entry list) that is
@@ -102,8 +110,8 @@ fast path can skip them entirely.
 ## The front end (`apps/desktop/src`)
 
 - `App.svelte` routes on the URL hash (`#/picker`, `#/settings`).
-- `routes/Picker.svelte` — tiles, keyboard handling (`lib/keys.ts`),
-  launch menu, remember checkbox.
+- `routes/Picker.svelte` — tiles or a list, keyboard handling
+  (`lib/keys.ts`), launch menu, remember checkbox, update button.
 - `routes/Settings.svelte` — tabs: Browsers, Rules (with a URL tester),
   General (behaviour, default browser, Hurl import), About. Edits a draft
   copy and saves the whole `Config` in one IPC call; Rust validates.
@@ -112,7 +120,8 @@ fast path can skip them entirely.
 - Styling: CSS custom properties in `app.css`, light/dark via
   `prefers-color-scheme` or `data-theme`; no inline styles (CSP).
 
-Pure helpers (`keys.ts`, `patterns.ts`, `config.ts`) have Vitest tests. The
+Pure helpers (`keys.ts`, `patterns.ts`, `config.ts`, `lines.ts`, `names.ts`,
+`ids.ts`) have Vitest tests. The
 two windows have component tests (`routes/*.test.ts`) that render them under
 jsdom against a fake IPC bridge (`src/test/ipc.ts`) and drive them like a
 user would: pick with a digit key, add a launch option, rename a ruleset,
@@ -122,9 +131,12 @@ save, and check the payload sent to Rust.
 
 - **TOML, not JSON**, for the configuration: comments and hand-editing.
   Hurl's JSON is importable.
-- **Exit after each pick** rather than a resident process: simpler state,
-  no tray icon, no stale configuration in memory. Rule-based opening is fast
-  enough without a daemon.
+- **One process per link, except on Linux.** On Windows and macOS Reroute
+  exits after each link: simpler state, no tray icon, and their web views
+  start fast enough. WebKitGTK takes about 0.8 s to start, so on Linux
+  Reroute stays in the background by default, still without a tray icon. It
+  reads `config.toml` again when the file changes, and gives each browser
+  the activation token of the click it answers.
 - **No icon extraction from executables** (Windows `.exe` resources): it
   would need `unsafe` GDI code for a cosmetic gain. Well-known browsers get a
   brand-coloured tile; any browser can have a custom icon file.

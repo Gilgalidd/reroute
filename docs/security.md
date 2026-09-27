@@ -16,7 +16,7 @@ does not, and how it defends itself.
 | Installed-browser metadata | `.desktop` files, registry, `Info.plist` | Medium | Only used to *propose* entries; executables are re-checked at launch |
 | Hurl import JSON | Pasted by the user | Medium | Same validation as a hand-written config |
 | Icon files | Paths from the config | Medium | Size cap, content sniffing, no execution |
-| Requests on the control socket (Linux, background mode) | The user's own processes | Low | Private directory, one-line protocol with a size cap, the same `SafeUrl` validation |
+| Requests on the control socket (Linux, background mode) | The user's own processes | Low | Private directory, checked before any link is sent; one-line protocol with a size cap; the same `SafeUrl` validation |
 
 ## URL validation (`reroute_core::url::SafeUrl`)
 
@@ -68,9 +68,10 @@ URL can never be mistaken for a command-line option such as `--profile`.
 - Created with mode `0600` in a `0700` directory on Unix. The file names
   programs to run, so other users must not be able to edit it.
 - A file that cannot be read is reported, never reset: links still open
-  (the picker says the configuration was not loaded), the settings window
-  shows the error, and the first save moves the file aside as
-  `config.toml.broken` instead of overwriting it.
+  (the picker offers the installed browsers and says the configuration was
+  not loaded), the settings window shows the error, and the first save
+  moves the file aside as `config.toml.broken` instead of overwriting it.
+  Nothing is written until then.
 - `deny_unknown_fields`: a typo cannot silently disable a rule.
 - Newer format versions are refused, not guessed.
 - Every rule's `browser`/`launch` reference must resolve; every browser path
@@ -96,8 +97,10 @@ The UI runs in the platform web view (WebKitGTK, WebView2, WKWebView) with:
   (`apps/desktop/src-tauri/capabilities/`), enforced by Tauri on every call:
   - the picker can read its context, launch the chosen browser, dismiss
     itself, open settings, check for a new version and open the download
-    page (both only from its update button), and listen for the one event
-    that tells it the pending link changed;
+    page (both only from its update button), and listen for the two events
+    that tell it a new link waits and what the daily version check found. It
+    launches a browser only for the link on screen: Rust refuses a choice
+    made for a link that has since been replaced;
   - the settings window can read and save the configuration, detect
     browsers, import from Hurl, test a URL, manage the default-browser
     registration and check for a new version. It launches a browser for one
@@ -159,6 +162,9 @@ autostart entry. A later `reroute <url>` hands its request to it and exits.
   if it holds a control character. The token must be one word of printable
   ASCII. The URL then goes through `SafeUrl` exactly as one from the command
   line would.
+- A new Reroute sends a link only into a real directory that belongs to the
+  user and that nobody else may open, in case a session shares its runtime
+  directory by mistake.
 - The running Reroute is the one holding an exclusive lock on a file next to
   the socket. The system drops that lock when the process ends, even in a
   crash, so a leftover socket is never mistaken for a live one.
