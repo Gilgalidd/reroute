@@ -54,11 +54,12 @@ URL can never be mistaken for a command-line option such as `--profile`.
   vanish with it) or the theme it forces. Its activation token
   (`XDG_ACTIVATION_TOKEN`, which lets it come to the front on Wayland) is the
   one the desktop gave the click it answers, never one Reroute inherited.
-- System helpers used for default-browser registration (`xdg-settings`,
-  `update-desktop-database`, `explorer.exe`) are located on `PATH` or
-  `%SystemRoot%` and pass the same executable check. On Linux they are
-  best-effort only: the authoritative step is Reroute's own edit of
-  `~/.config/mimeapps.list`, verified after writing.
+- The system helpers used for default-browser registration on Linux
+  (`xdg-settings`, `update-desktop-database`) are located on `PATH` and pass
+  the same executable check. They are best-effort only: the authoritative
+  step is Reroute's own edit of `~/.config/mimeapps.list`, verified after
+  writing. Windows runs no helper: Reroute writes its registry keys itself
+  and opens Settings › Default apps through `ShellExecuteW`.
 
 ## Configuration file
 
@@ -167,11 +168,14 @@ autostart entry. A later `reroute <url>` hands its request to it and exits.
 
 ## Memory safety and `unsafe`
 
-The workspace denies `unsafe_code`. There are two exceptions, each with a
-`SAFETY:` comment:
+The workspace denies `unsafe_code`. There are three exceptions, each with
+a `SAFETY:` comment:
 
 - `crates/platform/src/register/macos.rs` calls two documented Launch
   Services C functions to read and set the default handler.
+- `crates/platform/src/register/windows.rs` calls `ShellExecuteW`, with
+  constant strings, to open Settings › Default apps: `explorer.exe` cannot
+  open that page's address.
 - `prepare_webkit` in `apps/desktop/src-tauri/src/lib.rs` (Linux) sets one
   environment variable and, in release builds, removes two, which Rust marks
   `unsafe` because another thread could read the environment at the same

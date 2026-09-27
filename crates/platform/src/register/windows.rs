@@ -98,24 +98,47 @@ pub fn register() -> Result<Outcome, PlatformError> {
     ))
 }
 
-/// `explorer.exe` understands `ms-settings:` URIs; using it avoids both a
-/// shell and unsafe FFI.
+/// The Settings page that lists Reroute's default apps, from its entry in
+/// `RegisteredApplications`. Windows 11 before the 2023-04 update opens the
+/// Default apps page without selecting Reroute.
+pub fn default_apps_uri() -> String {
+    format!("ms-settings:defaultapps?registeredAppUser={CLIENT}")
+}
+
+/// Open [`default_apps_uri`]. Only the shell's `ShellExecuteW` understands
+/// such an address: given to `explorer.exe`, an argument with a `?` passes
+/// for a file path, and Explorer opens the Documents folder instead.
 #[cfg(windows)]
+#[allow(unsafe_code)]
 fn open_default_apps_settings() -> Result<(), PlatformError> {
-    let system_root = std::env::var_os("SystemRoot").unwrap_or_else(|| r"C:\Windows".into());
-    let explorer = Path::new(&system_root).join("explorer.exe");
-    reroute_core::browser::check_executable(&explorer)
-        .map_err(|e| PlatformError::Os(e.to_string()))?;
-    std::process::Command::new(explorer)
-        .arg(format!(
-            "ms-settings:defaultapps?registeredAppUser={CLIENT}"
-        ))
-        .spawn()
-        .map(drop)
-        .map_err(|e| PlatformError::Tool {
-            tool: "explorer.exe",
-            reason: e.to_string(),
+    use windows_sys::Win32::UI::Shell::ShellExecuteW;
+    use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+
+    let wide = |text: &str| -> Vec<u16> { text.encode_utf16().chain([0]).collect() };
+    let operation = wide("open");
+    let uri = wide(&default_apps_uri());
+    // SAFETY: both strings are UTF-16, end with a NUL and live until the
+    // call returns, which is all ShellExecuteW needs of them; it keeps no
+    // pointer. The API allows a null window, parameters and directory.
+    let result = unsafe {
+        ShellExecuteW(
+            std::ptr::null_mut(),
+            operation.as_ptr(),
+            uri.as_ptr(),
+            std::ptr::null(),
+            std::ptr::null(),
+            SW_SHOWNORMAL,
+        )
+    };
+    // Success is any value above 32; the values up to 32 are error codes.
+    if result.addr() > 32 {
+        Ok(())
+    } else {
+        Err(PlatformError::Tool {
+            tool: "ShellExecuteW",
+            reason: format!("error {}", result.addr()),
         })
+    }
 }
 
 /// Read the user's choice for `https` and `http`.
@@ -154,6 +177,20 @@ pub fn is_default() -> Result<bool, PlatformError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_settings_page_names_the_registered_application() {
+        let entries = registry_entries(Path::new(r"C:\Program Files\Reroute\reroute.exe"));
+        let registered = entries
+            .iter()
+            .find(|(key, _, _)| key == r"Software\RegisteredApplications")
+            .map(|(_, name, _)| *name)
+            .unwrap();
+        assert_eq!(
+            default_apps_uri(),
+            format!("ms-settings:defaultapps?registeredAppUser={registered}")
+        );
+    }
 
     #[test]
     fn entries_describe_a_complete_browser_registration() {

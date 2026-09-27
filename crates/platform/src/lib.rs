@@ -19,7 +19,9 @@
 //! (desktop entries, registry command lines, `Info.plist`) separate from
 //! the thin layer that enumerates the real system.
 
-#![cfg_attr(not(target_os = "macos"), forbid(unsafe_code))]
+// `unsafe` only where an operating system offers no safe binding: Launch
+// Services on macOS, `ShellExecuteW` on Windows (see docs/security.md).
+#![cfg_attr(not(any(target_os = "macos", windows)), forbid(unsafe_code))]
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used, clippy::panic))]
 
 #[cfg(target_os = "linux")]

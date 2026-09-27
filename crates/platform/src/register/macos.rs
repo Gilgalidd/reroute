@@ -1,7 +1,7 @@
 //! macOS: Launch Services.
 //!
-//! This is the only place in Reroute that uses `unsafe`: two C functions
-//! from the `CoreServices` framework. `LSSetDefaultHandlerForURLScheme` makes
+//! One of the few places in Reroute that use `unsafe` (see
+//! docs/security.md): two C functions from the `CoreServices` framework. `LSSetDefaultHandlerForURLScheme` makes
 //! macOS show its own "Do you want to change your default web browser?"
 //! confirmation, so the change is never silent.
 

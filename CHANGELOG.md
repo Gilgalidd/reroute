@@ -6,7 +6,11 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- Windows: *Make Reroute the default* opened File Explorer on the Documents
+  folder instead of Settings › Default apps. Explorer took the Settings
+  address for a file path; Reroute now opens it through the shell.
 
 ## [0.1.13] - 2026-09-27
 
