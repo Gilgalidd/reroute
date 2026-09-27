@@ -11,10 +11,10 @@ function withBrowser(config: Config, name: string): Config {
   return { ...config, browsers: [...config.browsers, { id, name, path: "/usr/bin/x", args: [], hidden: false, launches: [] }] };
 }
 
-function setup() {
+function setup(platform = "linux") {
   const ipc = mockIpc({
     get_config: () => ({ config: sparseConfig(), load_error: null }),
-    app_info: () => ({ version: "0.1.0", config_path: "/tmp/config.toml", platform: "linux" }),
+    app_info: () => ({ version: "0.1.0", config_path: "/tmp/config.toml", platform }),
     default_browser_status: () => true,
   });
   render(Settings);
@@ -61,6 +61,28 @@ describe("Settings window", () => {
       launch: "33333333-3333-3333-3333-333333333333",
       patterns: ["domain:*.example.org", "regex:^https://x"],
     });
+  });
+
+  it("names each faulty pattern, even two with the same fault", async () => {
+    setup();
+    await fireEvent.click(await screen.findByRole("button", { name: "Rules" }));
+    await fireEvent.input(screen.getByLabelText("Patterns, one per line"), {
+      target: { value: "domain:bad host\ndomain:also bad" },
+    });
+    const problems = Array.from(document.querySelectorAll(".problem"), (p) => p.textContent);
+    expect(problems).toEqual(["domain:bad host: not a valid host name", "domain:also bad: not a valid host name"]);
+  });
+
+  it("offers to stay in the background on Linux only", async () => {
+    setup("linux");
+    await fireEvent.click(await screen.findByRole("button", { name: "General" }));
+    expect(await screen.findByLabelText(/Keep Reroute running in the background/)).toBeInTheDocument();
+    document.body.innerHTML = "";
+
+    setup("windows");
+    await fireEvent.click(await screen.findByRole("button", { name: "General" }));
+    await screen.findByLabelText("Show browsers as");
+    await waitFor(() => expect(screen.queryByLabelText(/Keep Reroute running in the background/)).not.toBeInTheDocument());
   });
 
   it("saves the picker layout chosen in the General tab", async () => {

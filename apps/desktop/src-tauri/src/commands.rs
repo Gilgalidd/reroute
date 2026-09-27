@@ -87,9 +87,9 @@ fn browser_view(browser: &Browser) -> BrowserView {
 pub fn launch_context(state: State<'_, AppState>) -> LaunchContext {
     let config = state.config();
     LaunchContext {
-        url: state.pending().map(|u| UrlView {
-            href: u.as_str().to_owned(),
-            host: u.host().to_owned(),
+        url: state.pending().map(|pending| UrlView {
+            href: pending.url.as_str().to_owned(),
+            host: pending.url.host().to_owned(),
         }),
         url_error: state.url_error(),
         config_error: state.config_error(),
@@ -115,7 +115,8 @@ pub fn pick(
     launch: Option<LaunchId>,
     remember: bool,
 ) -> Result<(), String> {
-    let url = state.pending().ok_or("there is no URL to open")?;
+    let pending = state.pending().ok_or("there is no URL to open")?;
+    let url = &pending.url;
     // Build the remembered rule before opening anything: when the host
     // cannot become a rule (an IPv6 address, for one), the picker says so
     // and stays open, rather than dropping the user's choice in silence.
@@ -128,7 +129,9 @@ pub fn pick(
     } else {
         None
     };
-    incoming::launch(&state.config(), &url, browser, launch).map_err(|e| e.to_string())?;
+    let activation = pending.activation.as_deref();
+    incoming::launch(&state.config(), url, browser, launch, activation)
+        .map_err(|e| e.to_string())?;
     if let Some(config) = remembered {
         // The browser is open by now; a failed write is logged, not shown.
         if let Err(error) = state.save(config) {
@@ -314,7 +317,8 @@ pub async fn check_latest_release(
 
 /// Open the download page in a browser: the one a rule picks for it, else
 /// the first in the list. The address is a constant, never something a
-/// server sent us.
+/// server sent us. No click of the desktop's asked for it, so there is no
+/// activation token to give the browser.
 #[tauri::command]
 pub fn open_release_page(state: State<'_, AppState>) -> Result<(), String> {
     let url = SafeUrl::parse(reroute_core::release::RELEASES_PAGE).map_err(|e| e.to_string())?;
@@ -330,7 +334,7 @@ pub fn open_release_page(state: State<'_, AppState>) -> Result<(), String> {
             None,
         ),
     };
-    incoming::launch(&config, &url, browser, launch).map_err(|e| e.to_string())
+    incoming::launch(&config, &url, browser, launch, None).map_err(|e| e.to_string())
 }
 
 /// Static facts for the About tab.

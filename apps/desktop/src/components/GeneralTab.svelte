@@ -9,6 +9,8 @@
 
   let isDefault = $state<boolean | null>(null);
   let registerMessage = $state<{ tone: "info" | "error" | "success"; text: string } | null>(null);
+  /** Staying in the background exists on Linux only. */
+  let linux = $state(false);
   let hurlJson = $state("");
   let importReport = $state<ImportReport | null>(null);
   let importError = $state<string | null>(null);
@@ -49,7 +51,13 @@
     }
   }
 
-  onMount(() => void refreshStatus());
+  onMount(() => {
+    void refreshStatus();
+    api
+      .appInfo()
+      .then((info) => (linux = info.platform === "linux"))
+      .catch(() => (linux = false));
+  });
 </script>
 
 <div class="general">
@@ -77,7 +85,9 @@
     <label class="row"><input type="checkbox" bind:checked={config.settings.offer_remember} /> Offer “always use for this domain” in the picker</label>
     <label class="row"><input type="checkbox" bind:checked={config.settings.close_on_focus_loss} /> Close the picker when it loses focus</label>
     <label class="row"><input type="checkbox" bind:checked={config.settings.open_under_cursor} /> Open the picker next to the mouse pointer</label>
-    <label class="row"><input type="checkbox" bind:checked={config.settings.run_in_background} /> Keep Reroute running in the background so the picker opens at once (Linux; starts with your session)</label>
+    {#if linux}
+      <label class="row"><input type="checkbox" bind:checked={config.settings.run_in_background} /> Keep Reroute running in the background so the picker opens at once (starts with your session)</label>
+    {/if}
     <label class="row"><input type="checkbox" bind:checked={config.settings.check_for_updates} /> Check for a new version once a day, when Reroute starts</label>
     <label class="row">
       <span>Theme</span>
@@ -110,7 +120,8 @@
       <Banner tone="success">Imported {importReport.browsers_added} browser(s) and {importReport.rulesets_added} ruleset(s). Press Save to keep them.</Banner>
       {#if importReport.notes.length}
         <ul class="notes">
-          {#each importReport.notes as note (note)}<li>{note}</li>{/each}
+          <!-- Not keyed by text: two notes can read the same. -->
+          {#each importReport.notes as note}<li>{note}</li>{/each}
         </ul>
       {/if}
     {/if}

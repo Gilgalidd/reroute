@@ -24,7 +24,8 @@ OS opens "reroute https://…"            (macOS: RunEvent::Opened instead)
         │
         ▼
 cli::parse ──► resident::hand_over ─── a Reroute runs in the background ──► it
-        │                               takes the link (below) ──► exit(0)
+        │                               takes the link and the click's
+        │                               activation token (below) ──► exit(0)
         ▼
 AppState::load (config.toml; first run: discover browsers)
         │
@@ -32,7 +33,7 @@ AppState::load (config.toml; first run: discover browsers)
 resident::claim ── run_in_background: stay running, picker preloaded
         │
         ▼
-incoming::decide
+incoming::route
    ├─ SafeUrl::parse fails ─────────────► picker shows the refusal
    ├─ rules_enabled && find_match ──────► platform::launch::launch ──► exit(0)
    └─ otherwise ────────────────────────► picker window
@@ -86,10 +87,10 @@ the real system.
 |------|----------------|
 | `lib.rs` | `run()`: parse CLI, hand over or claim, load state, fast path, build Tauri app, run loop (exit policy, macOS URL events). |
 | `cli.rs` | `--settings`, `--make-default`, `--version`, `--background`, first positional = URL. |
-| `state.rs` | `AppState`: config (reloaded when edited by hand), pending URL, errors, update status, background role. |
+| `state.rs` | `AppState`: config (reloaded when edited by hand), pending link and its activation token, errors, update status, background role. |
 | `resident.rs` | Linux: staying in the background; hand-over, claim, serving requests. |
 | `updates.rs` | The version check: once a day at start-up, and on demand. |
-| `incoming.rs` | `decide` and `launch`. |
+| `incoming.rs` | `route` (rules or picker) and `launch`. |
 | `windows.rs` | Picker/settings window creation, focus-loss handling, exit policy. |
 | `commands.rs` | IPC commands; each is listed in `build.rs` so Tauri generates a permission for it. |
 | `capabilities/*.json` | Which window may call which command. |

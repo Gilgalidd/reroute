@@ -112,9 +112,12 @@ impl UpdateStatus {
 }
 
 /// Turn the answer of [`LATEST_RELEASE_API`] into something to display.
+/// A tag that is not a version, such as `nightly`, is no answer: it would
+/// otherwise show as "Up to date (nightly)".
 pub fn interpret(json: &str, current_version: &str) -> Option<LatestRelease> {
     let tag = parse_tag(json)?;
     let version = version_of(&tag).to_owned();
+    semver::Version::parse(&version).ok()?;
     Some(LatestRelease {
         newer: is_newer(&version, current_version),
         version,
@@ -197,7 +200,8 @@ mod tests {
         assert_eq!(interpret("not json", "0.1.2"), None);
         assert!(!is_newer("please-update", "0.1.2"));
         assert!(!is_newer("999.0.0", "not a version"));
-        let weird = interpret(r#"{"tag_name":"nightly"}"#, "0.1.2").unwrap();
-        assert!(!weird.newer);
+        assert_eq!(interpret(r#"{"tag_name":"nightly"}"#, "0.1.2"), None);
+        let huge = format!(r#"{{"tag_name":"{}"}}"#, "9".repeat(100_000));
+        assert_eq!(interpret(&huge, "0.1.2"), None, "not a version either");
     }
 }

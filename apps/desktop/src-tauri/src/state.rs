@@ -16,7 +16,7 @@ pub struct AppState {
     /// Modification time of `config.toml` when it was last read or written,
     /// to notice an edit made by hand while Reroute runs in the background.
     read_at: Mutex<Option<SystemTime>>,
-    pending: Mutex<Option<SafeUrl>>,
+    pending: Mutex<Option<Pending>>,
     url_error: Mutex<Option<String>>,
     config_error: Mutex<Option<String>>,
     /// This process stays in the background for later clicks (Linux).
@@ -27,6 +27,16 @@ pub struct AppState {
     update: Mutex<UpdateStatus>,
     /// An automatic version check is under way.
     checking: AtomicBool,
+}
+
+/// The link waiting for the picker.
+#[derive(Clone)]
+pub struct Pending {
+    /// The link, validated.
+    pub url: SafeUrl,
+    /// The activation token the desktop gave its click, for the browser the
+    /// user picks: it lets that browser come to the front.
+    pub activation: Option<String>,
 }
 
 /// Lock a mutex, recovering from poisoning: our guarded data is always left
@@ -178,14 +188,15 @@ impl AppState {
         self.store.path().to_path_buf()
     }
 
-    /// The URL waiting for a decision in the picker.
-    pub fn pending(&self) -> Option<SafeUrl> {
+    /// The link waiting for a decision in the picker.
+    pub fn pending(&self) -> Option<Pending> {
         lock(&self.pending).clone()
     }
 
-    /// Set the URL the picker should decide on, clearing any previous error.
-    pub fn set_pending(&self, url: SafeUrl) {
-        *lock(&self.pending) = Some(url);
+    /// Set the link the picker should decide on, clearing any previous
+    /// error.
+    pub fn set_pending(&self, url: SafeUrl, activation: Option<String>) {
+        *lock(&self.pending) = Some(Pending { url, activation });
         *lock(&self.url_error) = None;
     }
 

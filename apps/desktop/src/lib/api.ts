@@ -40,7 +40,8 @@ export const api = {
   /** Open the download page in a browser. */
   openReleasePage: () => invoke<void>("open_release_page"),
 
-  /** Fired by the Rust side when the pending URL changes (macOS). */
+  /** Fired when a new link waits for the picker: a Reroute running in the
+   * background (Linux), or a link macOS delivers to the open app. */
   onContextChanged: (handler: () => void): Promise<UnlistenFn> =>
     listen("context-changed", () => handler()),
 

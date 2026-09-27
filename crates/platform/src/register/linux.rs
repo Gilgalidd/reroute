@@ -67,18 +67,48 @@ pub(crate) fn quote_exec(path: &Path) -> String {
     out
 }
 
-pub(crate) fn home() -> Result<PathBuf, PlatformError> {
+fn home() -> Result<PathBuf, PlatformError> {
     std::env::var_os("HOME")
         .map(PathBuf::from)
         .ok_or_else(|| PlatformError::Os("HOME is not set".into()))
 }
 
+/// An XDG base directory: `$variable` when it holds an absolute path, as
+/// the specification requires, else `fallback` under the home directory.
+fn xdg_dir(variable: &str, fallback: &str) -> Result<PathBuf, PlatformError> {
+    match absolute(std::env::var_os(variable)) {
+        Some(dir) => Ok(dir),
+        None => Ok(home()?.join(fallback)),
+    }
+}
+
+fn absolute(value: Option<std::ffi::OsString>) -> Option<PathBuf> {
+    value.map(PathBuf::from).filter(|dir| dir.is_absolute())
+}
+
+/// `$XDG_CONFIG_HOME`, usually `~/.config`.
+pub(crate) fn user_config_dir() -> Result<PathBuf, PlatformError> {
+    xdg_dir("XDG_CONFIG_HOME", ".config")
+}
+
 /// `$XDG_DATA_HOME`, usually `~/.local/share`.
 fn user_data_dir() -> Result<PathBuf, PlatformError> {
-    match std::env::var_os("XDG_DATA_HOME") {
-        Some(d) => Ok(PathBuf::from(d)),
-        None => Ok(home()?.join(".local/share")),
+    xdg_dir("XDG_DATA_HOME", ".local/share")
+}
+
+/// The program the desktop should start to run Reroute: the AppImage file
+/// itself when Reroute runs from one (the executable inside sits in a mount
+/// that disappears when Reroute exits), else this executable.
+pub(crate) fn reroute_program() -> Result<PathBuf, PlatformError> {
+    match appimage() {
+        Some(image) => Ok(image),
+        None => std::env::current_exe().map_err(|e| PlatformError::Os(e.to_string())),
     }
+}
+
+/// The AppImage file Reroute runs from, if it does.
+fn appimage() -> Option<PathBuf> {
+    absolute(std::env::var_os("APPIMAGE"))
 }
 
 fn applications_dir() -> Result<PathBuf, PlatformError> {
@@ -118,11 +148,7 @@ fn install_icons_into(data_dir: &Path, icons: &[(u32, &[u8])]) -> Result<(), Pla
 
 /// `$XDG_CONFIG_HOME/mimeapps.list`, the user's default-application registry.
 fn mimeapps_path() -> Result<PathBuf, PlatformError> {
-    let base = match std::env::var_os("XDG_CONFIG_HOME") {
-        Some(d) => PathBuf::from(d),
-        None => home()?.join(".config"),
-    };
-    Ok(base.join("mimeapps.list"))
+    Ok(user_config_dir()?.join("mimeapps.list"))
 }
 
 fn write_atomically(path: &Path, contents: &str) -> Result<(), PlatformError> {
@@ -137,11 +163,11 @@ fn write_atomically(path: &Path, contents: &str) -> Result<(), PlatformError> {
 
 /// Write (or refresh) `~/.local/share/applications/Reroute.desktop`.
 pub fn ensure_desktop_file() -> Result<PathBuf, PlatformError> {
-    let exe = std::env::current_exe().map_err(|e| PlatformError::Os(e.to_string()))?;
+    let program = reroute_program()?;
     let dir = applications_dir()?;
     std::fs::create_dir_all(&dir).map_err(|e| PlatformError::Os(e.to_string()))?;
     let path = dir.join(DESKTOP_ID);
-    std::fs::write(&path, desktop_file_contents(&exe))
+    std::fs::write(&path, desktop_file_contents(&program))
         .map_err(|e| PlatformError::Os(e.to_string()))?;
     Ok(path)
 }
@@ -154,7 +180,9 @@ pub fn ensure_desktop_file() -> Result<PathBuf, PlatformError> {
 /// it is authoritative. The result is verified before reporting success.
 pub fn register() -> Result<Outcome, PlatformError> {
     remove_legacy_desktop_file()?;
-    if !packaged_in(&system_data_dirs()) {
+    // An AppImage lists its own entry in `XDG_DATA_DIRS`, but that one goes
+    // with the AppImage's mount: it needs a user-level entry all the same.
+    if appimage().is_some() || !packaged_in(&system_data_dirs()) {
         let path = ensure_desktop_file()?;
         // Refresh only the directory we just wrote into. Called without an
         // argument the tool tries the system directories, which need root and
@@ -261,6 +289,16 @@ mod tests {
         )
         .unwrap();
         assert!(packaged_in(&dirs));
+    }
+
+    #[test]
+    fn xdg_directories_must_be_absolute() {
+        assert_eq!(
+            absolute(Some("/home/a/.config".into())),
+            Some(PathBuf::from("/home/a/.config"))
+        );
+        assert_eq!(absolute(Some("relative/.config".into())), None);
+        assert_eq!(absolute(None), None);
     }
 
     #[test]

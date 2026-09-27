@@ -37,8 +37,12 @@
     return config.browsers.find((b) => b.id === browserId)?.launches ?? [];
   }
 
+  /** One line per faulty pattern, naming it: two patterns can share a fault. */
   function problems(patterns: string[]): string[] {
-    return patterns.map((p) => patternProblem(p)).filter((p): p is string => p !== null);
+    return patterns.flatMap((pattern) => {
+      const problem = patternProblem(pattern);
+      return problem ? [`${pattern}: ${problem}`] : [];
+    });
   }
 
   async function runTest() {
@@ -102,7 +106,8 @@
         value={set.patterns.join("\n")}
         oninput={(e) => update(i, { patterns: splitLines(e.currentTarget.value) })}
       ></textarea>
-      {#each problems(set.patterns) as problem (problem)}
+      <!-- Not keyed by text: the same pattern may be typed twice. -->
+      {#each problems(set.patterns) as problem}
         <span class="problem">{problem}</span>
       {/each}
     </fieldset>

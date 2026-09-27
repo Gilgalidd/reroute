@@ -16,9 +16,8 @@ use reroute_platform::control::{self, Listener};
 use tauri::{AppHandle, Manager};
 
 use crate::cli::Mode;
-use crate::incoming::{self, Decision};
 use crate::state::AppState;
-use crate::{updates, windows};
+use crate::{incoming, updates, windows};
 
 /// What this process should do once its configuration is loaded.
 pub enum Role {
@@ -31,10 +30,14 @@ pub enum Role {
 }
 
 /// The request this process was started for, as the running Reroute
-/// receives it. A background start carries none.
-fn request_for(mode: &Mode) -> Option<Request> {
+/// receives it, with the click's `activation` token. A background start
+/// carries none.
+fn request_for(mode: &Mode, activation: Option<&str>) -> Option<Request> {
     match mode {
-        Mode::Pick(raw) => Some(Request::Open(raw.clone())),
+        Mode::Pick(raw) => Some(Request::Open {
+            url: raw.clone(),
+            activation: activation.map(str::to_owned),
+        }),
         Mode::Settings => Some(Request::Settings),
         Mode::Background | Mode::Version | Mode::MakeDefault => None,
     }
@@ -42,8 +45,11 @@ fn request_for(mode: &Mode) -> Option<Request> {
 
 /// First thing at start-up: give this process's request to a Reroute that
 /// already runs in the background. True when it took it.
-pub fn hand_over(mode: &Mode) -> bool {
-    match (reroute_platform::paths::control_socket(), request_for(mode)) {
+pub fn hand_over(mode: &Mode, activation: Option<&str>) -> bool {
+    match (
+        reroute_platform::paths::control_socket(),
+        request_for(mode, activation),
+    ) {
         (Some(socket), Some(request)) => control::deliver(&socket, &request),
         _ => false,
     }
@@ -51,7 +57,7 @@ pub fn hand_over(mode: &Mode) -> bool {
 
 /// Once the configuration is loaded: become the Reroute that stays in the
 /// background, if the settings ask for it and no other one does.
-pub fn claim(mode: &Mode, state: &AppState) -> Role {
+pub fn claim(mode: &Mode, activation: Option<&str>, state: &AppState) -> Role {
     if !state.config().settings.run_in_background {
         return Role::Alone;
     }
@@ -62,7 +68,7 @@ pub fn claim(mode: &Mode, state: &AppState) -> Role {
         Ok(Some(listener)) => Role::Resident(listener),
         Ok(None) => {
             // Another Reroute started a moment ago and may not listen yet.
-            let Some(request) = request_for(mode) else {
+            let Some(request) = request_for(mode, activation) else {
                 return Role::Done;
             };
             for _ in 0..10 {
@@ -94,19 +100,15 @@ pub fn serve(listener: Listener, app: &AppHandle) {
 /// Do what `reroute <url>` or `reroute` would have done in its own process.
 fn dispatch(app: &AppHandle, request: Request) {
     let state = app.state::<AppState>();
+    // Edits made to config.toml by hand since the last request: the rules
+    // must see them, and the settings window must not save over them.
+    state.reload_if_changed();
     let outcome = match request {
-        Request::Open(raw) => {
-            state.reload_if_changed();
-            match incoming::decide(&state, &raw) {
-                Decision::Launched => Ok(()),
-                Decision::Ask(url) => {
-                    state.set_pending(url);
-                    windows::request_picker(app)
-                }
-                Decision::Refused(message) => {
-                    state.set_url_error(message);
-                    windows::request_picker(app)
-                }
+        Request::Open { url, activation } => {
+            if incoming::route(&state, &url, activation) {
+                windows::request_picker(app)
+            } else {
+                Ok(())
             }
         }
         Request::Settings => windows::open_settings(app),

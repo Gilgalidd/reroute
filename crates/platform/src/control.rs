@@ -26,17 +26,27 @@ const TIMEOUT: Duration = Duration::from_secs(2);
 /// listens or it did not accept the request; the caller then handles the
 /// request itself, so a click is never lost.
 pub fn deliver(socket: &Path, request: &Request) -> bool {
-    let Ok(line) = request.encode() else {
-        return false;
-    };
-    let Ok(stream) = UnixStream::connect(socket) else {
-        return false;
-    };
+    match ask(socket, request) {
+        Some(answer) if answer == OK => true,
+        // After an update, the Reroute still running until the next login
+        // may be 0.1.12, which refuses a request with an activation token:
+        // ask it again without, rather than start a second Reroute.
+        Some(_) => request
+            .without_activation()
+            .is_some_and(|plain| ask(socket, &plain).as_deref() == Some(OK)),
+        None => false,
+    }
+}
+
+/// Send `request` and return the answer, or `None` when no Reroute answered.
+fn ask(socket: &Path, request: &Request) -> Option<String> {
+    let line = request.encode().ok()?;
+    let stream = UnixStream::connect(socket).ok()?;
     match exchange(&stream, &line) {
-        Ok(answer) => answer.trim_end() == OK,
+        Ok(answer) => Some(answer.trim_end().to_owned()),
         Err(error) => {
             log::warn!("the running Reroute did not answer: {error}");
-            false
+            None
         }
     }
 }
@@ -150,7 +160,10 @@ mod tests {
         let (sent, received) = mpsc::channel();
         listener.serve(move |request| sent.send(request).unwrap());
 
-        let open = Request::Open("https://example.com/".into());
+        let open = Request::Open {
+            url: "https://example.com/".into(),
+            activation: Some("kwin-12".into()),
+        };
         assert!(deliver(&socket, &open));
         assert!(deliver(&socket, &Request::Settings));
         let timeout = Duration::from_secs(5);
@@ -200,6 +213,47 @@ mod tests {
         BufReader::new(&stream).read_line(&mut reply).unwrap();
         assert_eq!(reply, "error\n");
         assert!(received.recv_timeout(Duration::from_millis(200)).is_err());
+    }
+
+    /// A Reroute 0.1.12 knows only `open <url>`: it gets the request again
+    /// without the token, and opens the link.
+    #[test]
+    fn a_reroute_from_before_tokens_still_gets_the_link() {
+        let dir = tempfile::tempdir().unwrap();
+        let socket = socket_in(&dir);
+        create_private_dir(socket.parent().unwrap()).unwrap();
+        let old = UnixListener::bind(&socket).unwrap();
+        let (sent, received) = mpsc::channel();
+        std::thread::spawn(move || {
+            for stream in old.incoming().take(2) {
+                let mut stream = stream.unwrap();
+                let mut line = String::new();
+                BufReader::new(&stream).read_line(&mut line).unwrap();
+                let reply = if line.starts_with("open ") {
+                    "ok\n"
+                } else {
+                    "error\n"
+                };
+                stream.write_all(reply.as_bytes()).unwrap();
+                sent.send(line).unwrap();
+            }
+        });
+        let open = Request::Open {
+            url: "https://example.com/".into(),
+            activation: Some("kwin-12".into()),
+        };
+        assert!(deliver(&socket, &open));
+        let timeout = Duration::from_secs(5);
+        assert!(
+            received
+                .recv_timeout(timeout)
+                .unwrap()
+                .starts_with("open-activated ")
+        );
+        assert_eq!(
+            received.recv_timeout(timeout).unwrap(),
+            "open https://example.com/\n"
+        );
     }
 
     #[test]

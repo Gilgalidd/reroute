@@ -46,7 +46,14 @@ URL can never be mistaken for a command-line option such as `--profile`.
   only when the configuration is saved, so a tampered file still cannot point
   at a directory or a non-executable.
 - The child is detached (new process group on Unix, `DETACHED_PROCESS` on
-  Windows) with `stdin`/`stdout`/`stderr` closed, and Reroute exits.
+  Windows) with `stdin`/`stdout`/`stderr` closed. A thread waits for it, so
+  that a Reroute running in the background leaves no zombie processes.
+- The browser gets the user's environment rather than Reroute's own: not the
+  variables Reroute sets for its windows, and, when Reroute runs from an
+  AppImage, not the ones the AppImage points at its own GTK files (which
+  vanish with it) or the theme it forces. Its activation token
+  (`XDG_ACTIVATION_TOKEN`, which lets it come to the front on Wayland) is the
+  one the desktop gave the click it answers, never one Reroute inherited.
 - System helpers used for default-browser registration (`xdg-settings`,
   `update-desktop-database`, `explorer.exe`) are located on `PATH` or
   `%SystemRoot%` and pass the same executable check. On Linux they are
@@ -146,9 +153,11 @@ autostart entry. A later `reroute <url>` hands its request to it and exits.
   runtime directory belongs to the user with mode 0700 and Reroute's own
   directory inside it is 0700 too, so only the user's own processes can
   connect. They could already run `reroute <url>` themselves.
-- The protocol is one line, `open <url>` or `settings`, capped at 8 KiB and
-  refused if it holds a control character. The URL then goes through
-  `SafeUrl` exactly as one from the command line would.
+- The protocol is one line, `open <url>`, `open-activated <token> <url>` or
+  `settings`, capped at the 8 KiB of a URL plus a 256-byte token and refused
+  if it holds a control character. The token must be one word of printable
+  ASCII. The URL then goes through `SafeUrl` exactly as one from the command
+  line would.
 - The running Reroute is the one holding an exclusive lock on a file next to
   the socket. The system drops that lock when the process ends, even in a
   crash, so a leftover socket is never mistaken for a live one.

@@ -11,8 +11,7 @@ permissions:
   contents: read
 
 # A newer push to the same branch or pull request cancels the run in
-# progress: only the latest commit's result matters, and private
-# repositories pay for runner minutes (macOS ones ten times over).
+# progress: only the latest commit's result matters.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true

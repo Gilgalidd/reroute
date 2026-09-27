@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "picker",
-  "description": "The picker window may read its context, launch a browser, dismiss itself, open settings, check for a new version when its update button is pressed and open the download page, and listen for the event that tells it the pending link changed (macOS). Nothing from Tauri's core beyond that event.",
+  "description": "The picker window may read its context, launch a browser, dismiss itself, open settings, check for a new version when its update button is pressed and open the download page, and listen for the events that tell it a new link waits (background mode on Linux, macOS) and what the daily version check found. Nothing from Tauri's core beyond listening to events.",
   "windows": ["picker"],
   "permissions": [
     "core:event:allow-listen",

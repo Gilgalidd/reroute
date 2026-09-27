@@ -6,7 +6,7 @@
 //! 2. On Linux, if a Reroute already runs in the background, the new process
 //!    hands it the link and exits ([`resident`]); that Reroute continues
 //!    from step 3 with its picker already loaded.
-//! 3. [`incoming::decide`] validates the URL and evaluates the rules. If a
+//! 3. [`incoming::route`] validates the URL and evaluates the rules. If a
 //!    rule matches, the browser is launched and no window is shown.
 //! 4. Otherwise the picker is shown; the choice is launched through the same
 //!    code path. Then the process exits, or, running in the background,
@@ -63,9 +63,15 @@ pub fn run() {
         return;
     }
 
+    // The desktop's activation token for this click, which the browser
+    // opening the link needs to come to the front.
+    let activation = std::env::var(reroute_platform::launch::ACTIVATION_TOKEN)
+        .ok()
+        .filter(|token| reroute_core::control::is_activation_token(token));
+
     // A Reroute running in the background answers at once.
     #[cfg(target_os = "linux")]
-    if resident::hand_over(&mode) {
+    if resident::hand_over(&mode, activation.as_deref()) {
         return;
     }
 
@@ -73,7 +79,7 @@ pub fn run() {
     updates::restore(&state);
 
     #[cfg(target_os = "linux")]
-    let listener = match resident::claim(&mode, &state) {
+    let listener = match resident::claim(&mode, activation.as_deref(), &state) {
         resident::Role::Resident(listener) => {
             state.set_resident();
             Some(listener)
@@ -82,20 +88,10 @@ pub fn run() {
         resident::Role::Done => return,
     };
 
-    let mut picker_needed = false;
-    if let cli::Mode::Pick(raw) = &mode {
-        match incoming::decide(&state, raw) {
-            incoming::Decision::Launched => {}
-            incoming::Decision::Ask(url) => {
-                state.set_pending(url);
-                picker_needed = true;
-            }
-            incoming::Decision::Refused(message) => {
-                state.set_url_error(message);
-                picker_needed = true;
-            }
-        }
-    }
+    let picker_needed = match &mode {
+        cli::Mode::Pick(raw) => incoming::route(&state, raw, activation),
+        _ => false,
+    };
     let resident = state.stays_in_background();
     if !resident && !picker_needed && mode != cli::Mode::Settings {
         // A rule opened the link, or a background start that is not wanted.

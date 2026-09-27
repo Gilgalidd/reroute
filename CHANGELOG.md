@@ -6,7 +6,34 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- Linux, background mode: every browser Reroute opened stayed in the process
+  table as a zombie until you logged out, since Firefox and Chromium hand
+  the link to their open window and exit. Reroute now waits for them.
+- Linux, background mode: the browser received the activation token of the
+  click that had started Reroute, long used, instead of its own click's, so
+  on Wayland it could open the link without coming to the front. The click
+  now hands its token over with the link.
+- Linux, background mode: the settings window opened with `reroute` showed
+  the configuration as it was at the last link, and saving it could undo an
+  edit made to `config.toml` by hand in between.
+- AppImage: *Make Reroute the default* pointed the system at the desktop
+  entry inside the AppImage, which disappears when it exits. Reroute now
+  writes its own entry, which starts the AppImage file.
+- AppImage: the browsers Reroute opened inherited the GTK settings the
+  AppImage makes for Reroute's own windows, among them the Adwaita theme and
+  paths into the AppImage that vanish when it exits.
+- *Settings › Rules*: two faulty patterns with the same fault, such as two
+  mistyped `domain:` patterns, broke the list of problems. Each problem now
+  names its pattern.
+- A release whose tag is not a version, such as `nightly`, no longer reads
+  as "Up to date (nightly)"; the check reports that it found no version.
+
+### Changed
+
+- The option to stay in the background shows only on Linux, the one system
+  where it does something.
 
 ## [0.1.12] - 2026-09-27
 
