@@ -68,3 +68,84 @@ pub fn handle_opened(app: &tauri::AppHandle, urls: &[tauri::Url]) {
         log::error!("cannot open picker: {error}");
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use reroute_core::ConfigStore;
+
+    /// A state whose `config.toml` is `toml`.
+    fn state_with(toml: &str) -> (tempfile::TempDir, AppState) {
+        let dir = tempfile::tempdir().unwrap();
+        let store = ConfigStore::in_dir(dir.path());
+        std::fs::write(store.path(), toml).unwrap();
+        (dir, AppState::open(store, Vec::new))
+    }
+
+    #[test]
+    fn a_refused_link_goes_to_the_picker_with_its_reason() {
+        let (_dir, state) = state_with("version = 1\n");
+        assert!(route(&state, "javascript:alert(1)", None));
+        assert!(state.pending().is_none());
+        assert!(state.url_error().unwrap().contains("javascript"));
+    }
+
+    /// One browser, `program`, and a rule that sends `rule.test` to it.
+    #[cfg(unix)]
+    fn with_a_rule(program: &str, rules_enabled: bool) -> (tempfile::TempDir, AppState) {
+        state_with(&format!(
+            r#"version = 1
+
+[settings]
+rules_enabled = {rules_enabled}
+
+[[browsers]]
+id = "6d1a4b1e-6a0e-4a5f-9c1b-2f0f5f2f1a11"
+name = "Browser"
+path = "{program}"
+
+[[rulesets]]
+name = "Tests"
+browser = "6d1a4b1e-6a0e-4a5f-9c1b-2f0f5f2f1a11"
+patterns = ["domain:rule.test"]
+"#
+        ))
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_rule_opens_the_link_without_the_picker() {
+        let (_dir, state) = with_a_rule("/usr/bin/true", true);
+        assert!(!route(
+            &state,
+            "https://rule.test/page",
+            Some("kwin-1".into())
+        ));
+        assert!(state.pending().is_none());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_link_no_rule_takes_waits_for_the_picker_with_its_token() {
+        let (_dir, state) = with_a_rule("/usr/bin/true", true);
+        assert!(route(&state, "https://other.test/", Some("kwin-1".into())));
+        let pending = state.pending().unwrap();
+        assert_eq!(pending.url.as_str(), "https://other.test/");
+        assert_eq!(pending.activation.as_deref(), Some("kwin-1"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn with_rules_off_the_picker_decides() {
+        let (_dir, state) = with_a_rule("/usr/bin/true", false);
+        assert!(route(&state, "https://rule.test/page", None));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_rule_whose_browser_is_gone_falls_back_to_the_picker() {
+        let (_dir, state) = with_a_rule("/nonexistent/browser", true);
+        assert!(route(&state, "https://rule.test/page", None));
+        assert!(state.pending().is_some(), "the link is not lost");
+    }
+}

@@ -78,7 +78,6 @@ pub fn registry_entries(exe: &Path) -> Vec<Entry> {
 }
 
 /// Write the entries and open Settings › Default apps.
-#[cfg(windows)]
 pub fn register() -> Result<Outcome, PlatformError> {
     use winreg::RegKey;
     use winreg::enums::HKEY_CURRENT_USER;
@@ -108,7 +107,6 @@ pub fn default_apps_uri() -> String {
 /// Open [`default_apps_uri`]. Only the shell's `ShellExecuteW` understands
 /// such an address: given to `explorer.exe`, an argument with a `?` passes
 /// for a file path, and Explorer opens the Documents folder instead.
-#[cfg(windows)]
 #[allow(unsafe_code)]
 fn open_default_apps_settings() -> Result<(), PlatformError> {
     use windows_sys::Win32::UI::Shell::ShellExecuteW;
@@ -142,7 +140,6 @@ fn open_default_apps_settings() -> Result<(), PlatformError> {
 }
 
 /// Read the user's choice for `https` and `http`.
-#[cfg(windows)]
 pub fn is_default() -> Result<bool, PlatformError> {
     use winreg::RegKey;
     use winreg::enums::{HKEY_CURRENT_USER, KEY_READ};
@@ -160,18 +157,6 @@ pub fn is_default() -> Result<bool, PlatformError> {
         .ok()
     };
     Ok(choice("https").as_deref() == Some(PROG_ID) && choice("http").as_deref() == Some(PROG_ID))
-}
-
-#[cfg(not(windows))]
-#[allow(dead_code)]
-pub fn register() -> Result<Outcome, PlatformError> {
-    Err(PlatformError::Unsupported)
-}
-
-#[cfg(not(windows))]
-#[allow(dead_code)]
-pub fn is_default() -> Result<bool, PlatformError> {
-    Err(PlatformError::Unsupported)
 }
 
 #[cfg(test)]

@@ -6,7 +6,7 @@ use std::sync::{Mutex, MutexGuard, PoisonError};
 use std::time::SystemTime;
 
 use reroute_core::release::UpdateStatus;
-use reroute_core::{Config, ConfigStore, SafeUrl};
+use reroute_core::{Browser, Config, ConfigStore, SafeUrl};
 
 /// Everything the windows need to know.
 pub struct AppState {
@@ -54,7 +54,16 @@ impl AppState {
             log::error!("no directory to keep the configuration in, not even a temporary one");
             std::process::exit(1);
         };
-        let store = ConfigStore::in_dir(&dir);
+        Self::open(
+            ConfigStore::in_dir(&dir),
+            reroute_platform::discover::installed_browsers,
+        )
+    }
+
+    /// [`load`](Self::load) from `store`. `installed` lists the browsers on
+    /// the computer; it is called only when the configuration has none, and
+    /// tests pass their own.
+    pub(crate) fn open(store: ConfigStore, installed: impl FnOnce() -> Vec<Browser>) -> Self {
         let mut config_error = None;
         let mut config = match store.load() {
             Ok(config) => config,
@@ -69,7 +78,7 @@ impl AppState {
         // unreadable file, offer them too, so that links still open, but
         // save nothing: that file may hold rules the user wants back.
         if config.browsers.is_empty() {
-            let added = config.merge_discovered(reroute_platform::discover::installed_browsers());
+            let added = config.merge_discovered(installed());
             if config_error.is_none() {
                 log::info!("first run: discovered {added} browser(s)");
                 if let Err(error) = store.save(&config) {
@@ -202,6 +211,18 @@ impl AppState {
         lock(&self.pending).clone()
     }
 
+    /// The link waiting for the picker, if it is still `url`, the one the
+    /// picker showed when the user chose: a new link may have arrived
+    /// meanwhile, and the choice, "always use for this domain" included,
+    /// was made for the link on screen.
+    pub fn pending_for(&self, url: &str) -> Result<Pending, &'static str> {
+        match self.pending() {
+            None => Err("there is no URL to open"),
+            Some(pending) if pending.url.as_str() == url => Ok(pending),
+            Some(_) => Err("A new link arrived. Choose a browser for it."),
+        }
+    }
+
     /// Set the link the picker should decide on, clearing any previous
     /// error.
     pub fn set_pending(&self, url: SafeUrl, activation: Option<String>) {
@@ -246,4 +267,139 @@ fn modified(store: &ConfigStore) -> Option<SystemTime> {
     std::fs::metadata(store.path())
         .and_then(|meta| meta.modified())
         .ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// An absolute path that exists on every system. It is only checked,
+    /// never started.
+    fn some_program() -> PathBuf {
+        std::env::current_exe().unwrap()
+    }
+
+    fn installed() -> Vec<Browser> {
+        vec![Browser::new("Firefox", some_program())]
+    }
+
+    fn url(text: &str) -> SafeUrl {
+        SafeUrl::parse(text).unwrap()
+    }
+
+    #[test]
+    fn the_first_run_saves_the_browsers_it_finds() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = AppState::open(ConfigStore::in_dir(dir.path()), installed);
+        assert_eq!(state.config().browsers.len(), 1);
+        assert_eq!(state.config_error(), None);
+        assert_eq!(state.store.load().unwrap().browsers.len(), 1, "saved");
+    }
+
+    #[test]
+    fn an_unreadable_file_offers_the_browsers_and_is_kept_until_save() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = ConfigStore::in_dir(dir.path());
+        std::fs::write(store.path(), "[settings\nbroken").unwrap();
+        let state = AppState::open(store.clone(), installed);
+        assert!(state.config_error().is_some());
+        assert_eq!(state.config().browsers.len(), 1, "links still open");
+        assert_eq!(
+            std::fs::read_to_string(store.path()).unwrap(),
+            "[settings\nbroken",
+            "nothing written before Save"
+        );
+
+        let config = state.config().clone();
+        state.save(config).unwrap();
+        assert!(store.path().with_extension("toml.broken").exists());
+        assert!(store.load().is_ok());
+        assert_eq!(state.config_error(), None);
+    }
+
+    #[test]
+    fn a_choice_counts_only_for_the_link_on_screen() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = AppState::open(ConfigStore::in_dir(dir.path()), installed);
+        assert!(state.pending_for("https://a.org/").is_err(), "no link yet");
+
+        state.set_pending(url("https://a.org/"), Some("kwin-1".into()));
+        let pending = state.pending_for("https://a.org/").unwrap();
+        assert_eq!(pending.activation.as_deref(), Some("kwin-1"));
+
+        state.set_pending(url("https://b.org/"), None);
+        assert!(state.pending_for("https://a.org/").is_err(), "replaced");
+    }
+
+    #[test]
+    fn a_refused_link_replaces_the_pending_one_until_the_picker_is_done() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = AppState::open(ConfigStore::in_dir(dir.path()), installed);
+        state.set_pending(url("https://a.org/"), None);
+        state.set_url_error("scheme `javascript` is not allowed".into());
+        assert!(state.pending().is_none());
+        assert!(state.url_error().is_some());
+        state.clear_pending();
+        assert!(state.pending().is_none());
+        assert!(state.url_error().is_none());
+    }
+
+    #[test]
+    fn the_picker_shows_once_per_request() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = AppState::open(ConfigStore::in_dir(dir.path()), installed);
+        assert!(!state.take_picker_wish());
+        state.want_picker();
+        assert!(state.take_picker_wish());
+        assert!(
+            !state.take_picker_wish(),
+            "the page and the safety timer cannot both show it"
+        );
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn staying_in_the_background_follows_the_setting() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = AppState::open(ConfigStore::in_dir(dir.path()), installed);
+        assert!(!state.stays_in_background(), "not the resident one");
+        state.set_resident();
+        assert!(state.stays_in_background());
+        let mut config = state.config().clone();
+        config.settings.run_in_background = false;
+        state.save(config).unwrap();
+        assert!(
+            !state.stays_in_background(),
+            "turned off: exits with its windows"
+        );
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn an_edit_by_hand_is_read_again() {
+        use std::time::Duration;
+        let dir = tempfile::tempdir().unwrap();
+        let store = ConfigStore::in_dir(dir.path());
+        let state = AppState::open(store.clone(), installed);
+        let edit = |text: String, later: u64| {
+            std::fs::write(store.path(), text).unwrap();
+            std::fs::File::options()
+                .write(true)
+                .open(store.path())
+                .unwrap()
+                .set_modified(SystemTime::now() + Duration::from_secs(later))
+                .unwrap();
+        };
+
+        let text = std::fs::read_to_string(store.path()).unwrap();
+        edit(text.replace("\"Firefox\"", "\"Firefox, by hand\""), 10);
+        state.reload_if_changed();
+        assert_eq!(state.config().browsers[0].name, "Firefox, by hand");
+
+        // A broken edit keeps the rules in memory and says why.
+        edit("broken [".into(), 20);
+        state.reload_if_changed();
+        assert_eq!(state.config().browsers[0].name, "Firefox, by hand");
+        assert!(state.config_error().is_some());
+    }
 }

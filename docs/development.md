@@ -130,7 +130,8 @@ if you fix a bug they found.
       `~/.config/autostart/Reroute.desktop` exists; turning *Keep Reroute
       running in the background* off removes it, and Reroute exits when its
       windows close.
-- [ ] Windows: *Make Reroute the default* opens Settings › Default apps.
+- [ ] Windows: *Make Reroute the default* opens Settings › Default apps, and
+      the picker's ⚙ opens a settings window that responds.
 
 ## Releasing
 

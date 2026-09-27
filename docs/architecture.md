@@ -85,9 +85,10 @@ property tests (`proptest`).
 | `autostart` | XDG autostart entry | — | — |
 
 Each backend separates a **pure parsing layer** (desktop-entry parser,
-registry command-line splitter, plist reader, registry entry list) that is
-unit-tested on every CI runner, from a thin enumeration layer that touches
-the real system.
+registry command-line splitter, plist reader, registry entry list), unit-tested
+on the CI runner of its own system, from a thin enumeration layer that
+touches the real system. Each backend module is compiled only on its own
+system.
 
 ## The app (`apps/desktop/src-tauri`)
 
@@ -105,7 +106,13 @@ the real system.
 | `tauri.conf.json` | CSP, bundling targets, desktop template, icons. |
 
 Windows are created programmatically (none in `tauri.conf.json`) so that the
-fast path can skip them entirely.
+fast path can skip them entirely. A command that creates one is `async`: on
+Windows, creating a window from a synchronous command deadlocks WebView2.
+
+`state.rs` and `incoming.rs` have unit tests on a temporary configuration
+(`AppState::open` takes the list of installed browsers as an argument). What
+needs a window or the background process is checked by hand, with the list
+in [development.md](development.md#manual-test-checklist-before-a-release).
 
 ## The front end (`apps/desktop/src`)
 

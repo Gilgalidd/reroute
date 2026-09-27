@@ -19,7 +19,6 @@ pub struct BundleInfo {
 }
 
 /// Extract [`BundleInfo`] from a parsed plist dictionary.
-#[cfg(target_os = "macos")]
 pub fn bundle_info(plist: &plist::Value) -> Option<BundleInfo> {
     let dict = plist.as_dictionary()?;
     let string = |key: &str| {
@@ -59,7 +58,6 @@ pub fn bundle_info(plist: &plist::Value) -> Option<BundleInfo> {
 }
 
 /// Convert one `.app` directory into a browser, if it handles web links.
-#[cfg(target_os = "macos")]
 fn browser_from_bundle(app: &Path) -> Option<Browser> {
     let plist = plist::Value::from_file(app.join("Contents/Info.plist")).ok()?;
     let info = bundle_info(&plist)?;
@@ -88,7 +86,6 @@ fn application_dirs() -> Vec<PathBuf> {
 }
 
 /// Enumerate bundles in the standard application folders.
-#[cfg(target_os = "macos")]
 pub fn installed_browsers() -> Vec<Browser> {
     let mut browsers = Vec::new();
     for dir in application_dirs() {
@@ -107,14 +104,7 @@ pub fn installed_browsers() -> Vec<Browser> {
     browsers
 }
 
-#[cfg(not(target_os = "macos"))]
-#[allow(dead_code)]
-pub fn installed_browsers() -> Vec<Browser> {
-    let _ = application_dirs();
-    Vec::new()
-}
-
-#[cfg(all(test, target_os = "macos"))]
+#[cfg(test)]
 mod tests {
     use super::*;
 

@@ -84,7 +84,6 @@ pub fn icon_from_default_icon(value: &str) -> Option<PathBuf> {
 }
 
 /// Enumerate `HKLM`/`HKCU\Software\Clients\StartMenuInternet`.
-#[cfg(windows)]
 pub fn installed_browsers() -> Vec<Browser> {
     use winreg::RegKey;
     use winreg::enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_READ};
@@ -132,12 +131,6 @@ pub fn installed_browsers() -> Vec<Browser> {
         }
     }
     browsers
-}
-
-#[cfg(not(windows))]
-#[allow(dead_code)]
-pub fn installed_browsers() -> Vec<Browser> {
-    Vec::new()
 }
 
 #[cfg(test)]
