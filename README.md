@@ -90,6 +90,10 @@ open Reroute and press **Make Reroute the default** in the *General* tab.
 Linux needs WebKitGTK 4.1 at runtime (`libwebkit2gtk-4.1-0`); the `.deb` and
 `.rpm` packages declare it.
 
+**Updating on Linux.** Reroute stays in the background, so after you install
+a newer version the old one keeps running until your next login. To switch
+at once, run `pkill -x reroute`: the next link you click starts the new one.
+
 **First launch on macOS.** Reroute is not notarised by Apple, so macOS blocks
 the first launch of the downloaded app. On macOS 14 and earlier, right-click
 the app in Finder and choose *Open*. On macOS 15 and later, try to open it
