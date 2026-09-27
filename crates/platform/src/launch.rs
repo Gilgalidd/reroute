@@ -10,7 +10,9 @@
 //! AppImage sets for the GTK inside it, and as activation token only the
 //! one of the click that asked for this browser.
 
+#[cfg(target_os = "linux")]
 use std::ffi::OsString;
+#[cfg(target_os = "linux")]
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Mutex, PoisonError};
@@ -79,6 +81,7 @@ fn command_for(plan: &LaunchPlan, activation: Option<&str>) -> Command {
     if let Some(token) = activation {
         command.env(ACTIVATION_TOKEN, token);
     }
+    #[cfg(target_os = "linux")]
     if std::env::var_os("APPIMAGE").is_some()
         && let Some(appdir) = std::env::var_os("APPDIR")
     {
@@ -96,6 +99,7 @@ fn command_for(plan: &LaunchPlan, activation: Option<&str>) -> Command {
 /// Variables that describe Reroute's AppImage rather than the user's
 /// session: the AppImage runtime's own, and the GTK theme that the
 /// AppImage's GTK hook forces to Adwaita for Reroute's windows.
+#[cfg(target_os = "linux")]
 const APPIMAGE_VARIABLES: &[&str] = &["APPDIR", "APPIMAGE", "ARGV0", "OWD", "GTK_THEME"];
 
 /// How to give a browser back the user's environment when Reroute runs
@@ -105,6 +109,7 @@ const APPIMAGE_VARIABLES: &[&str] = &["APPDIR", "APPIMAGE", "ARGV0", "OWD", "GTK
 /// to open a file dialog. Each change is a variable to set, or to remove
 /// (`None`): a variable pointing inside the mount goes, and a list of paths
 /// such as `XDG_DATA_DIRS` keeps its other entries.
+#[cfg(target_os = "linux")]
 fn appimage_changes(
     appdir: &Path,
     vars: impl IntoIterator<Item = (OsString, OsString)>,
@@ -172,6 +177,7 @@ fn detach(command: &mut Command) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::ffi::OsString;
     use std::path::PathBuf;
 
     fn plan() -> LaunchPlan {
@@ -219,6 +225,7 @@ mod tests {
         );
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn an_appimage_s_environment_stays_with_reroute() {
         let vars = [
