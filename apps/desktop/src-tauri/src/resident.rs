@@ -9,7 +9,7 @@
 //! KDE Wayland laptop: the click's process exits after 50–80 ms and the
 //! picker shows after 105–165 ms, against about 0.8 s from cold.
 
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use reroute_core::control::Request;
 use reroute_platform::control::{self, Listener};
@@ -18,6 +18,10 @@ use tauri::{AppHandle, Manager};
 use crate::cli::Mode;
 use crate::state::AppState;
 use crate::{incoming, updates, windows};
+
+/// How long a new Reroute keeps trying to reach one that has just started
+/// and may not listen yet, before it handles its click itself.
+const WAIT_FOR_A_STARTING_REROUTE: Duration = Duration::from_secs(1);
 
 /// What this process should do once its configuration is loaded.
 pub enum Role {
@@ -68,10 +72,14 @@ pub fn claim(mode: &Mode, activation: Option<&str>, state: &AppState) -> Role {
         Ok(Some(listener)) => Role::Resident(listener),
         Ok(None) => {
             // Another Reroute started a moment ago and may not listen yet.
+            // The attempts stop after a while, counted in time rather than
+            // in tries: one that does not answer at all, a stopped process
+            // for one, costs a timeout per try.
             let Some(request) = request_for(mode, activation) else {
                 return Role::Done;
             };
-            for _ in 0..10 {
+            let give_up_at = Instant::now() + WAIT_FOR_A_STARTING_REROUTE;
+            while Instant::now() < give_up_at {
                 if control::deliver(&socket, &request) {
                     return Role::Done;
                 }

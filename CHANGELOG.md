@@ -6,7 +6,14 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- Windows: the ⚙ button of the picker opened a settings window that never
+  responded. Creating a window from a synchronous command deadlocks
+  WebView2; the command is now asynchronous.
+- Linux: a click reached a Reroute running in the background that had
+  stopped responding (a suspended process, for one) only after 23 seconds,
+  eleven attempts of two seconds each; it now gives up after about four.
 
 ## [0.1.15] - 2026-09-27
 

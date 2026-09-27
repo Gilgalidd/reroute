@@ -116,12 +116,7 @@ pub fn pick(
     launch: Option<LaunchId>,
     remember: bool,
 ) -> Result<(), String> {
-    let pending = state.pending().ok_or("there is no URL to open")?;
-    // A new link may have arrived while the user was choosing: the choice,
-    // and "always use for this domain", were made for the link on screen.
-    if pending.url.as_str() != url {
-        return Err("A new link arrived. Choose a browser for it.".into());
-    }
+    let pending = state.pending_for(&url)?;
     let url = &pending.url;
     // Build the remembered rule before opening anything: when the host
     // cannot become a rule (an IPv6 address, for one), the picker says so
@@ -154,9 +149,12 @@ pub fn dismiss(app: AppHandle) {
     windows::finish_picker(&app);
 }
 
-/// Open the settings window from the picker.
+/// Open the settings window from the picker. `async`, so that it runs off
+/// the interface thread: on Windows, creating a window from a synchronous
+/// command deadlocks WebView2, and the new window never responds (a known
+/// issue, documented on Tauri's `WebviewWindowBuilder`).
 #[tauri::command]
-pub fn open_settings(app: AppHandle) -> Result<(), String> {
+pub async fn open_settings(app: AppHandle) -> Result<(), String> {
     windows::open_settings(&app).map_err(|e| e.to_string())
 }
 
