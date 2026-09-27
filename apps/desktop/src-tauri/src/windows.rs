@@ -60,6 +60,7 @@ pub fn request_picker(app: &AppHandle) -> tauri::Result<()> {
 
 /// Load the picker without showing it, so that the next click finds WebKit
 /// and the page ready (Reroute running in the background).
+#[cfg(target_os = "linux")]
 pub fn preload_picker(app: &AppHandle) -> tauri::Result<()> {
     if app.get_webview_window(PICKER).is_none() {
         create_picker(app)?;
@@ -150,10 +151,10 @@ pub fn open_settings_or_wait(app: &AppHandle) {
         let app = app.clone();
         std::thread::spawn(move || {
             std::thread::sleep(std::time::Duration::from_millis(400));
-            if app.webview_windows().is_empty() {
-                if let Err(error) = open_settings(&app) {
-                    log::error!("cannot open settings: {error}");
-                }
+            if app.webview_windows().is_empty()
+                && let Err(error) = open_settings(&app)
+            {
+                log::error!("cannot open settings: {error}");
             }
         });
     }

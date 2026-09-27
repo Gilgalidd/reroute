@@ -82,6 +82,7 @@ impl AppState {
     /// wrote it: a Reroute running in the background must follow edits made
     /// by hand. A file that no longer parses is reported, and the rules in
     /// memory keep working meanwhile.
+    #[cfg(target_os = "linux")]
     pub fn reload_if_changed(&self) {
         let now = modified(&self.store);
         if now == *lock(&self.read_at) {
@@ -101,6 +102,7 @@ impl AppState {
     }
 
     /// Mark this process as the one that stays in the background.
+    #[cfg(target_os = "linux")]
     pub fn set_resident(&self) {
         self.resident.store(true, Ordering::Relaxed);
     }

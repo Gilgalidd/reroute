@@ -97,10 +97,10 @@ pub fn installed_browsers() -> Vec<Browser> {
         };
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().is_some_and(|e| e == "app") {
-                if let Some(b) = browser_from_bundle(&path) {
-                    browsers.push(b);
-                }
+            if path.extension().is_some_and(|e| e == "app")
+                && let Some(b) = browser_from_bundle(&path)
+            {
+                browsers.push(b);
             }
         }
     }
