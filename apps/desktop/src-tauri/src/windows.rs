@@ -196,7 +196,13 @@ pub fn picker_lost_focus(app: &AppHandle) {
         .config()
         .settings
         .close_on_focus_loss;
-    if !close {
+    // Hiding the picker takes its focus away too: it is already dismissed,
+    // and dismissing it again could drop the link of the next click.
+    let visible = app
+        .get_webview_window(PICKER)
+        .and_then(|w| w.is_visible().ok())
+        .unwrap_or(false);
+    if !close || !visible {
         return;
     }
     let settings_focused = app
