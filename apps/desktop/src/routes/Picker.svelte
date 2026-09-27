@@ -79,7 +79,7 @@
     busy = true;
     error = null;
     try {
-      await api.pick(browser.id, launch, remember);
+      await api.pick(context.url.href, browser.id, launch, remember);
     } catch (e) {
       error = describeError(e);
       busy = false;

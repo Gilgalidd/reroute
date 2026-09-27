@@ -2722,6 +2722,7 @@ dependencies = [
  "serde",
  "tauri",
  "tauri-build",
+ "tempfile",
 ]
 
 [[package]]
@@ -2751,6 +2752,7 @@ dependencies = [
  "log",
  "plist",
  "reroute-core",
+ "rustix",
  "serde",
  "serde_json",
  "tempfile",

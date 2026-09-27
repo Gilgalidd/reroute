@@ -96,17 +96,18 @@ fn command_for(plan: &LaunchPlan, activation: Option<&str>) -> Command {
     command
 }
 
-/// Variables that describe Reroute's AppImage rather than the user's
-/// session: the AppImage runtime's own, and the GTK theme that the
-/// AppImage's GTK hook forces to Adwaita for Reroute's windows.
+/// Variables that describe an AppImage rather than the user's session: the
+/// AppImage runtime's own, and the GTK theme that Reroute's AppImage forces
+/// to Adwaita for its windows.
 #[cfg(target_os = "linux")]
 const APPIMAGE_VARIABLES: &[&str] = &["APPDIR", "APPIMAGE", "ARGV0", "OWD", "GTK_THEME"];
 
 /// How to give a browser back the user's environment when Reroute runs
-/// from an AppImage mounted at `appdir`. The AppImage's launcher points
+/// from an AppImage mounted at `appdir`, or was started by an application
+/// that does and passed its environment on. The AppImage's launcher points
 /// GTK's modules, schemas and data directories inside the mount, which
-/// disappears when Reroute exits; a browser that inherited them could fail
-/// to open a file dialog. Each change is a variable to set, or to remove
+/// disappears when the AppImage exits; a browser that inherited them could
+/// fail to open a file dialog. Each change is a variable to set, or to remove
 /// (`None`): a variable pointing inside the mount goes, and a list of paths
 /// such as `XDG_DATA_DIRS` keeps its other entries.
 #[cfg(target_os = "linux")]

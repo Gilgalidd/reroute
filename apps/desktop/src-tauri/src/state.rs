@@ -50,10 +50,10 @@ impl AppState {
     /// fatal, so a broken file never prevents the user from opening a link.
     /// On the very first run the installed browsers are discovered and saved.
     pub fn load() -> Self {
-        let dir = reroute_platform::paths::config_dir().unwrap_or_else(|| {
-            log::warn!("no configuration directory available; using the temporary directory");
-            std::env::temp_dir().join("reroute")
-        });
+        let Some(dir) = reroute_platform::paths::config_dir().or_else(private_temporary_dir) else {
+            log::error!("no directory to keep the configuration in, not even a temporary one");
+            std::process::exit(1);
+        };
         let store = ConfigStore::in_dir(&dir);
         let mut config_error = None;
         let mut config = match store.load() {
@@ -215,6 +215,21 @@ impl AppState {
     pub fn config_error(&self) -> Option<String> {
         lock(&self.config_error).clone()
     }
+}
+
+/// Where to keep the configuration when the system offers no configuration
+/// directory (there is no home directory): a new directory under a random
+/// name, which only this user can open. It lasts one run. A fixed name in
+/// the shared temporary directory would let another user create it first,
+/// with a configuration that starts programs of their choosing.
+fn private_temporary_dir() -> Option<PathBuf> {
+    log::warn!("no configuration directory; the settings will last this run only");
+    tempfile::Builder::new()
+        .prefix("reroute-")
+        .tempdir()
+        .map(tempfile::TempDir::keep)
+        .map_err(|error| log::error!("no temporary directory either: {error}"))
+        .ok()
 }
 
 /// When `config.toml` was last modified, if it exists.

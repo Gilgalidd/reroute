@@ -108,7 +108,29 @@ pub(crate) fn reroute_program() -> Result<PathBuf, PlatformError> {
 
 /// The AppImage file Reroute runs from, if it does.
 fn appimage() -> Option<PathBuf> {
-    absolute(std::env::var_os("APPIMAGE"))
+    let exe = std::env::current_exe().ok()?;
+    own_appimage(
+        std::env::var_os("APPIMAGE"),
+        std::env::var_os("APPDIR"),
+        &exe,
+    )
+}
+
+/// `image` (the `APPIMAGE` variable) when the executable `exe` runs from
+/// that AppImage, that is from inside its mount `appdir` (`APPDIR`). The
+/// variables alone prove nothing: an application packaged as an AppImage
+/// that opens a link passes its own on to Reroute, and Reroute must not
+/// then register that application as the one to start.
+fn own_appimage(
+    image: Option<std::ffi::OsString>,
+    appdir: Option<std::ffi::OsString>,
+    exe: &Path,
+) -> Option<PathBuf> {
+    let appdir = absolute(appdir)?;
+    if !exe.starts_with(appdir) {
+        return None;
+    }
+    absolute(image)
 }
 
 fn applications_dir() -> Result<PathBuf, PlatformError> {
@@ -299,6 +321,41 @@ mod tests {
         );
         assert_eq!(absolute(Some("relative/.config".into())), None);
         assert_eq!(absolute(None), None);
+    }
+
+    #[test]
+    fn only_reroute_s_own_appimage_counts() {
+        let image = || Some("/home/a/Reroute.AppImage".into());
+        let appdir = || Some("/tmp/.mount_Rerou1".into());
+        assert_eq!(
+            own_appimage(
+                image(),
+                appdir(),
+                Path::new("/tmp/.mount_Rerou1/usr/bin/reroute")
+            ),
+            Some(PathBuf::from("/home/a/Reroute.AppImage"))
+        );
+        // Started by another AppImage's click: its variables, our binary.
+        assert_eq!(
+            own_appimage(image(), appdir(), Path::new("/usr/bin/reroute")),
+            None
+        );
+        assert_eq!(
+            own_appimage(
+                None,
+                appdir(),
+                Path::new("/tmp/.mount_Rerou1/usr/bin/reroute")
+            ),
+            None
+        );
+        assert_eq!(
+            own_appimage(
+                image(),
+                None,
+                Path::new("/tmp/.mount_Rerou1/usr/bin/reroute")
+            ),
+            None
+        );
     }
 
     #[test]

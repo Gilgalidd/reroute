@@ -106,16 +106,22 @@ pub fn show_picker(app: AppHandle) -> Result<(), String> {
     windows::show_picker(&app).map_err(|e| e.to_string())
 }
 
-/// The user chose a browser for the pending URL.
+/// The user chose a browser for the link `url`, the one the picker showed.
 #[tauri::command]
 pub fn pick(
     app: AppHandle,
     state: State<'_, AppState>,
+    url: String,
     browser: BrowserId,
     launch: Option<LaunchId>,
     remember: bool,
 ) -> Result<(), String> {
     let pending = state.pending().ok_or("there is no URL to open")?;
+    // A new link may have arrived while the user was choosing: the choice,
+    // and "always use for this domain", were made for the link on screen.
+    if pending.url.as_str() != url {
+        return Err("A new link arrived. Choose a browser for it.".into());
+    }
     let url = &pending.url;
     // Build the remembered rule before opening anything: when the host
     // cannot become a rule (an IPv6 address, for one), the picker says so

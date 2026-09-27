@@ -6,6 +6,9 @@
 //! user with mode 0700, and Reroute's directory inside it is 0700 too, so
 //! only the user's own processes can connect; they could already run
 //! `reroute <url>` themselves, and a request goes through the same checks.
+//! A link is only ever sent into a directory that is the user's alone, so
+//! that a session whose runtime directory is shared by mistake does not
+//! hand the user's links to a socket someone else put there.
 //!
 //! The running Reroute is the one holding an exclusive lock on a file next
 //! to the socket. The system releases that lock when the process ends, even
@@ -26,6 +29,9 @@ const TIMEOUT: Duration = Duration::from_secs(2);
 /// listens or it did not accept the request; the caller then handles the
 /// request itself, so a click is never lost.
 pub fn deliver(socket: &Path, request: &Request) -> bool {
+    if !socket.parent().is_some_and(is_private) {
+        return false;
+    }
     match ask(socket, request) {
         Some(answer) if answer == OK => true,
         // After an update, the Reroute still running until the next login
@@ -132,6 +138,21 @@ fn answer(mut stream: &UnixStream) -> Option<Request> {
     request
         .map_err(|error| log::warn!("refused a request on the control socket: {error}"))
         .ok()
+}
+
+/// Is `dir` a real directory that belongs to this user and that nobody
+/// else may open?
+#[expect(
+    clippy::verbose_bit_mask,
+    reason = "`mode & 0o077 == 0` reads as \"no rights for the group or others\""
+)]
+fn is_private(dir: &Path) -> bool {
+    use std::os::unix::fs::MetadataExt;
+    std::fs::symlink_metadata(dir).is_ok_and(|meta| {
+        meta.is_dir()
+            && meta.uid() == rustix::process::getuid().as_raw()
+            && meta.mode() & 0o077 == 0
+    })
 }
 
 fn create_private_dir(dir: &Path) -> std::io::Result<()> {
@@ -254,6 +275,21 @@ mod tests {
             received.recv_timeout(timeout).unwrap(),
             "open https://example.com/\n"
         );
+    }
+
+    #[test]
+    fn no_link_goes_into_a_directory_others_can_open() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let socket = socket_in(&dir);
+        claim(&socket).unwrap().unwrap().serve(|_| {});
+        assert!(deliver(&socket, &Request::Settings));
+        std::fs::set_permissions(
+            socket.parent().unwrap(),
+            std::fs::Permissions::from_mode(0o755),
+        )
+        .unwrap();
+        assert!(!deliver(&socket, &Request::Settings));
     }
 
     #[test]

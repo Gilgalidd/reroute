@@ -24,7 +24,12 @@ describe("Picker window", () => {
     await fireEvent.click(screen.getByRole("checkbox"));
     await fireEvent.keyDown(window, { key: "2" });
     const pick = ipc.calls.find((c) => c.cmd === "pick");
-    expect(pick?.args).toEqual({ browser: "22222222-2222-2222-2222-222222222222", launch: null, remember: true });
+    expect(pick?.args).toEqual({
+      url: launchContext().url?.href,
+      browser: "22222222-2222-2222-2222-222222222222",
+      launch: null,
+      remember: true,
+    });
   });
 
   it("numbers only the tiles a digit key can pick", async () => {

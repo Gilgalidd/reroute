@@ -172,11 +172,14 @@ The workspace denies `unsafe_code`. There are two exceptions, each with a
 
 - `crates/platform/src/register/macos.rs` calls two documented Launch
   Services C functions to read and set the default handler.
-- `use_shared_memory_rendering` in `apps/desktop/src-tauri/src/lib.rs`
-  (Linux) sets one environment variable, which Rust marks `unsafe` because
-  another thread could read the environment at the same time. It runs at the
-  very start of the program, before any other thread exists. The browsers
-  Reroute starts do not inherit that variable.
+- `prepare_webkit` in `apps/desktop/src-tauri/src/lib.rs` (Linux) sets one
+  environment variable and, in release builds, removes two, which Rust marks
+  `unsafe` because another thread could read the environment at the same
+  time. It runs at the very start of the program, before any other thread
+  exists. The variable it sets turns WebKit's GPU start-up off; the browsers
+  Reroute starts do not inherit it. The two it removes would open WebKit's
+  remote inspector on a TCP port that every user of the machine could reach
+  (`WEBKIT_INSPECTOR_SERVER`, `WEBKIT_INSPECTOR_HTTP_SERVER`).
 
 Everything else, including the Windows registry access (`winreg`) and
 process spawning, uses safe wrappers.
@@ -197,9 +200,15 @@ process spawning, uses safe wrappers.
 - Dependabot proposes updates weekly, each version only once it is 7 days
   old, when most hijacked releases have already been found and pulled.
 - A release builds nothing until the whole CI passes on the tagged commit.
-  Workflows are read-only; only the jobs that upload to the draft release
-  may write. The installers are not signed with a paid certificate, so each
-  release carries `SHA256SUMS` to check a download against.
+  Workflows are read-only. The jobs that build the installers run the
+  dependencies' code, so they get no token that could change the repository
+  or the release, and no cache another workflow could have filled; a last
+  job, which runs none of that code, creates the draft release.
+- The installers are not signed with a paid certificate. Each release
+  carries `SHA256SUMS`, to check that a download is intact, and a build
+  provenance attestation, to check that it was built by the release workflow
+  from the tagged commit: `gh attestation verify <file> --repo
+  Gilgalidd/reroute`.
 - Release builds use `panic = "abort"`, LTO and symbol stripping.
 
 ## What Reroute does not protect against

@@ -22,6 +22,11 @@ directories = "6"
 # One small HTTPS client for the version check. rustls, no OpenSSL.
 ureq = { version = "3", default-features = false, features = ["rustls", "gzip"] }
 
+[target.'cfg(unix)'.dependencies]
+# The user id, to check that the control socket's directory is the user's
+# own (control.rs). Already in the tree through tempfile.
+rustix = { version = "1", default-features = false, features = ["std", "process"] }
+
 [target.'cfg(windows)'.dependencies]
 winreg = "0.56"
 

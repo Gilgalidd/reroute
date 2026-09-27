@@ -30,6 +30,33 @@ All notable changes to Reroute are documented here. The format follows
 - A release whose tag is not a version, such as `nightly`, no longer reads
   as "Up to date (nightly)"; the check reports that it found no version.
 
+- Linux: Reroute took the `APPIMAGE` variable that an application packaged
+  as an AppImage passes on when it opens a link for its own, and pointed the
+  session's autostart entry at that application. It now counts an AppImage
+  as its own only when it runs from inside it.
+
+### Security
+
+- Windows: a link with a quote in it can add arguments to the command the
+  system runs; anything after the link is now ignored, options included.
+- Linux: release builds ignore `WEBKIT_INSPECTOR_SERVER` and
+  `WEBKIT_INSPECTOR_HTTP_SERVER`, which would open WebKit's remote inspector,
+  and with it Reroute's settings, on a port every user of the machine can
+  reach.
+- Linux: a link is only handed to the Reroute running in the background
+  through a directory that is the user's alone, should a session share its
+  runtime directory by mistake.
+- Without a home directory, the configuration goes to a new private
+  directory instead of a fixed one in the shared temporary directory, where
+  another user could have placed one of their own.
+- The picker says which link the choice is for: a link that arrives while
+  the user is choosing is no longer opened with the choice made for the
+  previous one.
+- Releases: the jobs that build the installers can no longer write to the
+  repository or the release, and use no cache. Each installer comes with a
+  build provenance attestation (`gh attestation verify`). The macOS
+  `.app.tar.gz` archive is no longer attached; the `.dmg` holds the same app.
+
 ### Changed
 
 - The option to stay in the background shows only on Linux, the one system

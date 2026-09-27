@@ -121,9 +121,10 @@ if you fix a bug they found.
 2. Tag: `git tag v0.2.0 && git push --tags`.
 3. The `release` workflow first runs the whole CI workflow again on the
    tagged commit; if any check fails, nothing is built. It then builds the
-   installers on the three platforms, attaches them to a draft GitHub
-   release, and adds `SHA256SUMS` with the checksum of each. Review, then
-   publish.
+   installers on the three platforms, without any right to write, and a
+   last job computes `SHA256SUMS`, attests the build provenance of each
+   installer and attaches everything to a draft GitHub release. Review,
+   then publish.
 
 macOS ships as one universal build (`--target universal-apple-darwin`): the
 same `.dmg` runs natively on Apple Silicon and on Intel. The workflow then

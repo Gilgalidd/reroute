@@ -18,8 +18,10 @@ import type {
 
 export const api = {
   launchContext: () => invoke<LaunchContext>("launch_context"),
-  pick: (browser: Uuid, launch: Uuid | null, remember: boolean) =>
-    invoke<void>("pick", { browser, launch, remember }),
+  /** `url` is the link on screen; Rust refuses the choice if another one
+   * has arrived since. */
+  pick: (url: string, browser: Uuid, launch: Uuid | null, remember: boolean) =>
+    invoke<void>("pick", { url, browser, launch, remember }),
   dismiss: () => invoke<void>("dismiss"),
   /** The picker's page has read the pending link; Rust shows the window. */
   showPicker: () => invoke<void>("show_picker"),

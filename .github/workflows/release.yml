@@ -4,7 +4,8 @@ on:
   push:
     tags: ["v*"]
 
-# Read-only by default; only the jobs that write the draft release get more.
+# Read-only by default. Only the last job may write, and it runs no code
+# from the project or its dependencies.
 permissions:
   contents: read
 
@@ -14,11 +15,12 @@ jobs:
     # The checks every push to main runs. Nothing is built if one fails.
     uses: ./.github/workflows/ci.yml
 
+  # Building runs the code of many dependencies: build scripts, Vite and its
+  # plugins. So this job gets no token that could change the repository or
+  # the release, and no cache that another workflow could have filled.
   build:
     name: Installers (${{ matrix.name }})
     needs: checks
-    permissions:
-      contents: write # upload the installers to the draft release
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -27,14 +29,17 @@ jobs:
           - name: linux-x86_64
             os: ubuntu-22.04
             args: ""
+            bundle: target/release/bundle
           - name: windows-x86_64
             os: windows-latest
             args: ""
+            bundle: target/release/bundle
           # One universal build: a single .dmg that runs natively on Apple
           # Silicon (M-series) and on Intel Macs.
           - name: macos-universal
             os: macos-latest
             args: "--target universal-apple-darwin"
+            bundle: target/universal-apple-darwin/release/bundle
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -47,8 +52,6 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: apps/desktop/package-lock.json
       - name: Rust toolchain (the version pinned in rust-toolchain.toml)
         shell: bash
         run: |
@@ -56,43 +59,26 @@ jobs:
           if [ "$RUNNER_OS" = macOS ]; then
             rustup target add aarch64-apple-darwin x86_64-apple-darwin
           fi
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: Install front-end dependencies
         working-directory: apps/desktop
         run: npm ci --ignore-scripts
-      - uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
+      - name: Build the installers
+        working-directory: apps/desktop
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          projectPath: apps/desktop
-          tagName: ${{ github.ref_name }}
-          releaseName: Reroute ${{ github.ref_name }}
-          releaseBody: |
-            Choose a browser for each link. What changed is listed in [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/CHANGELOG.md).
-
-            | Platform | File |
-            |---|---|
-            | Debian, Ubuntu | `Reroute_*_amd64.deb` |
-            | Fedora, openSUSE | `Reroute-*.x86_64.rpm` |
-            | Any Linux | `Reroute_*_amd64.AppImage` |
-            | Windows | `Reroute_*_x64-setup.exe` or `Reroute_*_x64_en-US.msi` |
-            | macOS, Apple Silicon (M1 and later) and Intel | `Reroute_*_universal.dmg` |
-
-            The installers are not signed with a paid certificate. Windows SmartScreen asks for confirmation. On macOS, open the app once with right-click › Open, or on macOS 15 and later click *Open Anyway* in System Settings › Privacy & Security.
-
-            To check a download, compare it with `SHA256SUMS`: `sha256sum -c SHA256SUMS --ignore-missing` on Linux, `shasum -a 256 -c SHA256SUMS --ignore-missing` on macOS, `Get-FileHash <file>` in PowerShell.
-          releaseDraft: true
-          prerelease: ${{ contains(github.ref_name, '-') }}
-          args: ${{ matrix.args }}
+          ARGS: ${{ matrix.args }}
+        # $ARGS unquoted on purpose: it holds zero or two words.
+        run: npx tauri build $ARGS
       # Fail the release rather than ship a Mac build that will not open:
       # the binary must contain both architectures and the bundle must carry
       # a valid (ad-hoc) signature, which Apple Silicon requires.
       - name: Verify the macOS bundle
         if: runner.os == 'macOS'
         shell: bash
+        env:
+          BUNDLE: ${{ matrix.bundle }}
         run: |
           set -euo pipefail
-          bundle=target/universal-apple-darwin/release/bundle
           check_app() {
             local app="$1" bin="$1/Contents/MacOS/reroute" archs
             archs=" $(lipo -archs "$bin") "
@@ -102,34 +88,83 @@ jobs:
             codesign -dv "$app" 2>&1 | grep -E "^(Identifier|Format|Signature)="
           }
           echo "::group::Reroute.app"
-          check_app "$bundle/macos/Reroute.app"
+          check_app "$BUNDLE/macos/Reroute.app"
           echo "::endgroup::"
           echo "::group::Reroute.app inside the .dmg"
-          dmg=$(ls "$bundle"/dmg/*.dmg)
+          dmg=$(ls "$BUNDLE"/dmg/*.dmg)
           echo "disk image: $dmg"
           mnt=$(mktemp -d)
           hdiutil attach -nobrowse -readonly -mountpoint "$mnt" "$dmg" >/dev/null
           trap 'hdiutil detach "$mnt" >/dev/null || true' EXIT
           check_app "$mnt/Reroute.app"
           echo "::endgroup::"
+      - name: Collect the installers
+        shell: bash
+        env:
+          BUNDLE: ${{ matrix.bundle }}
+        run: |
+          set -euo pipefail
+          mkdir installers
+          case "$RUNNER_OS" in
+            Linux) cp "$BUNDLE"/deb/*.deb "$BUNDLE"/rpm/*.rpm "$BUNDLE"/appimage/*.AppImage installers/ ;;
+            Windows) cp "$BUNDLE"/msi/*.msi "$BUNDLE"/nsis/*.exe installers/ ;;
+            macOS) cp "$BUNDLE"/dmg/*.dmg installers/ ;;
+          esac
+          ls -l installers
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: installers-${{ matrix.name }}
+          path: installers/
+          if-no-files-found: error
 
-  checksums:
-    name: Checksums
+  # Runs only GitHub's own actions and its `gh` tool, never the project's
+  # code, so it alone gets the rights to create the release.
+  publish:
+    name: Draft release
     needs: build
     runs-on: ubuntu-latest
     permissions:
-      contents: write # add SHA256SUMS to the draft release
+      contents: write # create the draft release
+      id-token: write # sign the build provenance
+      attestations: write # store it on GitHub
     steps:
-      # The installers are not signed with a paid certificate, so a list of
-      # their SHA-256 sums is the way to check that a download is intact.
-      - name: Publish SHA256SUMS beside the installers
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: installers-*
+          path: assets
+          merge-multiple: true
+      # The installers are not signed with a paid certificate: SHA256SUMS
+      # tells whether a download is intact, and the provenance attestation
+      # that it was built here, from the tagged commit.
+      - name: Checksums
+        working-directory: assets
+        run: sha256sum Reroute* | tee SHA256SUMS
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: assets/SHA256SUMS
+      - name: Create the draft release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          mkdir assets && cd assets
-          gh release download "$TAG" --pattern 'Reroute*'
-          sha256sum Reroute* | tee SHA256SUMS
-          gh release upload "$TAG" SHA256SUMS --clobber
+          cat > notes.md <<NOTES
+          Choose a browser for each link. What changed is listed in [CHANGELOG.md](https://github.com/$GH_REPO/blob/$TAG/CHANGELOG.md).
+
+          | Platform | File |
+          |---|---|
+          | Debian, Ubuntu | \`Reroute_*_amd64.deb\` |
+          | Fedora, openSUSE | \`Reroute-*.x86_64.rpm\` |
+          | Any Linux | \`Reroute_*_amd64.AppImage\` |
+          | Windows | \`Reroute_*_x64-setup.exe\` or \`Reroute_*_x64_en-US.msi\` |
+          | macOS, Apple Silicon (M1 and later) and Intel | \`Reroute_*_universal.dmg\` |
+
+          The installers are not signed with a paid certificate. Windows SmartScreen asks for confirmation. On macOS, open the app once with right-click › Open, or on macOS 15 and later click *Open Anyway* in System Settings › Privacy & Security.
+
+          To check a download, compare it with \`SHA256SUMS\`: \`sha256sum -c SHA256SUMS --ignore-missing\` on Linux, \`shasum -a 256 -c SHA256SUMS --ignore-missing\` on macOS, \`Get-FileHash <file>\` in PowerShell. To check that it was built by this repository's release workflow, from the tagged commit: \`gh attestation verify <file> --repo $GH_REPO\`.
+          NOTES
+          prerelease=()
+          if [[ "$TAG" == *-* ]]; then prerelease=(--prerelease); fi
+          gh release create "$TAG" --draft --verify-tag "${prerelease[@]}" \
+            --title "Reroute $TAG" --notes-file notes.md assets/*
