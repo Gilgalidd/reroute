@@ -169,7 +169,9 @@ autostart entry. A later `reroute <url>` hands its request to it and exits.
   the socket. The system drops that lock when the process ends, even in a
   crash, so a leftover socket is never mistaken for a live one.
 - A Reroute that gets no answer handles the click itself: a hung background
-  process cannot swallow a link.
+  process cannot swallow a link. It gives up on it after about four
+  seconds: two to wait for an answer, then one more second of tries in
+  case that Reroute had only just started.
 - The long-running web view only ever shows Reroute's own pages.
 
 ## Memory safety and `unsafe`
