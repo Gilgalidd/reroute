@@ -170,8 +170,7 @@ autostart entry. A later `reroute <url>` hands its request to it and exits.
   crash, so a leftover socket is never mistaken for a live one.
 - A Reroute that gets no answer handles the click itself: a hung background
   process cannot swallow a link. It gives up on it after about four
-  seconds: two to wait for an answer, then one more second of tries in
-  case that Reroute had only just started.
+  seconds: two attempts, each waiting two seconds for an answer.
 - The long-running web view only ever shows Reroute's own pages.
 
 ## Memory safety and `unsafe`
