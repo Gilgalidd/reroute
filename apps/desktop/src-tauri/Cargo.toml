@@ -39,4 +39,4 @@ tempfile = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # Already built as part of GTK; used only to name the program (see lib.rs).
-glib = "0.18"
+glib = "0.22"
