@@ -154,11 +154,11 @@ installers before a release. They keep the version of the manifests, since
 the MSI format accepts numbers only. Delete the draft and the tag
 afterwards.
 
-macOS ships as one universal build (`--target universal-apple-darwin`): the
-same `.dmg` runs natively on Apple Silicon and on Intel. The workflow then
-checks, on the macOS runner, that the binary contains both `arm64` and
-`x86_64` and that the app bundle, both on disk and inside the `.dmg`, has a
-valid signature. A failed check fails the release.
+macOS ships as an ARM64 build (`--target aarch64-apple-darwin`) for Apple
+Silicon Macs (M1 and later). The workflow then checks, on the macOS runner,
+that the binary contains only the `arm64` architecture and that the app
+bundle, both on disk and inside the `.dmg`, has a valid signature. A failed
+check fails the release.
 
 ### Code signing
 
