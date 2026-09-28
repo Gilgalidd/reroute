@@ -89,7 +89,7 @@ open Reroute and press **Make Reroute the default** in the *General* tab.
 |----------|---------|----------------------|
 | Linux    | `.deb`, `.rpm`, `.AppImage` | Immediate: Reroute updates `~/.config/mimeapps.list`. Also `reroute --make-default`. |
 | Windows  | `.msi`, NSIS `.exe` | Reroute registers itself and opens *Settings › Default apps*, where you select it (Windows does not let applications set themselves as default). |
-| macOS    | universal `.dmg`, native on Apple Silicon (M1 and later) and Intel | macOS shows its own confirmation dialog. |
+| macOS    | ARM64 `.dmg`, native on Apple Silicon (M1 and later) | macOS shows its own confirmation dialog. |
 
 Linux needs WebKitGTK 4.1 at runtime (`libwebkit2gtk-4.1-0`); the `.deb` and
 `.rpm` packages declare it.
