@@ -6,7 +6,13 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Security
+
+- The TLS libraries of the version check, the one request Reroute makes,
+  include the fixes for RUSTSEC-2026-0346 to 0349 (rustls 0.23.46),
+  RUSTSEC-2026-0382 (rustls-webpki 0.103.16) and RUSTSEC-2026-0381
+  (webpki-roots 1.0.11). yoke-derive 0.8.3, which was yanked, is replaced by
+  0.8.4.
 
 ## [0.1.16] - 2026-09-27
 
