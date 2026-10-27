@@ -336,7 +336,10 @@ fn create_instance(name: &[u16], user: &str, first: bool) -> io::Result<OwnedHan
     Ok(unsafe { OwnedHandle::from_raw_handle(handle) })
 }
 
-#[allow(clippy::cast_possible_truncation, reason = "SECURITY_ATTRIBUTES is a few bytes long")]
+#[allow(
+    clippy::cast_possible_truncation,
+    reason = "SECURITY_ATTRIBUTES is a few bytes long"
+)]
 const SECURITY_ATTRIBUTES_SIZE: u32 = std::mem::size_of::<SECURITY_ATTRIBUTES>() as u32;
 
 /// Wait until a client opens `pipe`.
@@ -442,7 +445,10 @@ mod tests {
     /// A pipe name of its own for each test: tests run in parallel, and
     /// names are shared by the whole computer.
     fn pipe(test: &str) -> PathBuf {
-        PathBuf::from(format!(r"\\.\pipe\reroute-test-{}-{test}", std::process::id()))
+        PathBuf::from(format!(
+            r"\\.\pipe\reroute-test-{}-{test}",
+            std::process::id()
+        ))
     }
 
     #[test]
