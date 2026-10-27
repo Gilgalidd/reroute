@@ -405,4 +405,3 @@ mod tests {
         assert!(u16_at(&ico, 4).unwrap() > 0);
     }
 }
-
