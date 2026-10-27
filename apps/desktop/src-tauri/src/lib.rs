@@ -144,8 +144,7 @@ pub fn run() {
                 windows::picker_lost_focus(window.app_handle());
             }
             #[cfg(target_os = "macos")]
-            if window.label() == windows::SETTINGS
-                && matches!(event, tauri::WindowEvent::Destroyed)
+            if window.label() == windows::SETTINGS && matches!(event, tauri::WindowEvent::Destroyed)
             {
                 windows::update_dock(window.app_handle(), false);
             }
