@@ -231,7 +231,10 @@ fn user_sid(process: HANDLE) -> Option<String> {
     // SAFETY: on success `text` is a NUL-terminated UTF-16 string, read up
     // to its NUL and then freed once with `LocalFree`, as the API requires.
     unsafe {
-        let len = (0..).take_while(|&i| *text.add(i) != 0).count();
+        let mut len = 0;
+        while *text.add(len) != 0 {
+            len += 1;
+        }
         let sid = String::from_utf16_lossy(std::slice::from_raw_parts(text, len));
         LocalFree(text.cast());
         Some(sid)
