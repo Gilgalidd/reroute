@@ -16,7 +16,7 @@ does not, and how it defends itself.
 | Installed-browser metadata | `.desktop` files, registry, `Info.plist` | Medium | Only used to *propose* entries; executables are re-checked at launch |
 | Hurl import JSON | Pasted by the user | Medium | Same validation as a hand-written config |
 | Icon files | Paths from the config | Medium | Size cap, content sniffing, no execution |
-| Requests on the control socket (Linux, background mode) | The user's own processes | Low | Private directory, checked before any link is sent; one-line protocol with a size cap; the same `SafeUrl` validation |
+| Requests on the control socket (Linux) or pipe (Windows), background mode | The user's own processes | Low | Linux: private directory, checked before any link is sent. Windows: pipe open to the user alone, server's user checked before any link is sent. Both: one-line protocol with a size cap; the same `SafeUrl` validation |
 
 ## URL validation (`reroute_core::url::SafeUrl`)
 
@@ -54,6 +54,8 @@ URL can never be mistaken for a command-line option such as `--profile`.
   vanish with it) or the theme it forces. Its activation token
   (`XDG_ACTIVATION_TOKEN`, which lets it come to the front on Wayland) is the
   one the desktop gave the click it answers, never one Reroute inherited.
+  On Windows, Reroute lets the browser it starts come to the front
+  (`AllowSetForegroundWindow` with the browser's process id).
 - The system helpers used for default-browser registration on Linux
   (`xdg-settings`, `update-desktop-database`) are located on `PATH` and pass
   the same executable check. They are best-effort only: the authoritative
@@ -147,13 +149,15 @@ That check is deliberately small:
 `reroute-platform`; any other one fails CI. TLS goes through rustls, so
 OpenSSL is absent.
 
-## Staying in the background (Linux)
+## Staying in the background (Linux, Windows)
 
 With `run_in_background` on (the default), the first Reroute keeps running
-with its picker loaded, and the session starts it at login through an XDG
-autostart entry. A later `reroute <url>` hands its request to it and exits.
+with its picker loaded, and the system starts it when the user signs in:
+through an XDG autostart entry on Linux, through a `Reroute` value in
+`HKCU\Software\Microsoft\Windows\CurrentVersion\Run` on Windows. A later
+`reroute <url>` hands its request to it and exits.
 
-- The hand-over uses a Unix socket in `$XDG_RUNTIME_DIR/reroute/`. The
+- On Linux, the hand-over uses a Unix socket in `$XDG_RUNTIME_DIR/reroute/`. The
   runtime directory belongs to the user with mode 0700 and Reroute's own
   directory inside it is 0700 too, so only the user's own processes can
   connect. They could already run `reroute <url>` themselves.
@@ -168,6 +172,25 @@ autostart entry. A later `reroute <url>` hands its request to it and exits.
 - The running Reroute is the one holding an exclusive lock on a file next to
   the socket. The system drops that lock when the process ends, even in a
   crash, so a leftover socket is never mistaken for a live one.
+- On Windows, the hand-over uses a named pipe,
+  `\\.\pipe\reroute-<session>-<hash of the configuration directory>`. Pipe
+  names are shared by the whole computer, so:
+  - the running Reroute creates the pipe with an access list that admits
+    only its own user and `SYSTEM`, and refuses remote clients. Programs of
+    the same user at low integrity, such as sandboxed browser tabs, cannot
+    write to it either: Windows' default mandatory label forbids it;
+  - it claims the name with `FILE_FLAG_FIRST_PIPE_INSTANCE` and keeps an
+    instance open at all times; the name vanishes with the process, even in
+    a crash, so there is nothing to clean up and no second Reroute can take
+    over the name while it runs;
+  - a new Reroute asks Windows which process serves the pipe and sends a link
+    only if that process runs as the same user. A pipe another user created
+    first under that name gets nothing; it can only make each click start a
+    Reroute of its own.
+- On Windows, a new Reroute lets the running one bring its picker to the
+  front (`AllowSetForegroundWindow`), the right Windows gives the program a
+  click starts; it is the Windows counterpart of the Wayland activation
+  token.
 - A Reroute that gets no answer handles the click itself: a hung background
   process cannot swallow a link. It gives up on it after about four
   seconds: two attempts, each waiting two seconds for an answer.
@@ -175,7 +198,7 @@ autostart entry. A later `reroute <url>` hands its request to it and exits.
 
 ## Memory safety and `unsafe`
 
-The workspace denies `unsafe_code`. There are three exceptions, each with
+The workspace denies `unsafe_code`. There are five exceptions, each with
 a `SAFETY:` comment:
 
 - `crates/platform/src/register/macos.rs` calls two documented Launch
@@ -183,6 +206,14 @@ a `SAFETY:` comment:
 - `crates/platform/src/register/windows.rs` calls `ShellExecuteW`, with
   constant strings, to open Settings › Default apps: `explorer.exe` cannot
   open that page's address.
+- `crates/platform/src/control/windows.rs` creates and serves the named
+  pipe of the background mode, builds its access list, and reads which user
+  runs the process at the other end: the standard library opens a pipe but
+  cannot create one, and has nothing for access lists or process tokens.
+  Every handle it gets is owned by an `OwnedHandle` at once, and every
+  buffer Windows allocates is freed once with `LocalFree`.
+- `crates/platform/src/launch.rs` (Windows) calls
+  `AllowSetForegroundWindow` with the id of the browser it just started.
 - `prepare_webkit` in `apps/desktop/src-tauri/src/lib.rs` (Linux) sets one
   environment variable and, in release builds, removes two, which Rust marks
   `unsafe` because another thread could read the environment at the same

@@ -1,13 +1,15 @@
-//! Staying in the background (Linux).
+//! Staying in the background (Linux, Windows).
 //!
 //! With `run_in_background` on, the first Reroute to start keeps running
 //! when its windows close, with the picker loaded but hidden, and the
-//! session starts it again at the next login. A later `reroute <url>` hands
-//! its request over [`reroute_platform::control`] and exits within
-//! milliseconds; the picker appears as soon as its page has read the link,
-//! instead of after GTK and WebKit have started from scratch. Measured on a
-//! KDE Wayland laptop: the click's process exits after 50–80 ms and the
-//! picker shows after 105–165 ms, against about 0.8 s from cold.
+//! system starts it again when the user next signs in. A later
+//! `reroute <url>` hands its request over [`reroute_platform::control`] (a
+//! Unix socket, a named pipe on Windows) and exits within milliseconds; the
+//! picker appears as soon as its page has read the link, instead of after
+//! the web view has started from scratch. Measured on a KDE Wayland laptop:
+//! the click's process exits after 50–80 ms and the picker shows after
+//! 105–165 ms, against about 0.8 s from cold. On Windows, WebView2 takes
+//! about 1 s from cold.
 
 use std::time::{Duration, Instant};
 

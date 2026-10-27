@@ -29,9 +29,22 @@ rustix = { version = "1", default-features = false, features = ["std", "process"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.56"
-# ShellExecuteW, to open Settings › Default apps (register/windows.rs).
+# ShellExecuteW, to open Settings › Default apps (register/windows.rs); the
+# named pipe to the Reroute running in the background and the check of its
+# user (control/windows.rs); AllowSetForegroundWindow (control, launch).
 # Already in the tree through other crates.
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Security_Authorization",
+    "Win32_Storage_FileSystem",
+    "Win32_System_IO",
+    "Win32_System_Pipes",
+    "Win32_System_RemoteDesktop",
+    "Win32_System_Threading",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 plist = "1"

@@ -60,7 +60,7 @@ pub fn request_picker(app: &AppHandle) -> tauri::Result<()> {
 
 /// Load the picker without showing it, so that the next click finds WebKit
 /// and the page ready (Reroute running in the background).
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 pub fn preload_picker(app: &AppHandle) -> tauri::Result<()> {
     if app.get_webview_window(PICKER).is_none() {
         create_picker(app)?;

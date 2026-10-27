@@ -9,8 +9,8 @@
 
   let isDefault = $state<boolean | null>(null);
   let registerMessage = $state<{ tone: "info" | "error" | "success"; text: string } | null>(null);
-  /** Staying in the background exists on Linux only. */
-  let linux = $state(false);
+  /** Staying in the background exists on Linux and Windows only. */
+  let canStayInBackground = $state(false);
   let hurlJson = $state("");
   let importReport = $state<ImportReport | null>(null);
   let importError = $state<string | null>(null);
@@ -55,8 +55,8 @@
     void refreshStatus();
     api
       .appInfo()
-      .then((info) => (linux = info.platform === "linux"))
-      .catch(() => (linux = false));
+      .then((info) => (canStayInBackground = info.platform === "linux" || info.platform === "windows"))
+      .catch(() => (canStayInBackground = false));
   });
 </script>
 
@@ -85,7 +85,7 @@
     <label class="row"><input type="checkbox" bind:checked={config.settings.offer_remember} /> Offer “always use for this domain” in the picker</label>
     <label class="row"><input type="checkbox" bind:checked={config.settings.close_on_focus_loss} /> Close the picker when it loses focus</label>
     <label class="row"><input type="checkbox" bind:checked={config.settings.open_under_cursor} /> Open the picker next to the mouse pointer</label>
-    {#if linux}
+    {#if canStayInBackground}
       <label class="row"><input type="checkbox" bind:checked={config.settings.run_in_background} /> Keep Reroute running in the background so the picker opens at once (starts with your session)</label>
     {/if}
     <label class="row"><input type="checkbox" bind:checked={config.settings.check_for_updates} /> Check for a new version once a day, when Reroute starts</label>

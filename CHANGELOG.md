@@ -6,7 +6,16 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- Windows: Reroute stays in the background and starts when you sign in, as
+  on Linux, so the picker no longer waits about a second for WebView2 to
+  start after each click. The process the click starts hands the link to the
+  running Reroute over a named pipe open to your user alone, and lets it
+  bring the picker, and then the browser, to the front. It is on by default
+  (`run_in_background`); *Settings › General* now shows the option on
+  Windows and turns it off. Reroute appears in Task Manager's *Startup apps*,
+  and the NSIS uninstaller removes its entry.
 
 ## [0.1.16] - 2026-09-27
 

@@ -19,7 +19,7 @@ pub struct AppState {
     pending: Mutex<Option<Pending>>,
     url_error: Mutex<Option<String>>,
     config_error: Mutex<Option<String>>,
-    /// This process stays in the background for later clicks (Linux).
+    /// This process stays in the background for later clicks (Linux, Windows).
     resident: AtomicBool,
     /// A link waits for the picker, which shows once its page has read it.
     picker_wanted: AtomicBool,
@@ -110,7 +110,7 @@ impl AppState {
     /// wrote it: a Reroute running in the background must follow edits made
     /// by hand. A file that no longer parses is reported, and the rules in
     /// memory keep working meanwhile.
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     pub fn reload_if_changed(&self) {
         let now = modified(&self.store);
         if now == *lock(&self.read_at) {
@@ -130,7 +130,7 @@ impl AppState {
     }
 
     /// Mark this process as the one that stays in the background.
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     pub fn set_resident(&self) {
         self.resident.store(true, Ordering::Relaxed);
     }
@@ -357,7 +357,7 @@ mod tests {
         );
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     #[test]
     fn staying_in_the_background_follows_the_setting() {
         let dir = tempfile::tempdir().unwrap();
@@ -374,7 +374,7 @@ mod tests {
         );
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     #[test]
     fn an_edit_by_hand_is_read_again() {
         use std::time::Duration;

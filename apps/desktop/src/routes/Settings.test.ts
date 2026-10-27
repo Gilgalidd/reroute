@@ -73,13 +73,15 @@ describe("Settings window", () => {
     expect(problems).toEqual(["domain:bad host: not a valid host name", "domain:also bad: not a valid host name"]);
   });
 
-  it("offers to stay in the background on Linux only", async () => {
-    setup("linux");
-    await fireEvent.click(await screen.findByRole("button", { name: "General" }));
-    expect(await screen.findByLabelText(/Keep Reroute running in the background/)).toBeInTheDocument();
-    document.body.innerHTML = "";
+  it("offers to stay in the background on Linux and Windows only", async () => {
+    for (const platform of ["linux", "windows"]) {
+      setup(platform);
+      await fireEvent.click(await screen.findByRole("button", { name: "General" }));
+      expect(await screen.findByLabelText(/Keep Reroute running in the background/)).toBeInTheDocument();
+      document.body.innerHTML = "";
+    }
 
-    setup("windows");
+    setup("macos");
     await fireEvent.click(await screen.findByRole("button", { name: "General" }));
     await screen.findByLabelText("Show browsers as");
     await waitFor(() => expect(screen.queryByLabelText(/Keep Reroute running in the background/)).not.toBeInTheDocument());

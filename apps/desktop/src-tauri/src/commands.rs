@@ -191,7 +191,7 @@ pub fn save_config(
     // when its windows close (see `AppState::stays_in_background`): the
     // picker it kept loaded and hidden goes now, so that it does not count
     // as an open window.
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     if let Err(error) = reroute_platform::autostart::set(background) {
         log::warn!("start with the session not updated: {error}");
     }
