@@ -138,8 +138,9 @@ impl Resources {
         }
         let table_at = pe + 24 + u64::from(optional_size);
         let table = read_at(file, table_at, usize::from(sections) * 40)?;
-        let (base, size, offset) = table
-            .chunks_exact(40)
+        let (headers, _) = table.as_chunks::<40>();
+        let (base, size, offset) = headers
+            .iter()
             .find_map(|section| section_holding(section, address))
             .ok_or(NO_ICON)?;
         if size > MAX_SECTION {
