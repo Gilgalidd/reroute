@@ -15,7 +15,7 @@ does not, and how it defends itself.
 | `config.toml` | The user (and the settings UI) | High, but verified | Strict parsing, referential integrity, path checks, private file mode |
 | Installed-browser metadata | `.desktop` files, registry, `Info.plist` | Medium | Only used to *propose* entries; executables are re-checked at launch |
 | Hurl import JSON | Pasted by the user | Medium | Same validation as a hand-written config |
-| Icon files | Paths from the config | Medium | Size cap, content sniffing, no execution |
+| Icon files, and on Windows programs holding an icon | Paths from the config | Medium | Size cap, content sniffing, no execution; a program's resources go through a bounds-checked parser |
 | Requests on the control socket (Linux, macOS) or pipe (Windows), background mode | The user's own processes | Low | Linux, macOS: private directory, checked before any link is sent. Windows: pipe open to the user alone, server's user checked before any link is sent. All: one-line protocol with a size cap; the same `SafeUrl` validation |
 
 ## URL validation (`reroute_core::url::SafeUrl`)
@@ -114,7 +114,13 @@ The UI runs in the platform web view (WebKitGTK, WebView2, WKWebView) with:
 
 Icons are read by Rust, size-capped (2 MiB), type-checked by magic bytes
 (PNG, ICO, SVG, ICNS→PNG) and passed to the page as `data:` URLs. SVG is
-rendered inside `<img>`, where scripts do not execute.
+rendered inside `<img>`, where scripts do not execute. On Windows, where the
+registry names a browser's program as its icon, the icon is read from the
+program's resources (`crates/platform/src/exe_icon.rs`): only the resource
+section is read, at most 32 MiB of it; every offset and count is checked
+before use; the `.ico` file put together is capped at 2 MiB like any icon;
+the program is never run, and the parser is safe Rust. Any damaged or
+hostile file leaves the browser with its coloured tile.
 
 ## Network use
 

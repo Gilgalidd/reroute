@@ -22,6 +22,11 @@ All notable changes to Reroute are documented here. The format follows
     agent starts it at login, listed in System Settings › General › Login
     Items. `reroute <url>` from a terminal hands the link over a private
     socket, as on Linux.
+- Windows: browsers show their real icon, as on Linux and macOS, instead of
+  a coloured tile. The registry names the browser's program as its icon;
+  Reroute now reads the icon from the program's resources, with a small
+  parser in safe Rust. *Browsers › Detect installed* also gives browsers
+  already in the list the icon of their program when they have none.
 
 ## [0.1.16] - 2026-09-27
 

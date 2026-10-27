@@ -80,7 +80,7 @@ property tests (`proptest`).
 | `discover` | `.desktop` entries with `x-scheme-handler/http(s)` in XDG data dirs, Flatpak and Snap exports | `HKLM/HKCU\Software\Clients\StartMenuInternet` | `.app` bundles whose `Info.plist` lists `http`/`https` |
 | `launch` | `Command` + new process group; a thread waits for the child; the browser gets the click's activation token and none of an AppImage's variables | `Command` + `DETACHED_PROCESS`; the browser may come to the front (`AllowSetForegroundWindow`) | same as Linux |
 | `register` | user desktop entry + direct edit of `mimeapps.list` (`xdg-settings` best-effort first) | HKCU `ProgId` + `RegisteredApplications`, then opens *Default apps* with `ShellExecuteW` | `LSSetDefaultHandlerForURLScheme` |
-| `icons` | file read + magic-byte sniffing | same | same, plus ICNS → PNG |
+| `icons` | file read + magic-byte sniffing | same, plus the first icon of a program or library, from its resources (`exe_icon`) | same, plus ICNS → PNG |
 | `paths` | `directories::ProjectDirs` (+ `REROUTE_CONFIG_DIR` override); cache directory; control socket path | same; control pipe name (session + configuration) | same |
 | `release` | one HTTPS GET (`ureq`, rustls); the last automatic check kept in the cache directory | same | same |
 | `control` | Unix socket and lock file in `$XDG_RUNTIME_DIR/reroute/` | named pipe open to the user alone, claimed with `FILE_FLAG_FIRST_PIPE_INSTANCE`; the server's user is checked | same as Linux, in `$TMPDIR/reroute/` |
@@ -150,8 +150,11 @@ save, and check the payload sent to Rust.
   `AllowSetForegroundWindow` on Windows). The price is the hidden picker's
   web view, which stays in memory. Turned off, Reroute starts for each link
   and exits after it, as it once did everywhere.
-- **No icon extraction from executables** (Windows `.exe` resources): it
-  would need `unsafe` GDI code for a cosmetic gain. Well-known browsers get a
-  brand-coloured tile; any browser can have a custom icon file.
+- **Icons from Windows programs without GDI.** The registry names a
+  browser's program as its icon. Rather than `unsafe` GDI calls, a small
+  parser in safe Rust reads the program's resource section and puts its
+  first icon back together as an `.ico` file, which the web view shows.
+  Browsers without an icon get a brand-coloured tile; any browser can have
+  a custom icon file.
 - **Only `http`/`https`**: being the default handler for `mailto:` or
   `ftp:` is a different registration and a different threat model.

@@ -71,8 +71,10 @@ args = ["--private-window", "%URL%"]
 - `args` is an **array**, never a shell string. `%URL%` marks where the link
   goes; it may be a whole argument or part of one (`"--app=%URL%"`). If no
   argument contains it, the URL is appended last.
-- `icon` must be a local PNG, SVG or ICO file (ICNS on macOS). Remote icons
-  are not supported. Without an icon, the picker draws a coloured tile with
+- `icon` must be a local PNG, SVG or ICO file (ICNS on macOS; on Windows
+  also a program or library, `.exe` or `.dll`, whose first icon is shown,
+  which is what detection finds for most browsers). Remote icons are not
+  supported. Without an icon, the picker draws a coloured tile with
   the browser's initial; well-known browsers get their brand colour.
 - `launches` are alternative argument lists shown on right-click. They have
   their own `id` so rules can target a profile directly.

@@ -222,10 +222,18 @@ impl Config {
     /// the private entry of a browser counts as an entry of its own rather
     /// than a duplicate of the ordinary one. Entries already there keep
     /// their id and their name, so rules and renames survive a new
-    /// detection. Returns how many entries were added.
+    /// detection; those without an icon take the one found for their
+    /// program. Returns how many entries were added.
     pub fn merge_discovered(&mut self, discovered: Vec<Browser>) -> usize {
         let mut added = 0;
         for candidate in discovered {
+            if let Some(icon) = &candidate.icon {
+                for browser in &mut self.browsers {
+                    if browser.path == candidate.path && browser.icon.is_none() {
+                        browser.icon = Some(icon.clone());
+                    }
+                }
+            }
             let known = self
                 .browsers
                 .iter()
@@ -335,6 +343,7 @@ mod tests {
     use super::*;
     use crate::rules::Pattern;
     use crate::testutil::abs;
+    use std::path::PathBuf;
 
     fn sample() -> Config {
         let launch = Launch {
@@ -466,6 +475,30 @@ mod tests {
         assert_eq!(c.browsers.len(), 3);
         assert_eq!(c.browsers[0].id, known_id);
         assert_eq!(c.browsers[2].name, "Brave");
+    }
+
+    #[test]
+    fn entries_without_an_icon_take_the_one_detection_finds() {
+        let mut c = sample();
+        let mut profile = Browser::new("Firefox, work", abs("/usr/bin/firefox"));
+        profile.args = vec!["-P".into(), "work".into()];
+        c.browsers.push(profile);
+        let chosen = PathBuf::from(abs("/home/a/chrome.png"));
+        c.browsers[1].icon = Some(chosen.clone());
+
+        let found = |name: &str, path: &str, icon: &str| Browser {
+            icon: Some(abs(icon).into()),
+            ..Browser::new(name, abs(path))
+        };
+        let added = c.merge_discovered(vec![
+            found("Firefox", "/usr/bin/firefox", "/usr/share/firefox.png"),
+            found("Chrome", "/usr/bin/chrome", "/usr/share/chrome.png"),
+        ]);
+        assert_eq!(added, 0);
+        let firefox = Some(PathBuf::from(abs("/usr/share/firefox.png")));
+        assert_eq!(c.browsers[0].icon, firefox);
+        assert_eq!(c.browsers[2].icon, firefox, "every entry of the program");
+        assert_eq!(c.browsers[1].icon, Some(chosen), "an icon set stays");
     }
 
     #[test]

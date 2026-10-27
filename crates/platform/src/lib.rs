@@ -7,7 +7,8 @@
 //! * [`discover::installed_browsers`] — list browsers the OS knows about.
 //! * [`launch::launch`] — spawn a [`reroute_core::LaunchPlan`].
 //! * [`register`] — make Reroute the default browser, or check if it is.
-//! * [`icons::load_icon`] — read a local icon file for display.
+//! * [`icons::load_icon`] — read a local icon file for display, or on
+//!   Windows the icon inside a program.
 //! * [`release::latest_release`] — the one network request: on demand, and
 //!   at most once a day by itself.
 //! * [`paths::config_dir`] — where `config.toml` lives.
@@ -30,6 +31,8 @@ pub mod autostart;
 #[cfg(any(unix, windows))]
 pub mod control;
 pub mod discover;
+#[cfg(any(windows, test))]
+mod exe_icon;
 pub mod icons;
 pub mod launch;
 pub mod paths;
