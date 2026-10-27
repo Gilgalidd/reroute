@@ -11,9 +11,9 @@
 //! * [`release::latest_release`] — the one network request: on demand, and
 //!   at most once a day by itself.
 //! * [`paths::config_dir`] — where `config.toml` lives.
-//! * [`control`] (Linux, Windows) — the socket or named pipe a new Reroute
-//!   uses to reach the one running in the background, and [`autostart`],
-//!   which starts that one when the user signs in.
+//! * [`control`] — the socket or named pipe a new Reroute uses to reach the
+//!   one running in the background, and [`autostart`], which starts that one
+//!   when the user signs in.
 //!
 //! Each OS-specific module keeps a pure, unit-tested parsing layer
 //! (desktop entries, registry command lines, `Info.plist`) separate from
@@ -25,7 +25,7 @@
 #![cfg_attr(not(any(target_os = "macos", windows)), forbid(unsafe_code))]
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used, clippy::panic))]
 
-#[cfg(any(target_os = "linux", windows))]
+#[cfg(any(target_os = "linux", target_os = "macos", windows))]
 pub mod autostart;
 #[cfg(any(unix, windows))]
 pub mod control;

@@ -11,6 +11,7 @@ use crate::state::AppState;
 /// `activation` is the activation token the desktop gave the click; the
 /// browser that opens the link gets it.
 pub fn route(state: &AppState, raw: &str, activation: Option<String>) -> bool {
+    state.note_link();
     let url = match SafeUrl::parse(raw) {
         Ok(url) => url,
         Err(error) => {
@@ -85,9 +86,11 @@ mod tests {
     #[test]
     fn a_refused_link_goes_to_the_picker_with_its_reason() {
         let (_dir, state) = state_with("version = 1\n");
+        assert!(!state.link_arrived());
         assert!(route(&state, "javascript:alert(1)", None));
         assert!(state.pending().is_none());
         assert!(state.url_error().unwrap().contains("javascript"));
+        assert!(state.link_arrived(), "a refused link counts too");
     }
 
     /// One browser, `program`, and a rule that sends `rule.test` to it.

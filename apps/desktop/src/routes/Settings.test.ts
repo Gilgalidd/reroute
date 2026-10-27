@@ -73,18 +73,16 @@ describe("Settings window", () => {
     expect(problems).toEqual(["domain:bad host: not a valid host name", "domain:also bad: not a valid host name"]);
   });
 
-  it("offers to stay in the background on Linux and Windows only", async () => {
-    for (const platform of ["linux", "windows"]) {
-      setup(platform);
+  it("offers to stay in the background on every system, and saves the choice", async () => {
+    for (const platform of ["linux", "windows", "macos"]) {
+      const ipc = setup(platform);
       await fireEvent.click(await screen.findByRole("button", { name: "General" }));
-      expect(await screen.findByLabelText(/Keep Reroute running in the background/)).toBeInTheDocument();
+      await fireEvent.click(await screen.findByLabelText(/Keep Reroute running in the background/));
+      await save();
+      await waitFor(() => expect(ipc.saved).toHaveLength(1));
+      expect(ipc.saved[0]?.settings.run_in_background).toBe(false);
       document.body.innerHTML = "";
     }
-
-    setup("macos");
-    await fireEvent.click(await screen.findByRole("button", { name: "General" }));
-    await screen.findByLabelText("Show browsers as");
-    await waitFor(() => expect(screen.queryByLabelText(/Keep Reroute running in the background/)).not.toBeInTheDocument());
   });
 
   it("saves the picker layout chosen in the General tab", async () => {

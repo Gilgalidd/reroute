@@ -47,10 +47,11 @@ A Reroute running in the background never exits: where the diagram says
 `exit(0)`, it hides the picker and waits for the next link. The fast path
 (rule matched) never creates a window or initialises the web view, so
 rule-based opening costs a few milliseconds. With Reroute running in
-the background (Linux, Windows), the process the click starts hands its
-request over a local socket or named pipe and exits in well under 0.1 s, and
-the picker, already loaded, appears about 0.1 s after the click instead of
-0.8 s (WebKitGTK) or about 1 s (WebView2) for a cold start. The
+the background, the process the click starts hands its request over a local
+socket or named pipe and exits in well under 0.1 s (on macOS no process
+starts: Launch Services gives the link to the running Reroute as an event),
+and the picker, already loaded, appears about 0.1 s after the click instead
+of 0.8 s (WebKitGTK) or about 1 s (WebView2) for a cold start. The
 picker window is always created hidden; its page asks to be shown
 (`show_picker`) once the new link is on screen.
 
@@ -82,8 +83,8 @@ property tests (`proptest`).
 | `icons` | file read + magic-byte sniffing | same | same, plus ICNS → PNG |
 | `paths` | `directories::ProjectDirs` (+ `REROUTE_CONFIG_DIR` override); cache directory; control socket path | same; control pipe name (session + configuration) | same |
 | `release` | one HTTPS GET (`ureq`, rustls); the last automatic check kept in the cache directory | same | same |
-| `control` | Unix socket and lock file in `$XDG_RUNTIME_DIR/reroute/` | named pipe open to the user alone, claimed with `FILE_FLAG_FIRST_PIPE_INSTANCE`; the server's user is checked | — |
-| `autostart` | XDG autostart entry | `Reroute` value under `HKCU\…\CurrentVersion\Run` | — |
+| `control` | Unix socket and lock file in `$XDG_RUNTIME_DIR/reroute/` | named pipe open to the user alone, claimed with `FILE_FLAG_FIRST_PIPE_INSTANCE`; the server's user is checked | same as Linux, in `$TMPDIR/reroute/` |
+| `autostart` | XDG autostart entry | `Reroute` value under `HKCU\…\CurrentVersion\Run` | launch agent in `~/Library/LaunchAgents/` |
 
 Each backend separates a **pure parsing layer** (desktop-entry parser,
 registry command-line splitter, plist reader, registry entry list), unit-tested
@@ -98,7 +99,7 @@ system.
 | `lib.rs` | `run()`: parse CLI, hand over or claim, load state, fast path, build Tauri app, run loop (exit policy, macOS URL events). |
 | `cli.rs` | `--settings`, `--make-default`, `--version`, `--background`, first positional = URL. |
 | `state.rs` | `AppState`: config (reloaded when edited by hand), pending link and its activation token, errors, update status, background role. |
-| `resident.rs` | Linux, Windows: staying in the background; hand-over, claim, serving requests. |
+| `resident.rs` | Staying in the background; hand-over, claim, serving requests. |
 | `updates.rs` | The version check: once a day at start-up, and on demand. |
 | `incoming.rs` | `route` (rules or picker) and `launch`. |
 | `windows.rs` | Picker/settings window creation, focus-loss handling, exit policy. |
@@ -140,15 +141,15 @@ save, and check the payload sent to Rust.
 
 - **TOML, not JSON**, for the configuration: comments and hand-editing.
   Hurl's JSON is importable.
-- **One process per link on macOS only.** There Reroute exits after each
-  link: simpler state, no tray icon, and WKWebView starts fast enough.
-  WebKitGTK takes about 0.8 s to start and WebView2 about 1 s, so on Linux
-  and Windows Reroute stays in the background by default, still without a
-  tray icon. It reads `config.toml` again when the file changes, and gives
-  each browser the right to come to the front for the click it answers (the
-  activation token on Wayland, `AllowSetForegroundWindow` on Windows). The
-  price on Windows is the hidden picker's WebView2 processes, which stay in
-  memory.
+- **Staying in the background, on every system.** WebKitGTK takes about
+  0.8 s to start and WebView2 about 1 s, so Reroute stays in the background
+  by default, still without a tray icon; on macOS it also leaves the Dock
+  while no settings window is open. It reads `config.toml` again when the
+  file changes, and gives each browser the right to come to the front for
+  the click it answers (the activation token on Wayland,
+  `AllowSetForegroundWindow` on Windows). The price is the hidden picker's
+  web view, which stays in memory. Turned off, Reroute starts for each link
+  and exits after it, as it once did everywhere.
 - **No icon extraction from executables** (Windows `.exe` resources): it
   would need `unsafe` GDI code for a cosmetic gain. Well-known browsers get a
   brand-coloured tile; any browser can have a custom icon file.

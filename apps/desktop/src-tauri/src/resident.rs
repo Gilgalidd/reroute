@@ -1,4 +1,4 @@
-//! Staying in the background (Linux, Windows).
+//! Staying in the background.
 //!
 //! With `run_in_background` on, the first Reroute to start keeps running
 //! when its windows close, with the picker loaded but hidden, and the
@@ -10,6 +10,11 @@
 //! the click's process exits after 50–80 ms and the picker shows after
 //! 105–165 ms, against about 0.8 s from cold. On Windows, WebView2 takes
 //! about 1 s from cold.
+//!
+//! On macOS a click does not start a process: Launch Services hands the
+//! link to the running Reroute as an event. The socket still serves
+//! `reroute <url>` from a terminal, and keeps a second Reroute from staying
+//! in the background beside the first.
 
 use std::time::{Duration, Instant};
 
@@ -37,14 +42,17 @@ pub enum Role {
 
 /// The request this process was started for, as the running Reroute
 /// receives it, with the click's `activation` token. A background start
-/// carries none.
+/// carries none. Neither does a start without arguments on macOS: Launch
+/// Services starts Reroute that way for a click, then delivers the link as
+/// an event that only this process can receive, so it must not hand over
+/// and exit.
 fn request_for(mode: &Mode, activation: Option<&str>) -> Option<Request> {
     match mode {
         Mode::Pick(raw) => Some(Request::Open {
             url: raw.clone(),
             activation: activation.map(str::to_owned),
         }),
-        Mode::Settings => Some(Request::Settings),
+        Mode::Settings => (!cfg!(target_os = "macos")).then_some(Request::Settings),
         Mode::Background | Mode::Version | Mode::MakeDefault => None,
     }
 }
@@ -78,7 +86,14 @@ pub fn claim(mode: &Mode, activation: Option<&str>, state: &AppState) -> Role {
             // in tries: one that does not answer at all, a stopped process
             // for one, costs a timeout per try.
             let Some(request) = request_for(mode, activation) else {
-                return Role::Done;
+                // A start at login finds one already running: nothing to
+                // do. A start without arguments on macOS may bring a link
+                // (see `request_for`): it is handled here.
+                return if *mode == Mode::Background {
+                    Role::Done
+                } else {
+                    Role::Alone
+                };
             };
             let give_up_at = Instant::now() + WAIT_FOR_A_STARTING_REROUTE;
             while Instant::now() < give_up_at {

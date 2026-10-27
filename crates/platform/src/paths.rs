@@ -35,12 +35,18 @@ pub fn cache_dir() -> Option<PathBuf> {
 }
 
 /// The socket through which a new Reroute reaches the one running in the
-/// background, in `$XDG_RUNTIME_DIR/reroute/`: the runtime directory belongs
-/// to the user alone. Its name follows the configuration directory, so that
-/// a Reroute started with another `REROUTE_CONFIG_DIR` keeps to itself.
-/// `None` without a runtime directory; Reroute then does not stay running.
+/// background, in `reroute/` inside the user's runtime directory: on Linux
+/// `$XDG_RUNTIME_DIR`, on macOS the per-user temporary directory
+/// (`$TMPDIR`, under `/var/folders`). Both belong to the user alone, and the
+/// control socket checks that its own directory is private before using it.
+/// Its name follows the configuration directory, so that a Reroute started
+/// with another `REROUTE_CONFIG_DIR` keeps to itself. `None` without a
+/// runtime directory; Reroute then does not stay running.
 #[cfg(unix)]
 pub fn control_socket() -> Option<PathBuf> {
+    #[cfg(target_os = "macos")]
+    let runtime = std::env::temp_dir();
+    #[cfg(not(target_os = "macos"))]
     let runtime = PathBuf::from(std::env::var_os("XDG_RUNTIME_DIR")?);
     if !runtime.is_absolute() {
         return None;
@@ -134,6 +140,15 @@ mod tests {
         // Unix socket paths are limited to about 100 bytes.
         assert!(a.as_os_str().len() < 60, "{}", a.display());
         assert_eq!(fnv1a(b"a"), 0xe40c_292c, "FNV-1a reference value");
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn the_socket_goes_to_the_user_s_temporary_directory() {
+        let socket = control_socket().unwrap();
+        assert!(socket.starts_with(std::env::temp_dir()));
+        // macOS limits socket paths to 104 bytes.
+        assert!(socket.as_os_str().len() < 104, "{}", socket.display());
     }
 
     #[cfg(windows)]

@@ -42,7 +42,7 @@ version = 1        # format version; files from a newer Reroute are refused
 | `offer_remember` | `true` | Show the "Always use for this domain" checkbox. |
 | `theme` | `"auto"` | `"auto"`, `"light"` or `"dark"`. |
 | `picker_layout` | `"tiles"` | `"tiles"`, `"list"` (one browser per line, its name in full) or `"two-columns"` (the same list in two columns, read left to right). Also in *Settings › General*. |
-| `run_in_background` | `true` | Linux and Windows: keep Reroute running with its picker loaded, and start it when you sign in (an XDG autostart entry; on Windows a `Reroute` value in `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`), so that the picker opens at once. Turned off, Reroute starts for each click and exits after it. *Settings › General* shows this option on Linux and Windows only. |
+| `run_in_background` | `true` | Keep Reroute running with its picker loaded, and start it when you sign in, so that the picker opens at once: an XDG autostart entry on Linux, a `Reroute` value in `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` on Windows, a launch agent `~/Library/LaunchAgents/dev.reroute.desktop.plist` on macOS (where Reroute then has no Dock icon while it waits). Turned off, Reroute starts for each click and exits after it. |
 | `check_for_updates` | `true` | Ask once a day, when Reroute starts, whether a newer version is published; the picker's update button shows the answer by its colour. |
 
 ## Browsers

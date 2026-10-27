@@ -84,6 +84,12 @@ one that stays in the background points the `Reroute` value of
 own `REROUTE_CONFIG_DIR`, or set `run_in_background = false`.
 `taskkill /IM reroute.exe /F` stops a Reroute running in the background.
 
+macOS too: a development build that stays in the background points
+`~/Library/LaunchAgents/dev.reroute.desktop.plist` at itself, and Launch
+Services gives links to whichever Reroute runs, installed or not. Use the
+same precautions; `pkill -x reroute` stops a Reroute running in the
+background.
+
 Debug builds honour `WEBKIT_INSPECTOR_HTTP_SERVER=127.0.0.1:9222`, which
 serves WebKit's inspector for the picker and settings windows; release
 builds ignore it (see [security.md](security.md#memory-safety-and-unsafe)).
@@ -146,6 +152,14 @@ if you fix a bug they found.
       after signing out and in again; turning *Keep Reroute running in the
       background* off removes the value, and Reroute exits when its windows
       close; uninstalling with the NSIS `.exe` removes the value.
+- [ ] macOS: after the first link, Reroute keeps running with no Dock icon;
+      a second link shows the picker at once; `reroute <url>` from a
+      terminal hands the link over and exits;
+      `~/Library/LaunchAgents/dev.reroute.desktop.plist` exists, and Reroute
+      is running after logging out and in; opening Reroute from Applications
+      shows the settings with a Dock icon, which goes when they close;
+      turning *Keep Reroute running in the background* off removes the
+      agent, and Reroute quits when its windows close.
 
 ## Releasing
 

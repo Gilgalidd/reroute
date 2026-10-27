@@ -16,7 +16,7 @@ does not, and how it defends itself.
 | Installed-browser metadata | `.desktop` files, registry, `Info.plist` | Medium | Only used to *propose* entries; executables are re-checked at launch |
 | Hurl import JSON | Pasted by the user | Medium | Same validation as a hand-written config |
 | Icon files | Paths from the config | Medium | Size cap, content sniffing, no execution |
-| Requests on the control socket (Linux) or pipe (Windows), background mode | The user's own processes | Low | Linux: private directory, checked before any link is sent. Windows: pipe open to the user alone, server's user checked before any link is sent. Both: one-line protocol with a size cap; the same `SafeUrl` validation |
+| Requests on the control socket (Linux, macOS) or pipe (Windows), background mode | The user's own processes | Low | Linux, macOS: private directory, checked before any link is sent. Windows: pipe open to the user alone, server's user checked before any link is sent. All: one-line protocol with a size cap; the same `SafeUrl` validation |
 
 ## URL validation (`reroute_core::url::SafeUrl`)
 
@@ -149,18 +149,23 @@ That check is deliberately small:
 `reroute-platform`; any other one fails CI. TLS goes through rustls, so
 OpenSSL is absent.
 
-## Staying in the background (Linux, Windows)
+## Staying in the background
 
 With `run_in_background` on (the default), the first Reroute keeps running
 with its picker loaded, and the system starts it when the user signs in:
 through an XDG autostart entry on Linux, through a `Reroute` value in
-`HKCU\Software\Microsoft\Windows\CurrentVersion\Run` on Windows. A later
-`reroute <url>` hands its request to it and exits.
+`HKCU\Software\Microsoft\Windows\CurrentVersion\Run` on Windows, through a
+launch agent in `~/Library/LaunchAgents/` on macOS (never pointed at a copy
+of the app that Gatekeeper translocated, which disappears). A later
+`reroute <url>` hands its request to it and exits. On macOS, Launch Services
+gives links to the running Reroute itself, as an Apple event.
 
-- On Linux, the hand-over uses a Unix socket in `$XDG_RUNTIME_DIR/reroute/`. The
-  runtime directory belongs to the user with mode 0700 and Reroute's own
-  directory inside it is 0700 too, so only the user's own processes can
-  connect. They could already run `reroute <url>` themselves.
+- On Linux and macOS, the hand-over uses a Unix socket in
+  `$XDG_RUNTIME_DIR/reroute/`, on macOS in `$TMPDIR/reroute/` (the per-user
+  temporary directory under `/var/folders`). The runtime directory belongs
+  to the user with mode 0700 and Reroute's own directory inside it is 0700
+  too, so only the user's own processes can connect. They could already run
+  `reroute <url>` themselves.
 - The protocol is one line, `open <url>`, `open-activated <token> <url>` or
   `settings`, capped at the 8 KiB of a URL plus a 256-byte token and refused
   if it holds a control character. The token must be one word of printable

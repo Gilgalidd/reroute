@@ -19,10 +19,12 @@ pub struct AppState {
     pending: Mutex<Option<Pending>>,
     url_error: Mutex<Option<String>>,
     config_error: Mutex<Option<String>>,
-    /// This process stays in the background for later clicks (Linux, Windows).
+    /// This process stays in the background for later clicks.
     resident: AtomicBool,
     /// A link waits for the picker, which shows once its page has read it.
     picker_wanted: AtomicBool,
+    /// A link has arrived since start-up.
+    link_arrived: AtomicBool,
     /// Where the running version stands against the newest release.
     update: Mutex<UpdateStatus>,
     /// An automatic version check is under way.
@@ -101,6 +103,7 @@ impl AppState {
             config_error: Mutex::new(config_error),
             resident: AtomicBool::new(false),
             picker_wanted: AtomicBool::new(false),
+            link_arrived: AtomicBool::new(false),
             update: Mutex::new(UpdateStatus::Unknown),
             checking: AtomicBool::new(false),
         }
@@ -110,7 +113,6 @@ impl AppState {
     /// wrote it: a Reroute running in the background must follow edits made
     /// by hand. A file that no longer parses is reported, and the rules in
     /// memory keep working meanwhile.
-    #[cfg(any(target_os = "linux", windows))]
     pub fn reload_if_changed(&self) {
         let now = modified(&self.store);
         if now == *lock(&self.read_at) {
@@ -130,7 +132,6 @@ impl AppState {
     }
 
     /// Mark this process as the one that stays in the background.
-    #[cfg(any(target_os = "linux", windows))]
     pub fn set_resident(&self) {
         self.resident.store(true, Ordering::Relaxed);
     }
@@ -150,6 +151,19 @@ impl AppState {
     /// Was the picker asked for? Answers true once per request.
     pub fn take_picker_wish(&self) -> bool {
         self.picker_wanted.swap(false, Ordering::Relaxed)
+    }
+
+    /// A link has arrived, whatever becomes of it.
+    pub fn note_link(&self) {
+        self.link_arrived.store(true, Ordering::Relaxed);
+    }
+
+    /// Has a link arrived since start-up? On macOS a click starts Reroute
+    /// without arguments and delivers its link a moment later, so a start
+    /// without arguments opens the settings only if none came.
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+    pub fn link_arrived(&self) -> bool {
+        self.link_arrived.load(Ordering::Relaxed)
     }
 
     /// Forget the link the picker was showing, once it is done.
@@ -357,7 +371,6 @@ mod tests {
         );
     }
 
-    #[cfg(any(target_os = "linux", windows))]
     #[test]
     fn staying_in_the_background_follows_the_setting() {
         let dir = tempfile::tempdir().unwrap();
@@ -374,7 +387,6 @@ mod tests {
         );
     }
 
-    #[cfg(any(target_os = "linux", windows))]
     #[test]
     fn an_edit_by_hand_is_read_again() {
         use std::time::Duration;

@@ -16,9 +16,8 @@ pub enum Mode {
     Version,
     /// Register as the default browser from the command line and exit.
     MakeDefault,
-    /// Start in the background with no window (Linux and Windows,
-    /// `--background`): what the system runs at sign-in so that the picker
-    /// opens at once later.
+    /// Start in the background with no window (`--background`): what the
+    /// system runs at sign-in so that the picker opens at once later.
     Background,
 }
 
