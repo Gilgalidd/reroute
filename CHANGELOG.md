@@ -6,7 +6,14 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+
+- The light and dark themes use the Catppuccin palette: Latte when light,
+  Frappé when dark, with mauve as the accent. Coloured backgrounds, such as
+  the success and error messages, are a 25 % tint with dark text in Latte,
+  whose bright accents would be hard to read as text, and the plain colour
+  with dark text in Frappé. Checkboxes, lists and scroll bars follow the
+  theme.
 
 ## [0.1.17] - 2026-10-28
 

@@ -320,7 +320,9 @@
     place-items: center;
   }
   .icon.current {
-    color: var(--success);
+    color: var(--on-fill);
+    background: var(--success-fill);
+    border-color: var(--success);
   }
   .icon.available {
     color: var(--accent);

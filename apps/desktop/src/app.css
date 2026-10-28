@@ -1,52 +1,99 @@
-/* Design tokens. Light by default, dark via prefers-color-scheme or data-theme. */
+/* Design tokens: the Catppuccin palette, Latte when light and Frappé when
+   dark, with mauve as the accent; dark follows the system unless
+   data-theme says otherwise. Official colours, MIT licence:
+   https://github.com/catppuccin/catppuccin */
 :root {
+  color-scheme: light;
+  accent-color: var(--accent);
   --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  --bg: #f6f7f9;
-  --surface: #ffffff;
-  --surface-2: #eef0f4;
-  --text: #16181d;
-  --text-muted: #5f6673;
-  --border: #d9dde5;
-  --accent: #2563eb;
-  --accent-text: #ffffff;
-  --danger: #dc2626;
-  --success: #16a34a;
-  --focus: #93c5fd;
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  /* Latte */
+  --ctp-red: #d20f39;
+  --ctp-green: #40a02b;
+  --ctp-mauve: #8839ef;
+  --ctp-text: #4c4f69;
+  --ctp-subtext1: #5c5f77;
+  --ctp-subtext0: #6c6f85;
+  --ctp-surface1: #bcc0cc;
+  --ctp-surface0: #ccd0da;
+  --ctp-base: #eff1f5;
+  --ctp-crust: #dce0e8;
+
+  --bg: var(--ctp-crust);
+  --surface: var(--ctp-base);
+  --surface-2: var(--ctp-surface0);
+  --text: var(--ctp-text);
+  --text-muted: var(--ctp-subtext1);
+  --border: var(--ctp-surface0);
+  --accent: var(--ctp-mauve);
+  /* 82 % mauve and 18 % text. */
+  --accent-hover: #7d3dd7;
+  --accent-text: var(--ctp-base);
+  --danger: var(--ctp-red);
+  --success: var(--ctp-green);
+  /* A coloured background. Latte's accents are too bright under text
+     (green on base is 2.9:1), so a 25 % tint of the colour on base, with the
+     text in Text, as Catppuccin's style guide allows when its own rule hurts
+     legibility; every pair stays above 4.5:1. Frappé uses the colour itself
+     with Crust. */
+  --danger-fill: #e8b9c6;
+  --success-fill: #c3ddc3;
+  --on-fill: var(--ctp-text);
+  --focus: var(--accent);
+  --shadow: 0 6px 18px rgba(76, 79, 105, 0.18);
   --radius: 12px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #14161b;
-    --surface: #1d2027;
-    --surface-2: #262a33;
-    --text: #eceef2;
-    --text-muted: #9aa3b2;
-    --border: #343946;
-    --accent: #60a5fa;
-    --accent-text: #0b1220;
-    --danger: #f87171;
-    --success: #4ade80;
-    --focus: #1d4ed8;
-    --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
+    /* Frappé */
+    --ctp-red: #e78284;
+    --ctp-green: #a6d189;
+    --ctp-mauve: #ca9ee6;
+    --ctp-text: #c6d0f5;
+    --ctp-subtext1: #b5bfe2;
+    --ctp-subtext0: #a5adce;
+    --ctp-surface1: #51576d;
+    --ctp-surface0: #414559;
+    --ctp-base: #303446;
+    --ctp-crust: #232634;
+
+    --surface-2: var(--ctp-surface1);
+    --text-muted: var(--ctp-subtext0);
+    --border: var(--ctp-surface1);
+    --accent-hover: #c9a7e9;
+    --accent-text: var(--ctp-crust);
+    --danger-fill: var(--ctp-red);
+    --success-fill: var(--ctp-green);
+    --on-fill: var(--ctp-crust);
+    --shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
   }
 }
 :root[data-theme="dark"] {
-  --bg: #14161b;
-  --surface: #1d2027;
-  --surface-2: #262a33;
-  --text: #eceef2;
-  --text-muted: #9aa3b2;
-  --border: #343946;
-  --accent: #60a5fa;
-  --accent-text: #0b1220;
-  --danger: #f87171;
-  --success: #4ade80;
-  --focus: #1d4ed8;
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+  /* Frappé */
+  --ctp-red: #e78284;
+  --ctp-green: #a6d189;
+  --ctp-mauve: #ca9ee6;
+  --ctp-text: #c6d0f5;
+  --ctp-subtext1: #b5bfe2;
+  --ctp-subtext0: #a5adce;
+  --ctp-surface1: #51576d;
+  --ctp-surface0: #414559;
+  --ctp-base: #303446;
+  --ctp-crust: #232634;
+
+  --surface-2: var(--ctp-surface1);
+  --text-muted: var(--ctp-subtext0);
+  --border: var(--ctp-surface1);
+  --accent-hover: #c9a7e9;
+  --accent-text: var(--ctp-crust);
+  --danger-fill: var(--ctp-red);
+  --success-fill: var(--ctp-green);
+  --on-fill: var(--ctp-crust);
+  --shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 }
 
 * {
@@ -99,7 +146,7 @@ button.primary {
   border-color: transparent;
 }
 button.primary:hover {
-  filter: brightness(1.05);
+  background: var(--accent-hover);
 }
 button.danger {
   color: var(--danger);
@@ -118,6 +165,12 @@ textarea {
   border-radius: 8px;
   padding: 6px 10px;
   user-select: text;
+}
+input[type="text"]:focus,
+input[type="url"]:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--accent);
 }
 textarea {
   font-family: var(--mono);

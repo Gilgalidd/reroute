@@ -127,7 +127,8 @@ in [development.md](development.md#manual-test-checklist-before-a-release).
   copy and saves the whole `Config` in one IPC call; Rust validates.
 - `lib/api.ts` — the only file that calls `invoke`; mirrors `commands.rs`.
 - `lib/types.ts` — TypeScript mirror of the serialised Rust types.
-- Styling: CSS custom properties in `app.css`, light/dark via
+- Styling: CSS custom properties in `app.css`, from the Catppuccin palette
+  (Latte when light, Frappé when dark, mauve accent), light/dark via
   `prefers-color-scheme` or `data-theme`; no inline styles (CSP).
 
 Pure helpers (`keys.ts`, `patterns.ts`, `config.ts`, `lines.ts`, `names.ts`,
