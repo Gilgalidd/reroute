@@ -1,7 +1,7 @@
 {
   "name": "reroute-desktop",
   "private": true,
-  "version": "0.1.17",
+  "version": "0.1.18",
   "type": "module",
   "description": "Reroute desktop UI (Tauri + Svelte)",
   "scripts": {
