@@ -2,10 +2,11 @@
 //!
 //! Flow for a click on a link:
 //!
-//! 1. The OS starts `reroute <url>` (or, on macOS, sends an open-URL event).
-//! 2. On Linux, if a Reroute already runs in the background, the new process
-//!    hands it the link and exits ([`resident`]); that Reroute continues
-//!    from step 3 with its picker already loaded.
+//! 1. The OS starts `reroute <url>` (or, on macOS, sends an open-URL event,
+//!    to the Reroute already running if there is one).
+//! 2. If a Reroute already runs in the background, the new process hands it
+//!    the link and exits ([`resident`]); that Reroute continues from step 3
+//!    with its picker already loaded.
 //! 3. [`incoming::route`] validates the URL and evaluates the rules. If a
 //!    rule matches, the browser is launched and no window is shown.
 //! 4. Otherwise the picker is shown; the choice is launched through the same
@@ -19,7 +20,6 @@
 mod cli;
 mod commands;
 mod incoming;
-#[cfg(target_os = "linux")]
 mod resident;
 mod state;
 mod updates;
@@ -70,7 +70,6 @@ pub fn run() {
         .filter(|token| reroute_core::control::is_activation_token(token));
 
     // A Reroute running in the background answers at once.
-    #[cfg(target_os = "linux")]
     if resident::hand_over(&mode, activation.as_deref()) {
         return;
     }
@@ -78,7 +77,6 @@ pub fn run() {
     let state = AppState::load();
     updates::restore(&state);
 
-    #[cfg(target_os = "linux")]
     let listener = match resident::claim(&mode, activation.as_deref(), &state) {
         resident::Role::Resident(listener) => {
             state.set_resident();
@@ -124,12 +122,16 @@ pub fn run() {
             } else if mode == cli::Mode::Settings {
                 windows::open_settings_or_wait(handle);
             }
-            #[cfg(target_os = "linux")]
             if let Some(listener) = listener {
                 windows::preload_picker(handle)?;
                 resident::serve(listener, handle);
                 if let Err(error) = reroute_platform::autostart::set(true) {
                     log::warn!("cannot start with the session: {error}");
+                }
+                #[cfg(target_os = "macos")]
+                {
+                    let settings_open = handle.get_webview_window(windows::SETTINGS).is_some();
+                    windows::update_dock(handle, settings_open);
                 }
             }
             updates::refresh_if_due(handle);
@@ -140,6 +142,11 @@ pub fn run() {
                 && matches!(event, tauri::WindowEvent::Focused(false))
             {
                 windows::picker_lost_focus(window.app_handle());
+            }
+            #[cfg(target_os = "macos")]
+            if window.label() == windows::SETTINGS && matches!(event, tauri::WindowEvent::Destroyed)
+            {
+                windows::update_dock(window.app_handle(), false);
             }
         })
         .build(tauri::generate_context!());

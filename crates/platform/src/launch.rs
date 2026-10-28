@@ -53,8 +53,24 @@ pub fn launch(plan: &LaunchPlan, activation: Option<&str>) -> Result<(), LaunchE
             program: plan.program.display().to_string(),
             reason: e.to_string(),
         })?;
+    #[cfg(windows)]
+    let_come_forward(&child);
     reap(child);
     Ok(())
+}
+
+/// Let the browser bring its window to the front. Windows allows that to a
+/// program the user is working with, or one such a program allows. A
+/// Reroute running in the background was not started by the click: the
+/// Reroute the click started passed it that right with the link, and it
+/// passes it on to the browser. Failing is harmless: the browser then
+/// flashes in the taskbar instead.
+#[cfg(windows)]
+#[allow(unsafe_code)]
+fn let_come_forward(child: &Child) {
+    use windows_sys::Win32::UI::WindowsAndMessaging::AllowSetForegroundWindow;
+    // SAFETY: takes a process id by value and nothing else.
+    unsafe { AllowSetForegroundWindow(child.id()) };
 }
 
 /// The command that runs `plan`, ready to spawn.

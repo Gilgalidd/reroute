@@ -66,10 +66,12 @@ fn tokenize(text: &str) -> Vec<String> {
     words
 }
 
-/// Icon path from a `DefaultIcon` value (`"C:\x\y.ico",0`). Only `.ico`
-/// and `.png` files are usable; icons embedded in executables are not
-/// extracted (the UI falls back to a coloured tile).
+/// Icon path from a `DefaultIcon` value (`"C:\x\chrome.exe",0`): an `.ico`
+/// or `.png` file, or, most often, a program or library (`.exe`, `.dll`),
+/// whose first icon [`crate::icons::load_icon`] reads. The number after the
+/// comma is not used: for a browser it is 0, the program's own icon.
 pub fn icon_from_default_icon(value: &str) -> Option<PathBuf> {
+    const USABLE: [&str; 4] = ["ico", "png", "exe", "dll"];
     let path = value.trim().trim_matches('"');
     let path = path
         .rsplit_once(',')
@@ -77,10 +79,11 @@ pub fn icon_from_default_icon(value: &str) -> Option<PathBuf> {
         .trim()
         .trim_matches('"');
     let path = PathBuf::from(path);
-    let is_image = path
-        .extension()
-        .is_some_and(|e| e.eq_ignore_ascii_case("ico") || e.eq_ignore_ascii_case("png"));
-    is_image.then_some(path)
+    let extension = path.extension()?;
+    USABLE
+        .iter()
+        .any(|usable| extension.eq_ignore_ascii_case(usable))
+        .then_some(path)
 }
 
 /// Enumerate `HKLM`/`HKCU\Software\Clients\StartMenuInternet`.
@@ -171,7 +174,7 @@ mod tests {
     }
 
     #[test]
-    fn default_icon_only_accepts_image_files() {
+    fn default_icon_accepts_images_and_programs() {
         assert_eq!(
             icon_from_default_icon(r#""C:\b\icon.ico",0"#),
             Some(PathBuf::from(r"C:\b\icon.ico"))
@@ -180,6 +183,11 @@ mod tests {
             icon_from_default_icon(r"C:\b\logo.PNG"),
             Some(PathBuf::from(r"C:\b\logo.PNG"))
         );
-        assert!(icon_from_default_icon(r"C:\b\chrome.exe,0").is_none());
+        assert_eq!(
+            icon_from_default_icon(r#""C:\Program Files\b\chrome.exe",0"#),
+            Some(PathBuf::from(r"C:\Program Files\b\chrome.exe"))
+        );
+        assert!(icon_from_default_icon(r"C:\b\readme.txt").is_none());
+        assert!(icon_from_default_icon(r"C:\b\no-extension,0").is_none());
     }
 }

@@ -1,9 +1,10 @@
 //! The local socket through which a new Reroute process hands its request
 //! to the one running in the background (see [`reroute_core::control`]).
 //!
-//! The socket lives in `$XDG_RUNTIME_DIR/reroute/` (see
-//! [`crate::paths::control_socket`]). The runtime directory belongs to the
-//! user with mode 0700, and Reroute's directory inside it is 0700 too, so
+//! The socket lives in `$XDG_RUNTIME_DIR/reroute/`, on macOS in
+//! `$TMPDIR/reroute/` (see [`crate::paths::control_socket`]). The runtime
+//! directory belongs to the user with mode 0700, and Reroute's directory
+//! inside it is 0700 too, so
 //! only the user's own processes can connect; they could already run
 //! `reroute <url>` themselves, and a request goes through the same checks.
 //! A link is only ever sent into a directory that is the user's alone, so

@@ -2,7 +2,9 @@
 //!
 //! Files are read from disk only (never fetched), capped in size, and their
 //! type is decided by content sniffing rather than by extension, so the
-//! webview only ever receives bytes that really are an image.
+//! webview only ever receives bytes that really are an image. On Windows a
+//! program or library is accepted too, for the icon inside it (see
+//! `exe_icon.rs`).
 
 use std::path::Path;
 
@@ -29,6 +31,10 @@ pub fn load_icon(path: &Path) -> Result<Icon, PlatformError> {
     if !meta.is_file() {
         return Err(PlatformError::Icon("not a regular file".into()));
     }
+    #[cfg(windows)]
+    if let Some(icon) = program_icon(path)? {
+        return Ok(icon);
+    }
     if meta.len() > MAX_ICON_BYTES {
         return Err(PlatformError::Icon(format!(
             "file larger than {MAX_ICON_BYTES} bytes"
@@ -36,6 +42,25 @@ pub fn load_icon(path: &Path) -> Result<Icon, PlatformError> {
     }
     let bytes = std::fs::read(path).map_err(|e| PlatformError::Icon(e.to_string()))?;
     classify(bytes)
+}
+
+/// Windows: the first icon of `path`, as an `.ico` file, if `path` is a
+/// program or a library (its first bytes are `MZ`); `None` for anything
+/// else. Browsers rarely ship an icon file: the registry names the program.
+#[cfg(windows)]
+fn program_icon(path: &Path) -> Result<Option<Icon>, PlatformError> {
+    use std::io::Read;
+    let mut file = std::fs::File::open(path).map_err(|e| PlatformError::Icon(e.to_string()))?;
+    let mut magic = [0; 2];
+    if file.read_exact(&mut magic).is_err() || magic != *b"MZ" {
+        return Ok(None);
+    }
+    let bytes = crate::exe_icon::first_icon(&mut file)
+        .map_err(|reason| PlatformError::Icon(reason.into()))?;
+    Ok(Some(Icon {
+        mime: "image/x-icon",
+        bytes,
+    }))
 }
 
 /// Decide the image type from the leading bytes.
@@ -149,5 +174,18 @@ mod tests {
         assert_eq!(load_icon(&file).unwrap().mime, "image/png");
         std::fs::write(&file, b"not an image").unwrap();
         assert!(load_icon(&file).is_err());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_program_is_read_for_its_icon() {
+        let edge = Path::new(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe");
+        if edge.exists() {
+            assert_eq!(load_icon(edge).unwrap().mime, "image/x-icon");
+        }
+        // This test program has no icon, and is refused as such rather than
+        // as an image of an unknown kind.
+        let error = load_icon(&std::env::current_exe().unwrap()).unwrap_err();
+        assert!(error.to_string().contains("no icon"), "{error}");
     }
 }

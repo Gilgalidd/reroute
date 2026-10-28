@@ -42,7 +42,7 @@ version = 1        # format version; files from a newer Reroute are refused
 | `offer_remember` | `true` | Show the "Always use for this domain" checkbox. |
 | `theme` | `"auto"` | `"auto"`, `"light"` or `"dark"`. |
 | `picker_layout` | `"tiles"` | `"tiles"`, `"list"` (one browser per line, its name in full) or `"two-columns"` (the same list in two columns, read left to right). Also in *Settings › General*. |
-| `run_in_background` | `true` | Linux: keep Reroute running with its picker loaded, and start it with the session, so that the picker opens at once. Turned off, Reroute starts for each click and exits after it. *Settings › General* shows this option on Linux only. |
+| `run_in_background` | `true` | Keep Reroute running with its picker loaded, and start it when you sign in, so that the picker opens at once: an XDG autostart entry on Linux, a `Reroute` value in `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` on Windows, a launch agent `~/Library/LaunchAgents/dev.reroute.desktop.plist` on macOS (where Reroute then has no Dock icon while it waits). Turned off, Reroute starts for each click and exits after it. |
 | `check_for_updates` | `true` | Ask once a day, when Reroute starts, whether a newer version is published; the picker's update button shows the answer by its colour. |
 
 ## Browsers
@@ -71,8 +71,10 @@ args = ["--private-window", "%URL%"]
 - `args` is an **array**, never a shell string. `%URL%` marks where the link
   goes; it may be a whole argument or part of one (`"--app=%URL%"`). If no
   argument contains it, the URL is appended last.
-- `icon` must be a local PNG, SVG or ICO file (ICNS on macOS). Remote icons
-  are not supported. Without an icon, the picker draws a coloured tile with
+- `icon` must be a local PNG, SVG or ICO file (ICNS on macOS; on Windows
+  also a program or library, `.exe` or `.dll`, whose first icon is shown,
+  which is what detection finds for most browsers). Remote icons are not
+  supported. Without an icon, the picker draws a coloured tile with
   the browser's initial; well-known browsers get their brand colour.
 - `launches` are alternative argument lists shown on right-click. They have
   their own `id` so rules can target a profile directly.

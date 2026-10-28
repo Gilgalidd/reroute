@@ -60,7 +60,6 @@ pub fn request_picker(app: &AppHandle) -> tauri::Result<()> {
 
 /// Load the picker without showing it, so that the next click finds WebKit
 /// and the page ready (Reroute running in the background).
-#[cfg(target_os = "linux")]
 pub fn preload_picker(app: &AppHandle) -> tauri::Result<()> {
     if app.get_webview_window(PICKER).is_none() {
         create_picker(app)?;
@@ -139,7 +138,25 @@ pub fn open_settings(app: &AppHandle) -> tauri::Result<()> {
     .center()
     .theme(theme(&settings))
     .build()?;
+    #[cfg(target_os = "macos")]
+    update_dock(app, true);
     Ok(())
+}
+
+/// macOS: a Reroute running in the background stays out of the Dock and the
+/// app switcher, as it has no taskbar button on Linux and Windows, except
+/// while its settings window is open.
+#[cfg(target_os = "macos")]
+pub fn update_dock(app: &AppHandle, settings_open: bool) {
+    let in_dock = settings_open || !app.state::<AppState>().stays_in_background();
+    let policy = if in_dock {
+        tauri::ActivationPolicy::Regular
+    } else {
+        tauri::ActivationPolicy::Accessory
+    };
+    if let Err(error) = app.set_activation_policy(policy) {
+        log::warn!("cannot show or hide the Dock icon: {error}");
+    }
 }
 
 /// Open the settings window, except on macOS where a link click starts the
@@ -151,7 +168,9 @@ pub fn open_settings_or_wait(app: &AppHandle) {
         let app = app.clone();
         std::thread::spawn(move || {
             std::thread::sleep(std::time::Duration::from_millis(400));
-            if app.webview_windows().is_empty()
+            // Not "no window yet": running in the background, Reroute keeps
+            // a hidden picker from the start.
+            if !app.state::<AppState>().link_arrived()
                 && let Err(error) = open_settings(&app)
             {
                 log::error!("cannot open settings: {error}");

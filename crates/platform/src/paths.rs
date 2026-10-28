@@ -35,12 +35,18 @@ pub fn cache_dir() -> Option<PathBuf> {
 }
 
 /// The socket through which a new Reroute reaches the one running in the
-/// background, in `$XDG_RUNTIME_DIR/reroute/`: the runtime directory belongs
-/// to the user alone. Its name follows the configuration directory, so that
-/// a Reroute started with another `REROUTE_CONFIG_DIR` keeps to itself.
-/// `None` without a runtime directory; Reroute then does not stay running.
+/// background, in `reroute/` inside the user's runtime directory: on Linux
+/// `$XDG_RUNTIME_DIR`, on macOS the per-user temporary directory
+/// (`$TMPDIR`, under `/var/folders`). Both belong to the user alone, and the
+/// control socket checks that its own directory is private before using it.
+/// Its name follows the configuration directory, so that a Reroute started
+/// with another `REROUTE_CONFIG_DIR` keeps to itself. `None` without a
+/// runtime directory; Reroute then does not stay running.
 #[cfg(unix)]
 pub fn control_socket() -> Option<PathBuf> {
+    #[cfg(target_os = "macos")]
+    let runtime = std::env::temp_dir();
+    #[cfg(not(target_os = "macos"))]
     let runtime = PathBuf::from(std::env::var_os("XDG_RUNTIME_DIR")?);
     if !runtime.is_absolute() {
         return None;
@@ -59,9 +65,29 @@ fn socket_in(runtime: &std::path::Path, config: &std::path::Path) -> PathBuf {
     runtime.join("reroute").join(name)
 }
 
+/// The named pipe through which a new Reroute reaches the one running in the
+/// background: `\\.\pipe\reroute-<session>-<hash>`. Pipe names are shared by
+/// the whole computer, so the name holds the signed-in session, and the
+/// configuration directory as on Linux; [`crate::control`] checks who
+/// serves it. `None` when the session cannot be told; Reroute then does not
+/// stay running.
+#[cfg(windows)]
+pub fn control_socket() -> Option<PathBuf> {
+    Some(pipe_for(crate::control::session()?, &config_dir()?))
+}
+
+/// [`control_socket`] for the given session and configuration directory.
+#[cfg(windows)]
+fn pipe_for(session: u32, config: &std::path::Path) -> PathBuf {
+    PathBuf::from(format!(
+        r"\\.\pipe\reroute-{session}-{:08x}",
+        fnv1a(config.as_os_str().as_encoded_bytes())
+    ))
+}
+
 /// FNV-1a, 32 bits: a short name that stays the same from one build to the
 /// next, which the standard library's hasher does not promise.
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 fn fnv1a(bytes: &[u8]) -> u32 {
     bytes.iter().fold(0x811c_9dc5, |hash, byte| {
         (hash ^ u32::from(*byte)).wrapping_mul(0x0100_0193)
@@ -114,5 +140,28 @@ mod tests {
         // Unix socket paths are limited to about 100 bytes.
         assert!(a.as_os_str().len() < 60, "{}", a.display());
         assert_eq!(fnv1a(b"a"), 0xe40c_292c, "FNV-1a reference value");
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn the_socket_goes_to_the_user_s_temporary_directory() {
+        let socket = control_socket().unwrap();
+        assert!(socket.starts_with(std::env::temp_dir()));
+        // macOS limits socket paths to 104 bytes.
+        assert!(socket.as_os_str().len() < 104, "{}", socket.display());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn each_session_and_configuration_has_its_own_pipe() {
+        let config = std::path::Path::new(r"C:\Users\a\AppData\Roaming\reroute\reroute\config");
+        let pipe = pipe_for(1, config);
+        let name = pipe.to_string_lossy();
+        assert!(name.starts_with(r"\\.\pipe\reroute-1-"), "{name}");
+        assert_eq!(name.len(), r"\\.\pipe\reroute-1-".len() + 8);
+        assert_eq!(pipe, pipe_for(1, config));
+        assert_ne!(pipe, pipe_for(2, config));
+        assert_ne!(pipe, pipe_for(1, std::path::Path::new(r"C:\other")));
+        assert!(control_socket().is_some());
     }
 }

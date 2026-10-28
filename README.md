@@ -48,9 +48,10 @@ design and a code base small enough for one person to maintain.
 - **Zero shell, zero telemetry** — only `http` and `https` links are
   accepted, browsers are spawned with an argument vector, and the
   configuration file is private to your user. See [the security model](docs/security.md).
-- **Opens at once** — on Linux, Reroute stays in the background with its
-  picker ready and starts with your session: the picker appears about a
-  tenth of a second after a click. Turn it off in *Settings › General*.
+- **Opens at once** — on Linux, Windows and macOS, Reroute stays in the
+  background with its picker ready and starts when you sign in: the picker
+  appears about a tenth of a second after a click. Turn it off in
+  *Settings › General*.
 - **A version check you control** — once a day when Reroute starts, the
   update button beside ⚙ in the picker turns green when you are up to date
   and takes the accent colour when a newer release is out; press it, or
@@ -65,7 +66,7 @@ design and a code base small enough for one person to maintain.
 ```
 a link is clicked anywhere ──► the OS starts Reroute with the URL
                                       │
-              on Linux, handed to the Reroute already running in the background
+              handed to the Reroute already running in the background
                                       │
                        URL validated (http/https only, no credentials)
                                       │
@@ -75,9 +76,10 @@ a link is clicked anywhere ──► the OS starts Reroute with the URL
 ```
 
 The rule path never creates a window, so links that match open as fast as
-with a plain default browser. On Linux the picker is already loaded in the
-background, so it appears about a tenth of a second after the click; on
-Windows and macOS, Reroute starts for each link and exits after it.
+with a plain default browser. The picker is already loaded in the
+background, so it appears about a tenth of a second after the click, instead
+of waiting for the web view to start (about a second on Windows). On macOS,
+the system hands the link straight to the running Reroute.
 
 ## Install
 
@@ -97,6 +99,20 @@ Linux needs WebKitGTK 4.1 at runtime (`libwebkit2gtk-4.1-0`); the `.deb` and
 **Updating on Linux.** Reroute stays in the background, so after you install
 a newer version the old one keeps running until your next login. To switch
 at once, run `pkill -x reroute`: the next link you click starts the new one.
+
+**Updating on Windows.** Reroute stays in the background, so the installer
+asks to close it before replacing it; the next link you click starts the new
+version. Task Manager's *Startup apps* page lists Reroute and can stop it
+from starting when you sign in. Uninstalling with the NSIS `.exe` removes
+that entry too; with the `.msi`, turn *Keep Reroute running in the
+background* off first.
+
+**Updating on macOS.** Reroute stays in the background, without a Dock icon
+while it waits, so after you replace the app the old version keeps running
+until you log out. To switch at once, run `pkill -x reroute`: the next link
+you click starts the new one. System Settings › General › Login Items lists
+Reroute under *Allow in the Background*, where you can stop it from starting
+when you log in. Open Reroute from Applications to reach its settings.
 
 **First launch on macOS.** Reroute is not notarised by Apple, so macOS blocks
 the first launch of the downloaded app. On macOS 14 and earlier, right-click
@@ -118,8 +134,8 @@ argument, or with `reroute --settings`.
 </p>
 
 Command-line flags: `--settings`, `--make-default`, `--version` (`-V`), and
-on Linux `--background`, which starts Reroute with no window, as the session
-does at login. Anything after the URL is ignored.
+`--background`, which starts Reroute with no window, as the system does when
+you sign in. Anything after the URL is ignored.
 
 ## Configure
 
