@@ -16,10 +16,12 @@
   }
   .error {
     border-color: var(--danger);
-    color: var(--danger);
+    background: var(--danger-fill);
+    color: var(--on-fill);
   }
   .success {
     border-color: var(--success);
-    color: var(--success);
+    background: var(--success-fill);
+    color: var(--on-fill);
   }
 </style>

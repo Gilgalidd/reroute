@@ -193,4 +193,6 @@ and Reroute refuses files written by a newer version rather than guessing.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE). The colour themes use the
+[Catppuccin](https://github.com/catppuccin/catppuccin) palette (MIT): Latte
+when light, Frappé when dark.
