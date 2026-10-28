@@ -6,6 +6,10 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.1.19] - 2026-10-28
+
 ### Fixed
 
 - Windows: moving the picker by its title bar closed it, with *Close the
@@ -415,7 +419,8 @@ kept so that version comparisons resolve.
   verifies it, because `xdg-settings` on KDE needs `qtpaths` and restores
   the previous browser when its own write fails.
 
-[Unreleased]: https://github.com/Gilgalidd/reroute/compare/v0.1.18...HEAD
+[Unreleased]: https://github.com/Gilgalidd/reroute/compare/v0.1.19...HEAD
+[0.1.19]: https://github.com/Gilgalidd/reroute/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/Gilgalidd/reroute/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/Gilgalidd/reroute/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/Gilgalidd/reroute/compare/v0.1.15...v0.1.16
