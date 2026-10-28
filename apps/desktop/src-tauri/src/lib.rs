@@ -137,18 +137,7 @@ pub fn run() {
             updates::refresh_if_due(handle);
             Ok(())
         })
-        .on_window_event(|window, event| {
-            if window.label() == windows::PICKER
-                && matches!(event, tauri::WindowEvent::Focused(false))
-            {
-                windows::picker_lost_focus(window.app_handle());
-            }
-            #[cfg(target_os = "macos")]
-            if window.label() == windows::SETTINGS && matches!(event, tauri::WindowEvent::Destroyed)
-            {
-                windows::update_dock(window.app_handle(), false);
-            }
-        })
+        .on_window_event(window_event)
         .build(tauri::generate_context!());
 
     let app = match app {
@@ -219,6 +208,23 @@ fn make_default_from_cli() {
             eprintln!("could not register: {error}");
             std::process::exit(1);
         }
+    }
+}
+
+/// The picker loses the focus: dismiss it, if the settings say so. Not on
+/// Windows, where the picker watches the window in the foreground instead
+/// (see `windows::show_picker`): there its focus events report the start of
+/// a move as a loss of focus. On macOS, the settings window closing takes
+/// the Dock icon away again.
+#[cfg_attr(windows, allow(unused_variables))]
+fn window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
+    #[cfg(not(windows))]
+    if window.label() == windows::PICKER && matches!(event, tauri::WindowEvent::Focused(false)) {
+        windows::picker_lost_focus(window.app_handle());
+    }
+    #[cfg(target_os = "macos")]
+    if window.label() == windows::SETTINGS && matches!(event, tauri::WindowEvent::Destroyed) {
+        windows::update_dock(window.app_handle(), false);
     }
 }
 

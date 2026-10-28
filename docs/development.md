@@ -145,6 +145,9 @@ if you fix a bug they found.
       windows close.
 - [ ] Windows: *Make Reroute the default* opens Settings › Default apps, and
       the picker's ⚙ opens a settings window that responds.
+- [ ] Windows, with *Close the picker when it loses focus* on: dragging the
+      picker by its title bar moves it and keeps it open; clicking another
+      program then closes it.
 - [ ] Windows: after the first link, `reroute.exe` keeps running with the
       picker hidden; a second link shows the picker at once and in front,
       and a link a rule catches opens its browser in front; the `Reroute`

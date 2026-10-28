@@ -6,7 +6,12 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- Windows: moving the picker by its title bar closed it, with *Close the
+  picker when it loses focus* on. WebView2 moves the focus into the page
+  when a move begins, which read as leaving the picker. Reroute now closes
+  it when another program comes to the front.
 
 ## [0.1.18] - 2026-10-28
 

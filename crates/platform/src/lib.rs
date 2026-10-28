@@ -9,6 +9,8 @@
 //! * [`register`] — make Reroute the default browser, or check if it is.
 //! * [`icons::load_icon`] — read a local icon file for display, or on
 //!   Windows the icon inside a program.
+//! * `foreground` (Windows) — whether one of Reroute's windows is in front,
+//!   which tells when the user leaves the picker.
 //! * [`release::latest_release`] — the one network request: on demand, and
 //!   at most once a day by itself.
 //! * [`paths::config_dir`] — where `config.toml` lives.
@@ -21,8 +23,9 @@
 //! the thin layer that enumerates the real system.
 
 // `unsafe` only where an operating system offers no safe binding: Launch
-// Services on macOS; on Windows `ShellExecuteW`, the control pipe and
-// `AllowSetForegroundWindow` (see docs/security.md).
+// Services on macOS; on Windows `ShellExecuteW`, the control pipe,
+// `AllowSetForegroundWindow` and the foreground window (see
+// docs/security.md).
 #![cfg_attr(not(any(target_os = "macos", windows)), forbid(unsafe_code))]
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used, clippy::panic))]
 
@@ -33,6 +36,8 @@ pub mod control;
 pub mod discover;
 #[cfg(any(windows, test))]
 mod exe_icon;
+#[cfg(windows)]
+pub mod foreground;
 pub mod icons;
 pub mod launch;
 pub mod paths;
