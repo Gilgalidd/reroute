@@ -85,6 +85,7 @@ property tests (`proptest`).
 | `release` | one HTTPS GET (`ureq`, rustls); the last automatic check kept in the cache directory | same | same |
 | `control` | Unix socket and lock file in `$XDG_RUNTIME_DIR/reroute/` | named pipe open to the user alone, claimed with `FILE_FLAG_FIRST_PIPE_INSTANCE`; the server's user is checked | same as Linux, in `$TMPDIR/reroute/` |
 | `autostart` | XDG autostart entry | `Reroute` value under `HKCU\…\CurrentVersion\Run` | launch agent in `~/Library/LaunchAgents/` |
+| `foreground` | — | whether the window in front is Reroute's (`GetForegroundWindow`) | — |
 
 Each backend separates a **pure parsing layer** (desktop-entry parser,
 registry command-line splitter, plist reader, registry entry list), unit-tested
@@ -102,7 +103,7 @@ system.
 | `resident.rs` | Staying in the background; hand-over, claim, serving requests. |
 | `updates.rs` | The version check: once a day at start-up, and on demand. |
 | `incoming.rs` | `route` (rules or picker) and `launch`. |
-| `windows.rs` | Picker/settings window creation, focus-loss handling, exit policy. |
+| `windows.rs` | Picker/settings window creation, focus-loss handling (on Windows by watching the window in front, since WebView2 reports the start of a move as a loss of focus), exit policy. |
 | `commands.rs` | IPC commands; each is listed in `build.rs` so Tauri generates a permission for it. |
 | `capabilities/*.json` | Which window may call which command. |
 | `tauri.conf.json` | CSP, bundling targets, desktop template, icons, NSIS hooks. |

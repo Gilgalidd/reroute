@@ -209,7 +209,7 @@ gives links to the running Reroute itself, as an Apple event.
 
 ## Memory safety and `unsafe`
 
-The workspace denies `unsafe_code`. There are five exceptions, each with
+The workspace denies `unsafe_code`. There are six exceptions, each with
 a `SAFETY:` comment:
 
 - `crates/platform/src/register/macos.rs` calls two documented Launch
@@ -225,6 +225,9 @@ a `SAFETY:` comment:
   buffer Windows allocates is freed once with `LocalFree`.
 - `crates/platform/src/launch.rs` (Windows) calls
   `AllowSetForegroundWindow` with the id of the browser it just started.
+- `crates/platform/src/foreground.rs` (Windows) calls `GetForegroundWindow`
+  and `GetWindowThreadProcessId`, to tell whether the window in front is
+  Reroute's: the picker closes when another program comes to the front.
 - `prepare_webkit` in `apps/desktop/src-tauri/src/lib.rs` (Linux) sets one
   environment variable and, in release builds, removes two, which Rust marks
   `unsafe` because another thread could read the environment at the same

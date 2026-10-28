@@ -98,7 +98,85 @@ pub fn show_picker(app: &AppHandle) -> tauri::Result<()> {
         None => window.center()?,
     }
     window.show()?;
-    window.set_focus()
+    window.set_focus()?;
+    #[cfg(windows)]
+    watch_focus(app);
+    Ok(())
+}
+
+/// How often, on Windows, the shown picker checks whether the user left it.
+#[cfg(windows)]
+const FOCUS_POLL: Duration = Duration::from_millis(100);
+
+/// Windows: tell when the user leaves the picker by the window in the
+/// foreground, since the picker's focus events cannot: WebView2 moves the
+/// focus into the page whenever a move of the window begins, which reads as
+/// a loss of focus, and dragging the picker by its title bar closed it (see
+/// `reroute_platform::foreground`). One watcher at a time; it stops when the
+/// picker is hidden.
+#[cfg(windows)]
+fn watch_focus(app: &AppHandle) {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    /// The latest watcher; an older one stops.
+    static LATEST: AtomicU64 = AtomicU64::new(0);
+    let me = LATEST.fetch_add(1, Ordering::Relaxed) + 1;
+    let app = app.clone();
+    let spawned = std::thread::Builder::new()
+        .name("reroute-focus".into())
+        .spawn(move || {
+            let mut seen_in_front = false;
+            loop {
+                std::thread::sleep(FOCUS_POLL);
+                let visible = app
+                    .get_webview_window(PICKER)
+                    .and_then(|window| window.is_visible().ok())
+                    .unwrap_or(false);
+                if LATEST.load(Ordering::Relaxed) != me || !visible {
+                    return;
+                }
+                let ours_in_front = reroute_platform::foreground::is_this_process();
+                match after_a_look(seen_in_front, ours_in_front) {
+                    Look::Waiting => {}
+                    Look::InFront => seen_in_front = true,
+                    Look::Left => {
+                        let handle = app.clone();
+                        let dismissed = app.run_on_main_thread(move || picker_lost_focus(&handle));
+                        if let Err(error) = dismissed {
+                            log::error!("cannot dismiss the picker: {error}");
+                        }
+                        return;
+                    }
+                }
+            }
+        });
+    if let Err(error) = spawned {
+        log::warn!("cannot watch the picker's focus: {error}");
+    }
+}
+
+/// What one look at the foreground window says about the shown picker.
+#[cfg(any(windows, test))]
+#[derive(Debug, PartialEq, Eq)]
+enum Look {
+    /// One of Reroute's windows is in front: the picker, even while it is
+    /// dragged, or the settings.
+    InFront,
+    /// Another program is in front after the picker had been: the user left.
+    Left,
+    /// Nothing to act on yet.
+    Waiting,
+}
+
+/// `ours_in_front` says whether one of Reroute's windows is in the
+/// foreground, `None` when no window is. A picker that never reached the
+/// front (Windows may refuse it the focus) is not closed for being behind.
+#[cfg(any(windows, test))]
+fn after_a_look(seen_in_front: bool, ours_in_front: Option<bool>) -> Look {
+    match ours_in_front {
+        Some(true) => Look::InFront,
+        Some(false) if seen_in_front => Look::Left,
+        _ => Look::Waiting,
+    }
 }
 
 /// Logical top-left position that puts the picker under the mouse pointer
@@ -208,8 +286,10 @@ pub fn finish_picker(app: &AppHandle) {
     }
 }
 
-/// Focus moved away from the picker. Dismiss it if the user asked for that
-/// behaviour, unless the focus went to our own settings window.
+/// Focus moved away from the picker: its window lost the focus, or on
+/// Windows another program came to the front (see `watch_focus`). Dismiss it
+/// if the user asked for that behaviour, unless the focus went to our own
+/// settings window.
 pub fn picker_lost_focus(app: &AppHandle) {
     let close = app
         .state::<AppState>()
@@ -234,4 +314,23 @@ pub fn picker_lost_focus(app: &AppHandle) {
     }
     log::info!("picker lost focus; dismissing");
     finish_picker(app);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_picker_closes_only_once_another_program_comes_to_the_front() {
+        // Reroute's own window in front, the picker while it is dragged
+        // among them: it stays.
+        assert_eq!(after_a_look(false, Some(true)), Look::InFront);
+        assert_eq!(after_a_look(true, Some(true)), Look::InFront);
+        // Another program in front: the user left.
+        assert_eq!(after_a_look(true, Some(false)), Look::Left);
+        // Unless the picker never reached the front.
+        assert_eq!(after_a_look(false, Some(false)), Look::Waiting);
+        // No window in front for an instant, while Windows switches.
+        assert_eq!(after_a_look(true, None), Look::Waiting);
+    }
 }
