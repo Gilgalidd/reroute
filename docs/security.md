@@ -289,10 +289,12 @@ process spawning, uses safe wrappers.
 - Dependencies are pinned by `Cargo.lock` and `package-lock.json`, and the
   Rust toolchain by `rust-toolchain.toml`.
 - CI runs `cargo deny` (licences, bans, sources and the RustSec advisory
-  database) and `npm audit` on every push. One advisory is ignored, with its
-  reason next to it in `deny.toml`: RUSTSEC-2024-0429, an unsound iterator in
-  glib 0.18, which GTK 3 (Tauri's Linux backend) brings in any case and whose
-  faulty code Reroute never calls.
+  database) and `npm audit`, which fails on a high or critical advisory, on
+  every push. One advisory is ignored, with its reason next to it in
+  `deny.toml`: RUSTSEC-2024-0429, an unsound iterator in glib 0.18, which
+  GTK 3 (Tauri's Linux backend) brings in any case and whose faulty code
+  Reroute never calls. It goes once Tauri moves to gtk 0.19, which uses a
+  fixed glib (tauri-apps/tauri#16170).
 - GitHub Actions are pinned to full commit SHAs, never to tags, which their
   owner (or someone who took over their account) can move to other code.
   Checkouts keep no token on disk, and `npm ci --ignore-scripts` runs no

@@ -174,6 +174,29 @@ if you fix a bug they found.
       turning *Keep Reroute running in the background* off removes the
       agent, and Reroute quits when its windows close.
 
+## Updating dependencies
+
+Dependabot proposes updates every week (`.github/dependabot.yml`), each
+version only once it is 7 days old. To update by hand, keep to the same rule:
+
+- **Cargo**: name each crate and a version at least 7 days old,
+  `cargo update -p tauri --precise 2.12.5`. A bare `cargo update` takes
+  versions published this morning. Some crates move only with their
+  companions, which `--precise` brings along (`toml` and `toml_parser`,
+  `toml_datetime`…), and which `cargo update -p` alone and Dependabot leave
+  where they are. Every crate new to `Cargo.lock` then goes through
+  `cargo deny check`.
+- **npm**, in `apps/desktop`: `npx npm@11 update <package> --package-lock-only
+  --ignore-scripts --before <a date 7 days ago>`. `--before` holds back every
+  package of the tree, not only the ones named. Write `package-lock.json`
+  with npm 11: the npm 10 that comes with Node 22 drops the `libc` field of
+  the Linux binary packages, which the next update would put back.
+- The `tauri` crate and the `@tauri-apps/*` packages stay on the same
+  major.minor version; `npm run check` fails otherwise.
+- Two are held back on purpose, each with the reason where it is held:
+  glib 0.18, which GTK 3 needs until Tauri moves to gtk 0.19 (`deny.toml`),
+  and TypeScript 7, until svelte-check supports it (`dependabot.yml`).
+
 ## Releasing
 
 1. Move the "Unreleased" notes of `CHANGELOG.md` under the new version, and

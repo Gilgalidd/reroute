@@ -41,6 +41,9 @@ All notable changes to Reroute are documented here. The format follows
   The sources, documentation included, may hold no invisible character, and
   a translated `desktop.comment` neither `"` nor `\`, since it is copied into
   a Rust string.
+- Dependencies brought up to date, each version at least a week old: Tauri
+  2.12.5, serde_json, thiserror, uuid, toml 1.1.8, ureq 3.5, plist, proptest,
+  Vite 8.3.5 and the Tauri CLI 2.12.4.
 
 ## [0.1.19] - 2026-10-28
 
