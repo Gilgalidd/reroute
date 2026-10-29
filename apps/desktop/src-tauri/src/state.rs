@@ -242,6 +242,25 @@ impl AppState {
         }
     }
 
+    /// Put `edited`, the link as the user rewrote it in the picker, in place
+    /// of `url`, the one on screen. It keeps the click's activation token.
+    /// Refused, as [`pending_for`](Self::pending_for), when another link
+    /// has arrived meanwhile: the edit was made to the one on screen.
+    pub fn replace_pending(&self, url: &str, edited: SafeUrl) -> Result<(), Message> {
+        let mut pending = lock(&self.pending);
+        match pending.as_mut() {
+            None => Err(messages::PICK_NO_LINK.with([], "there is no URL to open")),
+            Some(current) if current.url.as_str() == url => {
+                current.url = edited;
+                Ok(())
+            }
+            Some(_) => {
+                Err(messages::PICK_NEW_LINK
+                    .with([], "A new link arrived. Choose a browser for it."))
+            }
+        }
+    }
+
     /// Set the link the picker should decide on, clearing any previous
     /// error.
     pub fn set_pending(&self, url: SafeUrl, activation: Option<String>) {
@@ -353,6 +372,36 @@ mod tests {
 
         state.set_pending(url("https://b.org/"), None);
         assert_eq!(refusal("https://a.org/"), Some("pick.new_link"), "replaced");
+    }
+
+    #[test]
+    fn an_edited_link_replaces_the_one_on_screen_only() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = AppState::open(ConfigStore::in_dir(dir.path()), installed);
+        let refusal = |link, edited| {
+            state
+                .replace_pending(link, url(edited))
+                .err()
+                .map(|message| message.code)
+        };
+        assert_eq!(
+            refusal("https://a.org/", "https://c.org/"),
+            Some("pick.no_link")
+        );
+
+        state.set_pending(url("https://a.org/"), Some("kwin-1".into()));
+        state
+            .replace_pending("https://a.org/", url("https://c.org/x"))
+            .unwrap();
+        let pending = state.pending_for("https://c.org/x").unwrap();
+        assert_eq!(pending.activation.as_deref(), Some("kwin-1"), "kept");
+
+        assert_eq!(
+            refusal("https://a.org/", "https://d.org/"),
+            Some("pick.new_link"),
+            "no longer on screen"
+        );
+        assert_eq!(state.pending().unwrap().url.as_str(), "https://c.org/x");
     }
 
     #[test]

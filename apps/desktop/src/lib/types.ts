@@ -81,10 +81,18 @@ export interface BrowserView {
   launches: { id: Uuid; name: string }[];
   icon: string | null;
   brand: Brand | null;
+  /** The entry that opens this browser privately, perhaps hidden: Shift picks it. */
+  private: Uuid | null;
+}
+
+/** The link on screen. */
+export interface UrlView {
+  href: string;
+  host: string;
 }
 
 export interface LaunchContext {
-  url: { href: string; host: string } | null;
+  url: UrlView | null;
   url_error: RustMessage | null;
   config_error: RustMessage | null;
   settings: Settings;

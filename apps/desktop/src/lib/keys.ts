@@ -2,24 +2,60 @@
 
 import type { PickerLayout } from "./types";
 
+/** What the picker reads of a key press: a `KeyboardEvent` has all of it. */
+export interface KeyPress {
+  key: string;
+  /** The key's place on the keyboard, which names a digit whatever the layout. */
+  code?: string;
+  shiftKey?: boolean;
+  ctrlKey?: boolean;
+  metaKey?: boolean;
+  altKey?: boolean;
+}
+
 export type PickerKey =
-  | { kind: "select"; index: number }
+  | { kind: "select"; index: number; private: boolean }
   | { kind: "move"; delta: number }
-  | { kind: "confirm" }
+  | { kind: "confirm"; private: boolean }
   | { kind: "menu" }
+  | { kind: "copy" }
+  | { kind: "edit" }
   | { kind: "cancel" }
   | { kind: "settings" }
   | { kind: "none" };
 
+const DIGIT_CODE = /^(?:Digit|Numpad)([1-9])$/;
+
 /**
- * Map a keyboard event to a picker action.
+ * Map a key press to a picker action.
  * Digits 1–9 pick a tile directly, arrows move the highlight, Enter
- * confirms, Space or the context-menu key opens the launch menu, Escape
- * cancels and `,` opens settings (as in many desktop apps).
+ * confirms, and with Shift a digit or Enter opens the browser's private
+ * entry instead. Space or the context-menu key opens the launch menu,
+ * Escape cancels and `,` opens settings (as in many desktop apps). The
+ * system's command key (`⌘` on macOS, `Ctrl` elsewhere) with C copies the
+ * link, with L edits it, as in a browser's address bar; any other
+ * combination with it, or with Alt, is left to the system.
+ *
+ * A digit is read from the key's place, so the top row picks a tile on
+ * layouts where it types other characters without Shift, such as AZERTY.
  */
-export function mapKey(key: string, columns: number): PickerKey {
-  if (/^[1-9]$/.test(key)) return { kind: "select", index: Number(key) - 1 };
-  switch (key) {
+export function mapKey(press: KeyPress, columns: number, mac: boolean): PickerKey {
+  const command = mac ? press.metaKey : press.ctrlKey;
+  if (command && !press.altKey) {
+    switch (press.key.toLowerCase()) {
+      case "c":
+        return { kind: "copy" };
+      case "l":
+        return { kind: "edit" };
+      default:
+        return { kind: "none" };
+    }
+  }
+  if (press.ctrlKey || press.metaKey || press.altKey) return { kind: "none" };
+  const privately = press.shiftKey === true;
+  const digit = DIGIT_CODE.exec(press.code ?? "")?.[1] ?? (/^[1-9]$/.test(press.key) ? press.key : null);
+  if (digit) return { kind: "select", index: Number(digit) - 1, private: privately };
+  switch (press.key) {
     case "ArrowRight":
       return { kind: "move", delta: 1 };
     case "ArrowLeft":
@@ -29,7 +65,7 @@ export function mapKey(key: string, columns: number): PickerKey {
     case "ArrowUp":
       return { kind: "move", delta: -columns };
     case "Enter":
-      return { kind: "confirm" };
+      return { kind: "confirm", private: privately };
     case " ":
     case "ContextMenu":
       return { kind: "menu" };
@@ -40,6 +76,11 @@ export function mapKey(key: string, columns: number): PickerKey {
     default:
       return { kind: "none" };
   }
+}
+
+/** Is `platform` (`navigator.platform`) Apple's, whose command key is `⌘`? */
+export function isMac(platform: string): boolean {
+  return /^(Mac|iPhone|iPad)/.test(platform);
 }
 
 /**

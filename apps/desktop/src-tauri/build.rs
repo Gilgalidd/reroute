@@ -6,6 +6,7 @@ fn main() {
     let commands: &[&str] = &[
         "launch_context",
         "pick",
+        "edit_link",
         "dismiss",
         "open_settings",
         "get_config",

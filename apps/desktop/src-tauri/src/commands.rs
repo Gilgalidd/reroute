@@ -27,6 +27,9 @@ pub struct BrowserView {
     /// `data:` URL of the icon, when an icon file is available.
     icon: Option<String>,
     brand: Option<Brand>,
+    /// The entry that opens this browser privately, hidden or not, which
+    /// `Shift` picks instead (see `reroute_core::private::private_entry_in`).
+    private: Option<BrowserId>,
 }
 
 #[derive(Serialize)]
@@ -47,13 +50,16 @@ pub struct LaunchContext {
     update: reroute_core::release::UpdateStatus,
 }
 
+/// The link on screen.
 #[derive(Serialize)]
-struct UrlView {
+pub struct UrlView {
     href: String,
     host: String,
 }
 
-fn browser_view(browser: &Browser) -> BrowserView {
+/// `browser` as the picker shows it; `all` is every entry of the
+/// configuration, hidden ones included, where its private entry may be.
+fn browser_view(browser: &Browser, all: &[Browser]) -> BrowserView {
     let icon =
         browser
             .icon
@@ -82,6 +88,16 @@ fn browser_view(browser: &Browser) -> BrowserView {
             .collect(),
         icon,
         brand: Brand::from_program(&browser.path),
+        private: reroute_core::private::private_entry_in(all, browser).map(|b| b.id),
+    }
+}
+
+impl UrlView {
+    fn of(url: &SafeUrl) -> Self {
+        Self {
+            href: url.as_str().to_owned(),
+            host: url.host().to_owned(),
+        }
     }
 }
 
@@ -90,14 +106,14 @@ fn browser_view(browser: &Browser) -> BrowserView {
 pub fn launch_context(state: State<'_, AppState>) -> LaunchContext {
     let config = state.config();
     LaunchContext {
-        url: state.pending().map(|pending| UrlView {
-            href: pending.url.as_str().to_owned(),
-            host: pending.url.host().to_owned(),
-        }),
+        url: state.pending().map(|pending| UrlView::of(&pending.url)),
         url_error: state.url_error(),
         config_error: state.config_error(),
         settings: config.settings.clone(),
-        browsers: config.visible_browsers().map(browser_view).collect(),
+        browsers: config
+            .visible_browsers()
+            .map(|browser| browser_view(browser, &config.browsers))
+            .collect(),
         update: state.update_status(),
     }
 }
@@ -153,6 +169,22 @@ pub fn pick(
     }
     windows::finish_picker(&app);
     Ok(())
+}
+
+/// The user rewrote `url`, the link on screen, as `edited`. The new link
+/// passes the same validation as one from a click (`SafeUrl`), and the
+/// picker then decides on it; no rule is applied, since the user is
+/// choosing already. Returns the link as the picker shows it.
+#[tauri::command]
+pub fn edit_link(
+    state: State<'_, AppState>,
+    url: String,
+    edited: String,
+) -> Result<UrlView, Message> {
+    let edited = SafeUrl::parse(&edited)?;
+    let view = UrlView::of(&edited);
+    state.replace_pending(&url, edited)?;
+    Ok(view)
 }
 
 /// The user closed the picker without choosing.

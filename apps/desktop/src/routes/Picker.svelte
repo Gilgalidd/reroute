@@ -2,12 +2,16 @@
   import { onMount, tick } from "svelte";
   import { setLanguage, t, tParts, tRust } from "../i18n/i18n.svelte";
   import { api, asMessage, describeError } from "../lib/api";
-  import { columnCount, mapKey, moveIndex } from "../lib/keys";
+  import { copyText } from "../lib/clipboard";
+  import { columnCount, isMac, mapKey, moveIndex } from "../lib/keys";
   import { applyTheme } from "../lib/theme";
   import type { BrowserView, LaunchContext, UpdateStatus } from "../lib/types";
   import Banner from "../components/Banner.svelte";
   import BrowserTile from "../components/BrowserTile.svelte";
   import LaunchMenu from "../components/LaunchMenu.svelte";
+
+  /** `⌘` is the command key, rather than `Ctrl`. */
+  const mac = isMac(navigator.platform);
 
   let context = $state<LaunchContext | null>(null);
   let error = $state<string | null>(null);
@@ -16,6 +20,11 @@
   let busy = $state(false);
   let menu = $state<{ browser: BrowserView; anchor: HTMLElement } | null>(null);
   let gridWidth = $state(560);
+
+  /** The link is being edited: a field stands in its line, holding `draft`. */
+  let editing = $state(false);
+  let draft = $state("");
+  let field = $state<HTMLInputElement | undefined>();
 
   /** Where the running version stands: from Reroute's own check at start-up,
    * then from the update button. It colours that button. */
@@ -37,6 +46,9 @@
     }
   });
 
+  /** The picker's keys, with the system's names for its modifiers. */
+  const hint = $derived(t(mac ? "picker.hint.mac" : "picker.hint"));
+
   const browsers = $derived(context?.browsers ?? []);
   const layout = $derived(context?.settings.picker_layout ?? "tiles");
   const columns = $derived(columnCount(layout, gridWidth));
@@ -54,6 +66,7 @@
       remember = false;
       menu = null;
       busy = false;
+      editing = false;
       error = null;
       showStatus = false;
       if (!checking) status = context.update;
@@ -76,16 +89,81 @@
     };
   });
 
-  async function pick(browser: BrowserView, launch: string | null) {
+  /** Open the link in `browser`, or in its private entry when `privately`
+   * and it has one (Shift); a launch option is for the browser itself. */
+  async function pick(browser: BrowserView, launch: string | null, privately = false) {
     if (busy || !context?.url) return;
+    const target = privately && browser.private ? browser.private : browser.id;
     busy = true;
     error = null;
     try {
-      await api.pick(context.url.href, browser.id, launch, remember);
+      await api.pick(context.url.href, target, target === browser.id ? launch : null, remember);
     } catch (e) {
       error = describeError(e);
       busy = false;
     }
+  }
+
+  /** Copy the link on screen and close the picker, which stays open, saying
+   * so, when the copy failed. */
+  async function copyLink() {
+    if (busy || !context?.url) return;
+    try {
+      await copyText(context.url.href);
+    } catch {
+      error = t("picker.copyFailed");
+      return;
+    }
+    void api.dismiss();
+  }
+
+  async function startEditing() {
+    if (busy || !context?.url) return;
+    draft = context.url.href;
+    editing = true;
+    error = null;
+    await tick();
+    field?.focus();
+    field?.select();
+  }
+
+  function stopEditing() {
+    editing = false;
+    error = null;
+  }
+
+  /** Rust checks the edited link as any incoming one; a refusal shows, and
+   * the field stays for another try. */
+  async function applyEdit() {
+    if (!context?.url) return;
+    if (draft.trim() === context.url.href) {
+      stopEditing();
+      return;
+    }
+    try {
+      context.url = await api.editLink(context.url.href, draft);
+      stopEditing();
+    } catch (e) {
+      error = describeError(e);
+    }
+  }
+
+  function onfieldkeydown(e: KeyboardEvent) {
+    // Every key is the field's: none reaches the picker's shortcuts.
+    e.stopPropagation();
+    if (e.isComposing) return;
+    if (e.key === "Enter") {
+      e.preventDefault();
+      void applyEdit();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      stopEditing();
+    }
+  }
+
+  /** Text the user selected on the page, which `Ctrl+C` copies as usual. */
+  function hasSelection(): boolean {
+    return (window.getSelection()?.toString() ?? "") !== "";
   }
 
   /** Ask now which version is newest (the update button). */
@@ -115,13 +193,19 @@
 
   function onkeydown(e: KeyboardEvent) {
     if (menu) return;
-    const action = mapKey(e.key, columns);
-    if (action.kind === "none") return;
+    // While the link is edited the picker's keys wait, even with the focus
+    // gone from the field; Escape still gives the old link back.
+    if (editing) {
+      if (e.key === "Escape") stopEditing();
+      return;
+    }
+    const action = mapKey(e, columns, mac);
+    if (action.kind === "none" || (action.kind === "copy" && hasSelection())) return;
     e.preventDefault();
     switch (action.kind) {
       case "select": {
         const b = browsers[action.index];
-        if (b) void pick(b, null);
+        if (b) void pick(b, null, action.private);
         break;
       }
       case "move":
@@ -129,9 +213,15 @@
         break;
       case "confirm": {
         const b = browsers[highlighted];
-        if (b) void pick(b, null);
+        if (b) void pick(b, null, action.private);
         break;
       }
+      case "copy":
+        void copyLink();
+        break;
+      case "edit":
+        void startEditing();
+        break;
       case "menu": {
         const b = browsers[highlighted];
         const anchor = document.activeElement;
@@ -153,8 +243,54 @@
 <main class="picker">
   <header>
     {#if context?.url}
-      <div class="host" title={context.url.href}>{context.url.host}</div>
-      <div class="href muted" title={context.url.href}>{context.url.href}</div>
+      <div class="row">
+        <div class="address">
+          <div class="host" title={context.url.href}>{context.url.host}</div>
+          {#if editing}
+            <input
+              bind:this={field}
+              bind:value={draft}
+              class="edit"
+              type="url"
+              spellcheck="false"
+              autocomplete="off"
+              aria-label={t("picker.edit.field")}
+              onkeydown={onfieldkeydown}
+            />
+          {:else}
+            <div class="href muted" title={context.url.href}>{context.url.href}</div>
+          {/if}
+        </div>
+        <!-- Drawn rather than text symbols, as the update button below. -->
+        <button
+          type="button"
+          class="tool"
+          title={t(mac ? "picker.copy.title.mac" : "picker.copy.title")}
+          aria-label={t("picker.copy")}
+          disabled={busy}
+          onclick={copyLink}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="9" y="9" width="11" height="11" rx="2" />
+            <path d="M5 15V6a2 2 0 0 1 2-2h8" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="tool"
+          class:active={editing}
+          title={t(mac ? "picker.edit.title.mac" : "picker.edit.title")}
+          aria-label={t("picker.edit")}
+          aria-pressed={editing}
+          disabled={busy}
+          onclick={() => (editing ? stopEditing() : void startEditing())}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 20h4L19 9l-4-4L4 16z" />
+            <path d="M13 7l4 4" />
+          </svg>
+        </button>
+      </div>
     {:else if context?.url_error}
       <Banner tone="error">{t("picker.refused", { reason: tRust(context.url_error) })}</Banner>
     {:else}
@@ -189,7 +325,7 @@
           index={i}
           row={layout !== "tiles"}
           highlighted={i === highlighted}
-          onpick={() => pick(browser, null)}
+          onpick={(e) => pick(browser, null, e.shiftKey)}
           onmenu={(anchor) => {
             highlighted = i;
             menu = { browser, anchor };
@@ -212,7 +348,7 @@
     <!-- The update button reports where the key hint was. -->
     <span class="hint muted" role="status">
       {#if !showStatus}
-        {t("picker.hint")}
+        <span title={hint}>{hint}</span>
       {:else if checking}
         {t("picker.update.checking")}
       {:else if status.state === "failed"}
@@ -271,6 +407,28 @@
   header {
     min-height: 40px;
   }
+  .address {
+    flex: 1;
+    min-width: 0;
+  }
+  /* The field takes the place of the address line, at the same height. */
+  .edit {
+    padding: 0 6px;
+    font-size: 12px;
+    line-height: 1.45;
+    border-radius: 5px;
+  }
+  /* The link's buttons, beside it. */
+  .tool {
+    display: inline-grid;
+    place-items: center;
+    align-self: flex-start;
+    padding: 5px 7px;
+  }
+  .tool.active {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
   .host {
     font-weight: 600;
     font-size: 15px;
@@ -315,8 +473,14 @@
   .remember {
     gap: 6px;
   }
+  /* Cut short rather than pushing the buttons out when room runs out; its
+     tooltip holds it whole. */
   .hint {
+    min-width: 0;
     font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .icon {
     display: inline-grid;
@@ -334,7 +498,8 @@
   .icon.failed {
     color: var(--danger);
   }
-  .icon svg {
+  .icon svg,
+  .tool svg {
     width: 14px;
     height: 14px;
     fill: none;

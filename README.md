@@ -38,6 +38,9 @@ design and a code base small enough for one person to maintain.
   and a rule is written for you.
 - **Keyboard first** — `1`–`9` picks a tile, arrows move, `Enter` confirms,
   `Space` opens the profile menu, `Esc` cancels, `,` opens settings.
+  `Shift` with a digit, `Enter` or a click opens the browser's private
+  entry, `Ctrl+C` (`⌘C`) copies the link and closes the picker, `Ctrl+L`
+  (`⌘L`) edits the link before it opens.
 - **Tiles or a list** — the picker shows tiles, or a list in one or two
   columns where every name is written in full.
 - **In English and French** — following the system's language, or the one

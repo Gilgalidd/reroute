@@ -98,12 +98,16 @@ The UI runs in the platform web view (WebKitGTK, WebView2, WKWebView) with:
 - no global Tauri object (`withGlobalTauri: false`);
 - a least-privilege capability per window
   (`apps/desktop/src-tauri/capabilities/`), enforced by Tauri on every call:
-  - the picker can read its context, launch the chosen browser, dismiss
-    itself, open settings, check for a new version and open the download
-    page (both only from its update button), and listen for the two events
-    that tell it a new link waits and what the daily version check found. It
-    launches a browser only for the link on screen: Rust refuses a choice
-    made for a link that has since been replaced;
+  - the picker can read its context, launch the chosen browser, replace the
+    link on screen with one the user edited, dismiss itself, open settings,
+    check for a new version and open the download page (both only from its
+    update button), and listen for the two events that tell it a new link
+    waits and what the daily version check found. It launches a browser only
+    for the link on screen: Rust refuses a choice made for a link that has
+    since been replaced. An edited link goes through `SafeUrl` exactly as one
+    from a click, and replaces only the link on screen. Copying the link
+    writes it to the clipboard through the web view's own Clipboard API;
+    nothing is ever read from the clipboard;
   - the settings window can read and save the configuration, detect
     browsers, import from Hurl, test a URL, manage the default-browser
     registration and check for a new version. It launches a browser for one

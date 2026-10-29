@@ -46,15 +46,6 @@ first:
 Where the program cannot be known, such rules do not match and the other
 rules apply as before.
 
-## Quicker actions in the picker
-
-- `Ctrl+C` (`⌘C` on macOS), and a button, copy the link and close the picker.
-- Edit the link before opening it: a field in place of the URL line, still
-  validated as any incoming link (`http` and `https` only, no credentials).
-- `Shift` with a click or a number key opens the browser's private entry,
-  when it has one, so a private window is reachable without a second tile.
-- The key hint at the bottom of the picker lists these keys.
-
 ## Translations
 
 The interface in several languages. English and French are there, following

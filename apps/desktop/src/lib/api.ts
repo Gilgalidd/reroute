@@ -15,6 +15,7 @@ import type {
   RustMessage,
   TestResult,
   UpdateStatus,
+  UrlView,
   Uuid,
 } from "./types";
 
@@ -24,6 +25,9 @@ export const api = {
    * has arrived since. */
   pick: (url: string, browser: Uuid, launch: Uuid | null, remember: boolean) =>
     invoke<void>("pick", { url, browser, launch, remember }),
+  /** Replace `url`, the link on screen, with `edited`, which Rust validates
+   * as any incoming link; the link to show comes back. */
+  editLink: (url: string, edited: string) => invoke<UrlView>("edit_link", { url, edited }),
   dismiss: () => invoke<void>("dismiss"),
   /** The picker's page has read the pending link; Rust shows the window. */
   showPicker: () => invoke<void>("show_picker"),

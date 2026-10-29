@@ -102,6 +102,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::launch_context,
             commands::pick,
+            commands::edit_link,
             commands::dismiss,
             commands::open_settings,
             commands::get_config,

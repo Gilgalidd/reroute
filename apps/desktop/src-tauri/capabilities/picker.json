@@ -1,13 +1,14 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "picker",
-  "description": "The picker window may read its context, launch a browser, dismiss itself, open settings, check for a new version when its update button is pressed and open the download page, and listen for the events that tell it a new link waits (background mode, links macOS delivers to the open app) and what the daily version check found. Nothing from Tauri's core beyond listening to events.",
+  "description": "The picker window may read its context, launch a browser, replace the link on screen with the one the user edited (validated by Rust), dismiss itself, open settings, check for a new version when its update button is pressed and open the download page, and listen for the events that tell it a new link waits (background mode, links macOS delivers to the open app) and what the daily version check found. Nothing from Tauri's core beyond listening to events.",
   "windows": ["picker"],
   "permissions": [
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     "allow-launch-context",
     "allow-pick",
+    "allow-edit-link",
     "allow-dismiss",
     "allow-show-picker",
     "allow-open-settings",

@@ -17,7 +17,8 @@
     /** A line of a list rather than a square tile. */
     row?: boolean;
     highlighted: boolean;
-    onpick: () => void;
+    /** `event.shiftKey` asks for the private entry. */
+    onpick: (event: MouseEvent) => void;
     onmenu: (anchor: HTMLElement) => void;
   } = $props();
 
