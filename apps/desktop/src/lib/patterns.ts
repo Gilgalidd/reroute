@@ -1,6 +1,8 @@
 // Client-side helpers for editing `kind:pattern` strings. Validation proper
 // happens in Rust when the configuration is saved; this only drives the UI.
 
+import type { MessageKey } from "../i18n/i18n.svelte";
+
 export type PatternKind = "exact" | "domain" | "regex";
 
 export const PATTERN_KINDS: PatternKind[] = ["exact", "domain", "regex"];
@@ -24,19 +26,19 @@ export function parsePattern(text: string): ParsedPattern {
   return { kind: "exact", body: trimmed };
 }
 
-/** Cheap client-side sanity check, mirroring the Rust rules. */
-export function patternProblem(text: string): string | null {
+/** Cheap client-side sanity check, mirroring the Rust rules: the message key of the problem, if any. */
+export function patternProblem(text: string): MessageKey | null {
   const { kind, body } = parsePattern(text);
-  if (!body) return "empty pattern";
+  if (!body) return "rules.problem.empty";
   if (kind === "domain") {
     const host = body.startsWith("*.") ? body.slice(2) : body;
-    if (!/^[a-z0-9-]+(\.[a-z0-9-]+)*$/i.test(host)) return "not a valid host name";
+    if (!/^[a-z0-9-]+(\.[a-z0-9-]+)*$/i.test(host)) return "rules.problem.host";
   }
   if (kind === "regex") {
     try {
       new RegExp(body);
     } catch {
-      return "not a valid regular expression";
+      return "rules.problem.regex";
     }
   }
   return null;

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { t, tParts } from "../i18n/i18n.svelte";
   import { api, describeError } from "../lib/api";
   import type { AppInfo, LatestRelease } from "../lib/types";
   import Banner from "./Banner.svelte";
@@ -37,33 +38,34 @@
 </script>
 
 <div class="about">
-  <h2>Reroute</h2>
-  <p>Choose a browser for each link. Free software under the MIT license.</p>
+  <h2 translate="no">Reroute</h2>
+  <p>{t("about.tagline")}</p>
   {#if info}
     <dl>
-      <dt>Version</dt>
+      <dt>{t("about.version")}</dt>
       <dd>{info.version}</dd>
-      <dt>Platform</dt>
+      <dt>{t("about.platform")}</dt>
       <dd>{info.platform}</dd>
-      <dt>Configuration file</dt>
+      <dt>{t("about.config")}</dt>
       <dd><code>{info.config_path}</code></dd>
     </dl>
   {/if}
 
   <div class="row">
     <button type="button" onclick={checkVersion} disabled={checking}>
-      {checking ? "Checking…" : "Check for a new version"}
+      {checking ? t("about.checking") : t("about.check")}
     </button>
     {#if latest?.newer}
-      <button type="button" class="primary" onclick={openReleasePage}>Open the download page</button>
+      <button type="button" class="primary" onclick={openReleasePage}>{t("about.download")}</button>
     {/if}
   </div>
 
+  <!-- The parts on one line: whitespace between them would show. -->
   <div role="status" aria-live="polite">
     {#if latest?.newer}
-      Version <strong>{latest.version}</strong> is available.
+      {#each tParts("about.available", { version: latest.version }) as part}{#if part.slot === "version"}<strong>{part.text}</strong>{:else}{part.text}{/if}{/each}
     {:else if latest}
-      You have the latest version ({latest.version}).
+      {t("about.latest", { version: latest.version })}
     {/if}
   </div>
 
@@ -71,13 +73,7 @@
     <Banner tone="error">{error}</Banner>
   {/if}
 
-  <p class="muted">
-    Reroute forwards only <code>http</code> and <code>https</code> links, and only to executables
-    listed in its configuration file. It uses the network for one thing: asking which version is
-    newest, once a day when it starts (unless turned off in General) and when you press the button
-    above or the update button in the picker. No download, no installation, and nothing sent about
-    you or your browsers.
-  </p>
+  <p class="muted">{#each tParts("about.privacy", { http: "http", https: "https" }) as part}{#if part.slot}<code>{part.text}</code>{:else}{part.text}{/if}{/each}</p>
 </div>
 
 <style>

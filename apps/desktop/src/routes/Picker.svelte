@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
-  import { api, describeError } from "../lib/api";
+  import { setLanguage, t, tParts, tRust } from "../i18n/i18n.svelte";
+  import { api, asMessage, describeError } from "../lib/api";
   import { columnCount, mapKey, moveIndex } from "../lib/keys";
   import { applyTheme } from "../lib/theme";
   import type { BrowserView, LaunchContext, UpdateStatus } from "../lib/types";
@@ -26,13 +27,13 @@
   const updateTitle = $derived.by(() => {
     switch (status.state) {
       case "current":
-        return `Up to date (${status.version})`;
+        return t("picker.update.current", { version: status.version });
       case "available":
-        return `Version ${status.version} is available`;
+        return t("picker.update.available", { version: status.version });
       case "failed":
-        return `Could not check for a new version: ${status.reason}`;
+        return t("picker.update.failedReason", { reason: tRust(status.reason) });
       default:
-        return "Check for a new version";
+        return t("picker.update.check");
     }
   });
 
@@ -48,6 +49,7 @@
     try {
       context = await api.launchContext();
       applyTheme(context.settings.theme);
+      setLanguage(context.settings.language);
       highlighted = 0;
       remember = false;
       menu = null;
@@ -97,7 +99,7 @@
         ? { state: "available", version: release.version }
         : { state: "current", version: release.version };
     } catch (e) {
-      status = { state: "failed", reason: describeError(e) };
+      status = { state: "failed", reason: asMessage(e) };
     } finally {
       checking = false;
     }
@@ -154,15 +156,15 @@
       <div class="host" title={context.url.href}>{context.url.host}</div>
       <div class="href muted" title={context.url.href}>{context.url.href}</div>
     {:else if context?.url_error}
-      <Banner tone="error">This link was refused: {context.url_error}</Banner>
+      <Banner tone="error">{t("picker.refused", { reason: tRust(context.url_error) })}</Banner>
     {:else}
-      <div class="host">Reroute</div>
-      <div class="href muted">No link to open.</div>
+      <div class="host" translate="no">Reroute</div>
+      <div class="href muted">{t("picker.noLink")}</div>
     {/if}
   </header>
 
   {#if context?.config_error}
-    <Banner tone="error">Configuration not loaded: {context.config_error}</Banner>
+    <Banner tone="error">{t("picker.configError", { reason: tRust(context.config_error) })}</Banner>
   {/if}
   {#if error}
     <Banner tone="error">{error}</Banner>
@@ -170,8 +172,8 @@
 
   {#if context && browsers.length === 0}
     <div class="empty">
-      <p>No browsers configured yet.</p>
-      <button class="primary" type="button" onclick={() => api.openSettings()}>Open settings</button>
+      <p>{t("picker.empty")}</p>
+      <button class="primary" type="button" onclick={() => api.openSettings()}>{t("picker.openSettings")}</button>
     </div>
   {:else}
     <div
@@ -179,7 +181,7 @@
       class:list={layout === "list"}
       class:two-columns={layout === "two-columns"}
       bind:clientWidth={gridWidth}
-      aria-label="Browsers"
+      aria-label={t("picker.browsers")}
     >
       {#each browsers as browser, i (browser.id)}
         <BrowserTile
@@ -202,22 +204,23 @@
     {#if canPick && context?.settings.offer_remember && context.settings.rules_enabled}
       <label class="row remember">
         <input type="checkbox" bind:checked={remember} />
-        <span>Always use for <strong>{context?.url?.host}</strong></span>
+        <!-- On one line: whitespace between the parts would show. -->
+        <span>{#each tParts("picker.remember", { host: context.url?.host ?? "" }) as part}{#if part.slot === "host"}<strong>{part.text}</strong>{:else}{part.text}{/if}{/each}</span>
       </label>
     {/if}
     <span class="grow"></span>
     <!-- The update button reports where the key hint was. -->
     <span class="hint muted" role="status">
       {#if !showStatus}
-        1–9 · arrows · Enter · Esc
+        {t("picker.hint")}
       {:else if checking}
-        Checking for a new version…
+        {t("picker.update.checking")}
       {:else if status.state === "failed"}
-        <span title={status.reason}>Could not check for a new version</span>
+        <span title={tRust(status.reason)}>{t("picker.update.failed")}</span>
       {:else if status.state === "available"}
-        <button type="button" class="link" onclick={openDownloadPage}>Version {status.version} is available</button>
+        <button type="button" class="link" onclick={openDownloadPage}>{t("picker.update.available", { version: status.version })}</button>
       {:else if status.state === "current"}
-        Up to date ({status.version})
+        {t("picker.update.current", { version: status.version })}
       {/if}
     </span>
     <!-- Coloured by what the last check found: green when up to date, the
@@ -229,7 +232,7 @@
       class:available={status.state === "available"}
       class:failed={status.state === "failed"}
       title={updateTitle}
-      aria-label="Check for a new version"
+      aria-label={t("picker.update.check")}
       disabled={checking}
       onclick={checkForUpdate}
     >
@@ -239,8 +242,8 @@
         <path d="M20 3v5h-5" />
       </svg>
     </button>
-    <button type="button" title="Settings (,)" aria-label="Settings" onclick={() => api.openSettings()}>⚙</button>
-    <button type="button" onclick={() => api.dismiss()}>Cancel</button>
+    <button type="button" title={t("picker.settings.title")} aria-label={t("picker.settings")} onclick={() => api.openSettings()}>⚙</button>
+    <button type="button" onclick={() => api.dismiss()}>{t("picker.cancel")}</button>
   </footer>
 </main>
 

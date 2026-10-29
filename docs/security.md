@@ -16,6 +16,7 @@ does not, and how it defends itself.
 | Installed-browser metadata | `.desktop` files, registry, `Info.plist` | Medium | Only used to *propose* entries; executables are re-checked at launch |
 | Hurl import JSON | Pasted by the user | Medium | Same validation as a hand-written config |
 | Icon files, and on Windows programs holding an icon | Paths from the config | Medium | Size cap, content sniffing, no execution; a program's resources go through a bounds-checked parser |
+| Translation files | Contributors, through pull requests | Low until reviewed | Data only, bundled at build time; checks in CI; review by a fluent reader ([below](#translation-files)) |
 | Requests on the control socket (Linux, macOS) or pipe (Windows), background mode | The user's own processes | Low | Linux, macOS: private directory, checked before any link is sent. Windows: pipe open to the user alone, server's user checked before any link is sent. All: one-line protocol with a size cap; the same `SafeUrl` validation |
 
 ## URL validation (`reroute_core::url::SafeUrl`)
@@ -110,7 +111,14 @@ The UI runs in the platform web view (WebKitGTK, WebView2, WKWebView) with:
   - neither window gets Tauri's `core:default` set, so JavaScript cannot
     create tray icons or menus, query windows or resolve paths;
 - no Tauri plugins beyond the core, hence no file-system, shell, HTTP or
-  dialog APIs exposed to JavaScript.
+  dialog APIs exposed to JavaScript;
+- the settings window's title bar follows its page's `document.title`,
+  copied by Rust, so the page names its window in its language without any
+  window permission. Translations are bundled JSON, rendered as escaped text
+  only (no `{@html}` anywhere, which a test enforces). What Rust tells the
+  user arrives as a code and values, never markup: the page looks the code
+  up in its own catalogue and shows the values, a host name or a system
+  error for instance, as text.
 
 Icons are read by Rust, size-capped (2 MiB), type-checked by magic bytes
 (PNG, ICO, SVG, ICNS→PNG) and passed to the page as `data:` URLs. SVG is
@@ -121,6 +129,42 @@ section is read, at most 32 MiB of it; every offset and count is checked
 before use; the `.ico` file put together is capped at 2 MiB like any icon;
 the program is never run, and the parser is safe Rust. Any damaged or
 hostile file leaves the browser with its coloured tile.
+
+## Translation files
+
+Translations come from contributors, so a file in
+`apps/desktop/src/i18n/locales/` is untrusted until reviewed. The checks
+that hold it are in [translations.md](translations.md#checks); they run on
+every pull request.
+
+- **It is data.** JSON, bundled into the page by Vite at build time;
+  nothing is fetched while Reroute runs. Every value goes through Svelte's
+  escaping, with no `{@html}` anywhere, so a translation cannot add markup,
+  a script or a link: it can only change what a label says.
+- **It fills the keys the code asks for, no others.** A key `en.json` lacks
+  fails CI. Its placeholders must be the English ones, so it can neither
+  hide a value, such as the host name in *Always use for {host}*, nor
+  invent one.
+- **It reads as it looks.** No control character, no invisible or
+  bidirectional formatting character: a text cannot read differently from
+  what its reviewers saw. Non-breaking spaces are written as `\u00a0` and
+  `\u202f` escapes so that a diff shows them, and the sources hold no
+  invisible character either.
+- **What leaves the page.** `desktop.comment` is copied into the desktop
+  entries and into a Rust string in `crates/platform/src/register/linux.rs`.
+  It may hold no `"`, no `\` and no control character, so it can neither
+  end that string nor start a new line of the entry, such as an `Exec=`
+  line; the review of a new language checks that its change to those files
+  is the `Comment[…]` line alone. A file's name, the language's tag, must be
+  a canonical BCP 47 tag, which is all that goes into `Info.plist`.
+- **In CI** the files are only read, by the tests and by
+  `npm run i18n:status`, in the usual read-only workflow. The status goes
+  to the job's summary page, which needs no write permission, with each
+  language's name escaped as plain text.
+- **What remains is meaning.** A translation could say something false,
+  such as wrong instructions for making Reroute the default browser. That
+  is what the review by a fluent reader is for; machine translation is
+  accepted only as a draft that someone fluent has read.
 
 ## Network use
 

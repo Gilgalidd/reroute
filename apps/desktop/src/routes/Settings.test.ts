@@ -2,7 +2,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { beforeEach, describe, expect, it } from "vitest";
 import Settings from "./Settings.svelte";
-import { mockIpc, sparseConfig } from "../test/ipc";
+import { mockIpc, rustMessage, sparseConfig } from "../test/ipc";
 import type { Config } from "../lib/types";
 
 /** `config` plus one browser, as detection or an import would return it. */
@@ -128,11 +128,14 @@ describe("Settings window", () => {
 
   it("warns that config.toml could not be read, and says where Save keeps it", async () => {
     const ipc = mockIpc({
-      get_config: () => ({ config: { ...sparseConfig(), browsers: [], rulesets: [] }, load_error: "cannot parse configuration: line 3" }),
+      get_config: () => ({
+        config: { ...sparseConfig(), browsers: [], rulesets: [] },
+        load_error: rustMessage("config.parse", { detail: "line 3" }),
+      }),
       default_browser_status: () => true,
     });
     render(Settings);
-    expect(await screen.findByRole("alert")).toHaveTextContent("could not be read: cannot parse configuration: line 3");
+    expect(await screen.findByRole("alert")).toHaveTextContent("could not be read: cannot parse the configuration: line 3");
     expect(screen.getByRole("alert")).toHaveTextContent("config.toml.broken");
     await fireEvent.click(screen.getByRole("button", { name: "General" }));
     await fireEvent.change(screen.getByLabelText("Show browsers as"), { target: { value: "list" } });

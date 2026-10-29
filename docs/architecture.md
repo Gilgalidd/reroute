@@ -69,6 +69,7 @@ picker window is always created hidden; its page asks to be shown
 | `private` | The argument that opens a private window, per browser family. |
 | `control` | The one-line requests a new Reroute sends the one in the background: `open`, `open-activated` (with the click's activation token), `settings`. |
 | `release` | Version comparison, the once-a-day rule, the update status the picker shows. |
+| `error`, `message` | The error types, and `Message`: what a window tells the user, as a code the page translates and the values it needs; `message_codes!` declares the codes (see [translations.md](translations.md#messages-from-rust)). |
 
 Everything here is covered by unit tests and, for the URL and rule engines,
 property tests (`proptest`).
@@ -104,7 +105,8 @@ system.
 | `updates.rs` | The version check: once a day at start-up, and on demand. |
 | `incoming.rs` | `route` (rules or picker) and `launch`. |
 | `windows.rs` | Picker/settings window creation, focus-loss handling (on Windows by watching the window in front, since WebView2 reports the start of a move as a loss of focus), exit policy. |
-| `commands.rs` | IPC commands; each is listed in `build.rs` so Tauri generates a permission for it. |
+| `commands.rs` | IPC commands; each is listed in `build.rs` so Tauri generates a permission for it. They fail with a `Message`, never a sentence. |
+| `messages.rs` | The application's own message codes, and the test that keeps `src/i18n/rust-messages.json` in step with every code Rust declares. |
 | `capabilities/*.json` | Which window may call which command. |
 | `tauri.conf.json` | CSP, bundling targets, desktop template, icons, NSIS hooks. |
 | `windows/hooks.nsh` | NSIS uninstaller: removes the sign-in entry of the background mode. |
@@ -128,16 +130,22 @@ in [development.md](development.md#manual-test-checklist-before-a-release).
   copy and saves the whole `Config` in one IPC call; Rust validates.
 - `lib/api.ts` — the only file that calls `invoke`; mirrors `commands.rs`.
 - `lib/types.ts` — TypeScript mirror of the serialised Rust types.
+- `i18n/` — every text the windows show: `t()` and `tParts()` read the
+  current language's catalogue (`locales/<lang>.json`, bundled at build
+  time) and fall back to `en.json`; `tRust()` words a message from Rust
+  from its code. See [translations.md](translations.md).
 - Styling: CSS custom properties in `app.css`, from the Catppuccin palette
   (Latte when light, Frappé when dark, mauve accent), light/dark via
   `prefers-color-scheme` or `data-theme`; no inline styles (CSP).
 
 Pure helpers (`keys.ts`, `patterns.ts`, `config.ts`, `lines.ts`, `names.ts`,
-`ids.ts`) have Vitest tests. The
+`ids.ts`, `i18n/messages.ts`) have Vitest tests, and so do the translation
+files (`i18n/catalog.test.ts`). The
 two windows have component tests (`routes/*.test.ts`) that render them under
 jsdom against a fake IPC bridge (`src/test/ipc.ts`) and drive them like a
 user would: pick with a digit key, add a launch option, rename a ruleset,
-save, and check the payload sent to Rust.
+save, and check the payload sent to Rust. `i18n/pseudo.test.ts` draws them
+again in a pseudo-language, to catch any text that bypasses the catalogue.
 
 ## Design decisions
 

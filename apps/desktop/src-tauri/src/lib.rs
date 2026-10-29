@@ -20,6 +20,7 @@
 mod cli;
 mod commands;
 mod incoming;
+mod messages;
 mod resident;
 mod state;
 mod updates;
@@ -203,6 +204,7 @@ fn make_default_from_cli() {
             let verified = reroute_platform::register::is_default().unwrap_or(false);
             println!("Reroute is now the default browser (verified: {verified}).");
         }
+        // The command line speaks English: `message` prints its text.
         Ok(reroute_platform::register::Outcome::NeedsUserAction(message)) => println!("{message}"),
         Err(error) => {
             eprintln!("could not register: {error}");

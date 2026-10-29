@@ -1,4 +1,9 @@
-import type { Config, LaunchContext } from "../lib/types";
+import type { Config, LaunchContext, RustMessage } from "../lib/types";
+
+/** A message as Rust sends it; `text` is its English sentence. */
+export function rustMessage(code: string, params: RustMessage["params"] = {}, text = `(${code})`): RustMessage {
+  return { code, params, text };
+}
 
 type Handler = (args: Record<string, unknown>) => unknown;
 
@@ -41,7 +46,7 @@ export function mockIpc(handlers: Record<string, Handler>) {
 export function sparseConfig(): Config {
   return {
     version: 1,
-    settings: { rules_enabled: true, open_under_cursor: false, close_on_focus_loss: true, offer_remember: true, theme: "auto", picker_layout: "tiles", run_in_background: true, check_for_updates: true },
+    settings: { rules_enabled: true, open_under_cursor: false, close_on_focus_loss: true, offer_remember: true, theme: "auto", picker_layout: "tiles", run_in_background: true, check_for_updates: true, language: "auto" },
     browsers: [
       { id: "11111111-1111-1111-1111-111111111111", name: "Firefox", path: "/snap/bin/firefox", args: ["%URL%"], hidden: false } as Config["browsers"][number],
       {

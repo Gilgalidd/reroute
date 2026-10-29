@@ -3,6 +3,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { tRust } from "../i18n/i18n.svelte";
 import type {
   AppInfo,
   Config,
@@ -11,6 +12,7 @@ import type {
   LaunchContext,
   RegisterOutcome,
   LatestRelease,
+  RustMessage,
   TestResult,
   UpdateStatus,
   Uuid,
@@ -52,9 +54,24 @@ export const api = {
     listen<UpdateStatus>("update-status", (event) => handler(event.payload)),
 };
 
-/** Turn any thrown value into a readable message. */
+function isRustMessage(value: unknown): value is RustMessage {
+  if (typeof value !== "object" || value === null) return false;
+  const { code, params, text } = value as Record<string, unknown>;
+  return typeof code === "string" && typeof text === "string" && typeof params === "object" && params !== null;
+}
+
+/**
+ * A thrown value as a message: a failed command throws the one Rust sent.
+ * Anything else, such as the IPC bridge itself failing, keeps its own text,
+ * untranslated, under a code no catalogue has.
+ */
+export function asMessage(error: unknown): RustMessage {
+  if (isRustMessage(error)) return error;
+  const text = typeof error === "string" ? error : error instanceof Error ? error.message : String(error);
+  return { code: "", params: {}, text };
+}
+
+/** Turn any thrown value into a readable message, in the current language. */
 export function describeError(error: unknown): string {
-  if (typeof error === "string") return error;
-  if (error instanceof Error) return error.message;
-  return String(error);
+  return tRust(asMessage(error));
 }

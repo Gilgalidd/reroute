@@ -7,6 +7,7 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use reroute_core::Message;
 use reroute_core::release::{LastCheck, LatestRelease, UpdateStatus, check_due};
 use reroute_platform::release::{latest_release, load_last_check, store_last_check};
 use tauri::{AppHandle, Emitter, Manager};
@@ -74,7 +75,7 @@ pub fn refresh_if_due(app: &AppHandle) {
 
 /// Ask now which version is newest, and remember the answer. Blocks for up
 /// to the request's timeout, so it runs off the interface thread.
-pub fn check_now(app: &AppHandle) -> Result<LatestRelease, String> {
+pub fn check_now(app: &AppHandle) -> Result<LatestRelease, Message> {
     let state = app.state::<AppState>();
     match latest_release(CURRENT) {
         Ok(release) => {
@@ -91,7 +92,7 @@ pub fn check_now(app: &AppHandle) -> Result<LatestRelease, String> {
             Ok(release)
         }
         Err(error) => {
-            let reason = error.to_string();
+            let reason = error.message();
             state.set_update_status(UpdateStatus::Failed {
                 reason: reason.clone(),
             });

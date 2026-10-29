@@ -16,10 +16,10 @@ describe("parsePattern", () => {
 
 describe("patternProblem", () => {
   it("flags empty, bad hosts and bad regexes", () => {
-    expect(patternProblem("domain:")).toBe("empty pattern");
-    expect(patternProblem("domain:a b")).toBe("not a valid host name");
+    expect(patternProblem("domain:")).toBe("rules.problem.empty");
+    expect(patternProblem("domain:a b")).toBe("rules.problem.host");
     expect(patternProblem("domain:*.github.com")).toBeNull();
-    expect(patternProblem("regex:(")).toBe("not a valid regular expression");
+    expect(patternProblem("regex:(")).toBe("rules.problem.regex");
     expect(patternProblem("regex:^https://")).toBeNull();
     expect(patternProblem("https://a.org")).toBeNull();
   });

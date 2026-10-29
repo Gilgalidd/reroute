@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { LANGUAGES, languageName, t, tParts, tRust } from "../i18n/i18n.svelte";
   import { api, describeError } from "../lib/api";
   import { normalizeConfig } from "../lib/config";
   import type { Config, ImportReport } from "../lib/types";
@@ -27,8 +28,8 @@
       const outcome = await api.registerDefaultBrowser();
       registerMessage =
         outcome.kind === "done"
-          ? { tone: "success", text: "Reroute is now your default browser." }
-          : { tone: "info", text: outcome.message };
+          ? { tone: "success", text: t("general.default.done") }
+          : { tone: "info", text: tRust(outcome.message) };
       await refreshStatus();
     } catch (e) {
       registerMessage = { tone: "error", text: describeError(e) };
@@ -49,6 +50,13 @@
     }
   }
 
+  function imported(report: ImportReport): string {
+    return t("general.hurl.done", {
+      browsers: t("general.hurl.browsers", { count: report.browsers_added }),
+      rulesets: t("general.hurl.rulesets", { count: report.rulesets_added }),
+    });
+  }
+
   onMount(() => {
     void refreshStatus();
   });
@@ -56,17 +64,17 @@
 
 <div class="general">
   <section class="card">
-    <h3>Default browser</h3>
+    <h3>{t("general.default")}</h3>
     {#if isDefault === true}
-      <Banner tone="success">Reroute is the default browser.</Banner>
+      <Banner tone="success">{t("general.default.yes")}</Banner>
     {:else if isDefault === false}
-      <p>Reroute is not the default browser yet. Links will keep opening in your current browser.</p>
+      <p>{t("general.default.no")}</p>
     {:else}
-      <p class="muted">Could not determine the default browser on this system.</p>
+      <p class="muted">{t("general.default.unknown")}</p>
     {/if}
     <div class="row">
-      <button type="button" class="primary" onclick={register}>Make Reroute the default</button>
-      <button type="button" onclick={refreshStatus}>Re-check</button>
+      <button type="button" class="primary" onclick={register}>{t("general.default.make")}</button>
+      <button type="button" onclick={refreshStatus}>{t("general.default.recheck")}</button>
     </div>
     {#if registerMessage}
       <Banner tone={registerMessage.tone}>{registerMessage.text}</Banner>
@@ -74,46 +82,57 @@
   </section>
 
   <section class="card">
-    <h3>Behaviour</h3>
-    <label class="row"><input type="checkbox" bind:checked={config.settings.rules_enabled} /> Let rules choose a browser without asking</label>
-    <label class="row"><input type="checkbox" bind:checked={config.settings.offer_remember} /> Offer “always use for this domain” in the picker</label>
-    <label class="row"><input type="checkbox" bind:checked={config.settings.close_on_focus_loss} /> Close the picker when it loses focus</label>
-    <label class="row"><input type="checkbox" bind:checked={config.settings.open_under_cursor} /> Open the picker next to the mouse pointer</label>
-    <label class="row"><input type="checkbox" bind:checked={config.settings.run_in_background} /> Keep Reroute running in the background so the picker opens at once (starts with your session)</label>
-    <label class="row"><input type="checkbox" bind:checked={config.settings.check_for_updates} /> Check for a new version once a day, when Reroute starts</label>
+    <h3>{t("general.behaviour")}</h3>
+    <label class="row"><input type="checkbox" bind:checked={config.settings.rules_enabled} /> {t("general.rulesEnabled")}</label>
+    <label class="row"><input type="checkbox" bind:checked={config.settings.offer_remember} /> {t("general.offerRemember")}</label>
+    <label class="row"><input type="checkbox" bind:checked={config.settings.close_on_focus_loss} /> {t("general.closeOnFocusLoss")}</label>
+    <label class="row"><input type="checkbox" bind:checked={config.settings.open_under_cursor} /> {t("general.openUnderCursor")}</label>
+    <label class="row"><input type="checkbox" bind:checked={config.settings.run_in_background} /> {t("general.runInBackground")}</label>
+    <label class="row"><input type="checkbox" bind:checked={config.settings.check_for_updates} /> {t("general.checkForUpdates")}</label>
     <label class="row">
-      <span>Theme</span>
-      <select bind:value={config.settings.theme} class="narrow">
-        <option value="auto">Follow system</option>
-        <option value="light">Light</option>
-        <option value="dark">Dark</option>
+      <span>{t("general.language")}</span>
+      <select bind:value={config.settings.language} class="narrow">
+        <option value="auto">{t("general.language.auto")}</option>
+        <!-- Each language in its own words, which no translation changes. -->
+        {#each LANGUAGES as tag (tag)}
+          <option value={tag} lang={tag} translate="no">{languageName(tag)}</option>
+        {/each}
       </select>
     </label>
     <label class="row">
-      <span>Show browsers as</span>
+      <span>{t("general.theme")}</span>
+      <select bind:value={config.settings.theme} class="narrow">
+        <option value="auto">{t("general.theme.auto")}</option>
+        <option value="light">{t("general.theme.light")}</option>
+        <option value="dark">{t("general.theme.dark")}</option>
+      </select>
+    </label>
+    <label class="row">
+      <span>{t("general.layout")}</span>
       <select bind:value={config.settings.picker_layout} class="narrow">
-        <option value="tiles">Tiles</option>
-        <option value="list">A list</option>
-        <option value="two-columns">A list in two columns</option>
+        <option value="tiles">{t("general.layout.tiles")}</option>
+        <option value="list">{t("general.layout.list")}</option>
+        <option value="two-columns">{t("general.layout.twoColumns")}</option>
       </select>
     </label>
   </section>
 
   <section class="card">
-    <h3>Import from Hurl</h3>
-    <p class="muted">Paste the contents of Hurl's <code>UserSettings.json</code>. Its browsers and rules are added to the settings here; press Save to keep them.</p>
-    <textarea rows="5" bind:value={hurlJson} placeholder={"{ \"Browsers\": [...], \"Rulesets\": [...] }"} spellcheck="false"></textarea>
+    <h3>{t("general.hurl")}</h3>
+    <!-- On one line: whitespace between the parts would show. -->
+    <p class="muted">{#each tParts("general.hurl.help", { file: "UserSettings.json" }) as part}{#if part.slot === "file"}<code>{part.text}</code>{:else}{part.text}{/if}{/each}</p>
+    <textarea rows="5" bind:value={hurlJson} placeholder={"{ \"Browsers\": [...], \"Rulesets\": [...] }"} spellcheck="false" translate="no"></textarea>
     <div class="row">
-      <button type="button" onclick={importHurl} disabled={hurlJson.trim().length === 0}>Import</button>
+      <button type="button" onclick={importHurl} disabled={hurlJson.trim().length === 0}>{t("general.hurl.import")}</button>
     </div>
     {#if importError}
       <Banner tone="error">{importError}</Banner>
     {:else if importReport}
-      <Banner tone="success">Imported {importReport.browsers_added} browser(s) and {importReport.rulesets_added} ruleset(s). Press Save to keep them.</Banner>
+      <Banner tone="success">{imported(importReport)}</Banner>
       {#if importReport.notes.length}
         <ul class="notes">
           <!-- Not keyed by text: two notes can read the same. -->
-          {#each importReport.notes as note}<li>{note}</li>{/each}
+          {#each importReport.notes as note}<li>{tRust(note)}</li>{/each}
         </ul>
       {/if}
     {/if}

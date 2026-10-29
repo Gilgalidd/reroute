@@ -2720,6 +2720,7 @@ dependencies = [
  "reroute-core",
  "reroute-platform",
  "serde",
+ "serde_json",
  "tauri",
  "tauri-build",
  "tempfile",

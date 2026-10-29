@@ -44,6 +44,7 @@ version = 1        # format version; files from a newer Reroute are refused
 | `picker_layout` | `"tiles"` | `"tiles"`, `"list"` (one browser per line, its name in full) or `"two-columns"` (the same list in two columns, read left to right). Also in *Settings › General*. |
 | `run_in_background` | `true` | Keep Reroute running with its picker loaded, and start it when you sign in, so that the picker opens at once: an XDG autostart entry on Linux, a `Reroute` value in `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` on Windows, a launch agent `~/Library/LaunchAgents/dev.reroute.desktop.plist` on macOS (where Reroute then has no Dock icon while it waits). Turned off, Reroute starts for each click and exits after it. |
 | `check_for_updates` | `true` | Ask once a day, when Reroute starts, whether a newer version is published; the picker's update button shows the answer by its colour. |
+| `language` | `"auto"` | Language of the interface: `"auto"` follows the system, or a language tag such as `"fr"`. A language Reroute does not have shows in English. Also in *Settings › General*. |
 
 ## Browsers
 

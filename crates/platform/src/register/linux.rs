@@ -43,10 +43,12 @@ fn packaged_in(data_dirs: &[PathBuf]) -> bool {
         .any(|d| d.join("applications").join(DESKTOP_ID).is_file())
 }
 
-/// Contents of the desktop entry pointing at `exe`.
+/// Contents of the desktop entry pointing at `exe`. Its comments match the
+/// `desktop.comment` of each language in `apps/desktop/src/i18n/locales/`,
+/// as in the packaged `reroute.desktop`; a front-end test compares them.
 pub fn desktop_file_contents(exe: &Path) -> String {
     format!(
-        "[Desktop Entry]\nType=Application\nName=Reroute\nComment=Choose a browser for each link\nExec={} %u\nIcon=reroute\nTerminal=false\nCategories=Network;WebBrowser;\nMimeType=x-scheme-handler/http;x-scheme-handler/https;text/html;\nStartupWMClass={APP_ID}\nStartupNotify=false\nNoDisplay=false\n",
+        "[Desktop Entry]\nType=Application\nName=Reroute\nComment=Choose a browser for each link\nComment[fr]=Choisir un navigateur pour chaque lien\nExec={} %u\nIcon=reroute\nTerminal=false\nCategories=Network;WebBrowser;\nMimeType=x-scheme-handler/http;x-scheme-handler/https;text/html;\nStartupWMClass={APP_ID}\nStartupNotify=false\nNoDisplay=false\n",
         quote_exec(exe)
     )
 }

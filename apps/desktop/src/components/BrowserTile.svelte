@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "../i18n/i18n.svelte";
   import type { BrowserView } from "../lib/types";
   import { shortcutFor } from "../lib/keys";
   import { splitName } from "../lib/names";
@@ -36,7 +37,7 @@
     bind:this={element}
     class="tile"
     type="button"
-    aria-label={`${browser.name}${browser.launches.length ? ", has launch options" : ""}`}
+    aria-label={browser.launches.length ? t("picker.tile.withLaunches", { browser: browser.name }) : browser.name}
     onclick={onpick}
     oncontextmenu={(e) => {
       e.preventDefault();
@@ -47,7 +48,7 @@
     {#if browser.icon}
       <img class="icon" src={browser.icon} alt="" draggable="false" />
     {:else}
-      <span class="icon letter" style:--tile-accent={accent}>{initial}</span>
+      <span class="icon letter" style:--tile-accent={accent} translate="no">{initial}</span>
     {/if}
     <span class="name" title={browser.name}>{shown.base}</span>
     {#if shown.mode}<span class="mode">{shown.mode}</span>{/if}
@@ -60,8 +61,8 @@
       class="more"
       type="button"
       tabindex="-1"
-      title="Launch options"
-      aria-label={`Launch options for ${browser.name}`}
+      title={t("picker.tile.launches")}
+      aria-label={t("picker.tile.launchesFor", { browser: browser.name })}
       onclick={() => {
         if (element) onmenu(element);
       }}>▾</button

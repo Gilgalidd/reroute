@@ -2,7 +2,7 @@
 import { fireEvent, render, screen } from "@testing-library/svelte";
 import { beforeEach, describe, expect, it } from "vitest";
 import Picker from "./Picker.svelte";
-import { launchContext, mockIpc } from "../test/ipc";
+import { launchContext, mockIpc, rustMessage } from "../test/ipc";
 
 describe("Picker window", () => {
   beforeEach(() => {
@@ -129,11 +129,11 @@ describe("Picker window", () => {
 
   it("dismisses on Escape and shows a refused URL", async () => {
     const ipc = mockIpc({
-      launch_context: () => ({ ...launchContext(), url: null, url_error: "scheme `javascript` is not allowed" }),
+      launch_context: () => ({ ...launchContext(), url: null, url_error: rustMessage("url.scheme_not_allowed", { scheme: "javascript" }) }),
       dismiss: () => null,
     });
     render(Picker);
-    expect(await screen.findByRole("alert")).toHaveTextContent("scheme `javascript` is not allowed");
+    expect(await screen.findByRole("alert")).toHaveTextContent("This link was refused: “javascript” links are not allowed");
     await fireEvent.keyDown(window, { key: "Escape" });
     expect(ipc.calls.some((c) => c.cmd === "dismiss")).toBe(true);
   });

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, tParts } from "../i18n/i18n.svelte";
   import { api, describeError } from "../lib/api";
   import { normalizeConfig } from "../lib/config";
   import { newId } from "../lib/ids";
@@ -15,7 +16,7 @@
   const selectedIndex = $derived(config.browsers.findIndex((b) => b.id === selectedId));
 
   function addBrowser() {
-    const browser: Browser = { id: newId(), name: "New browser", path: "", args: ["%URL%"], hidden: false, launches: [] };
+    const browser: Browser = { id: newId(), name: t("browsers.newName"), path: "", args: ["%URL%"], hidden: false, launches: [] };
     config.browsers.push(browser);
     selectedId = browser.id;
   }
@@ -45,7 +46,7 @@
       const added = config.browsers.length - before;
       message = {
         tone: "info",
-        text: added ? `Added ${added} browser(s). Press Save to keep them.` : "No new browser found.",
+        text: added ? t("browsers.detected", { count: added }) : t("browsers.noneFound"),
       };
     } catch (e) {
       message = { tone: "error", text: describeError(e) };
@@ -56,10 +57,10 @@
 <div class="two-col">
   <aside>
     <div class="row">
-      <button type="button" class="primary" onclick={addBrowser}>Add</button>
-      <button type="button" onclick={detect}>Detect installed</button>
+      <button type="button" class="primary" onclick={addBrowser}>{t("browsers.add")}</button>
+      <button type="button" onclick={detect}>{t("browsers.detect")}</button>
     </div>
-    <ul class="list" role="listbox" aria-label="Browsers">
+    <ul class="list" role="listbox" aria-label={t("browsers.list")}>
       {#each config.browsers as browser (browser.id)}
         <li>
           <button
@@ -69,8 +70,8 @@
             class:active={browser.id === selectedId}
             onclick={() => (selectedId = browser.id)}
           >
-            <span class="grow">{browser.name || "(unnamed)"}</span>
-            {#if browser.hidden}<span class="muted">hidden</span>{/if}
+            <span class="grow">{browser.name || t("browsers.unnamed")}</span>
+            {#if browser.hidden}<span class="muted">{t("browsers.hidden")}</span>{/if}
           </button>
         </li>
       {/each}
@@ -83,56 +84,56 @@
   <div class="editor">
     {#if selected}
       <label>
-        <span>Name</span>
+        <span>{t("browsers.name")}</span>
         <input type="text" bind:value={selected.name} />
       </label>
       <label>
-        <span>Executable (absolute path)</span>
-        <input type="text" bind:value={selected.path} placeholder="/usr/bin/firefox" spellcheck="false" />
+        <span>{t("browsers.path")}</span>
+        <input type="text" bind:value={selected.path} placeholder="/usr/bin/firefox" spellcheck="false" translate="no" />
       </label>
       <label>
-        <span>Arguments, one per line. <code>%URL%</code> marks where the link goes (appended if absent).</span>
+        <!-- On one line: whitespace between the parts would show. -->
+        <span>{#each tParts("browsers.args", { url: "%URL%" }) as part}{#if part.slot === "url"}<code>{part.text}</code>{:else}{part.text}{/if}{/each}</span>
         <textarea rows="3" value={selected.args.join("\n")} oninput={(e) => (selected.args = splitLines(e.currentTarget.value))}></textarea>
       </label>
       <label>
-        <span>Icon file (PNG, SVG or ICO; optional)</span>
+        <span>{t("browsers.icon")}</span>
         <input type="text" value={selected.icon ?? ""} oninput={(e) => (selected.icon = e.currentTarget.value.trim() || null)} spellcheck="false" />
       </label>
       <label class="row">
         <input type="checkbox" bind:checked={selected.hidden} />
-        <span>Hide from the picker (rules can still use it)</span>
+        <span>{t("browsers.hide")}</span>
       </label>
 
-      <h3>Launch options</h3>
-      <p class="muted">
-        Other ways to start this browser, a profile for instance, shown on right-click in the
-        picker. Add them with the arguments your browser documents, one per line. Private windows
-        are separate entries in the list on the left.
-      </p>
+      <h3>{t("browsers.launches")}</h3>
+      <p class="muted">{t("browsers.launches.help")}</p>
       {#each selected.launches as launch, i (launch.id)}
         <div class="launch">
-          <input type="text" bind:value={launch.name} placeholder="Work profile" aria-label="Launch option name" />
+          <input type="text" bind:value={launch.name} placeholder={t("browsers.launch.namePlaceholder")} aria-label={t("browsers.launch.name")} />
           <textarea
             rows="2"
             value={launch.args.join("\n")}
             placeholder={"--profile-directory=Profile 1\n%URL%"}
-            aria-label="Launch option arguments, one per line"
+            aria-label={t("browsers.launch.args")}
             spellcheck="false"
+            translate="no"
             oninput={(e) => (launch.args = splitLines(e.currentTarget.value))}
           ></textarea>
-          <button type="button" class="danger" aria-label="Remove launch option" onclick={() => selected.launches.splice(i, 1)}>✕</button>
+          <button type="button" class="danger" aria-label={t("browsers.launch.remove")} onclick={() => selected.launches.splice(i, 1)}>✕</button>
         </div>
       {/each}
-      <button type="button" onclick={() => selected.launches.push({ id: newId(), name: "New option", args: ["%URL%"] })}>Add launch option</button>
+      <button type="button" onclick={() => selected.launches.push({ id: newId(), name: t("browsers.launch.newName"), args: ["%URL%"] })}
+        >{t("browsers.launch.add")}</button
+      >
 
       <div class="row actions">
-        <button type="button" onclick={() => move(-1)} disabled={selectedIndex <= 0}>Move up</button>
-        <button type="button" onclick={() => move(1)} disabled={selectedIndex >= config.browsers.length - 1}>Move down</button>
+        <button type="button" onclick={() => move(-1)} disabled={selectedIndex <= 0}>{t("browsers.moveUp")}</button>
+        <button type="button" onclick={() => move(1)} disabled={selectedIndex >= config.browsers.length - 1}>{t("browsers.moveDown")}</button>
         <span class="grow"></span>
-        <button type="button" class="danger" onclick={remove}>Remove browser</button>
+        <button type="button" class="danger" onclick={remove}>{t("browsers.remove")}</button>
       </div>
     {:else}
-      <p class="muted">Select a browser, add one, or detect the browsers installed on this computer.</p>
+      <p class="muted">{t("browsers.none")}</p>
     {/if}
   </div>
 </div>

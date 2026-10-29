@@ -24,7 +24,7 @@ pub enum Outcome {
     /// Reroute is now the default browser.
     Done,
     /// The system requires the user to confirm; the message says where.
-    NeedsUserAction(String),
+    NeedsUserAction(reroute_core::Message),
 }
 
 /// Is Reroute currently the default handler for `https`?

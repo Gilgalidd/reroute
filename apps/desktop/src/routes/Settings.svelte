@@ -1,9 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { type MessageKey, setLanguage, t, tRust } from "../i18n/i18n.svelte";
   import { api, describeError } from "../lib/api";
   import { applyTheme } from "../lib/theme";
   import { normalizeConfig } from "../lib/config";
-  import type { Config } from "../lib/types";
+  import type { Config, RustMessage } from "../lib/types";
   import Banner from "../components/Banner.svelte";
   import BrowsersTab from "../components/BrowsersTab.svelte";
   import RulesTab from "../components/RulesTab.svelte";
@@ -11,11 +12,11 @@
   import AboutTab from "../components/AboutTab.svelte";
 
   type Tab = "browsers" | "rules" | "general" | "about";
-  const tabs: { id: Tab; label: string }[] = [
-    { id: "browsers", label: "Browsers" },
-    { id: "rules", label: "Rules" },
-    { id: "general", label: "General" },
-    { id: "about", label: "About" },
+  const tabs: { id: Tab; label: MessageKey }[] = [
+    { id: "browsers", label: "settings.tab.browsers" },
+    { id: "rules", label: "settings.tab.rules" },
+    { id: "general", label: "settings.tab.general" },
+    { id: "about", label: "settings.tab.about" },
   ];
 
   let tab = $state<Tab>("browsers");
@@ -23,7 +24,7 @@
   let saved = $state("");
   let status = $state<{ tone: "info" | "error" | "success"; text: string } | null>(null);
   /** Why config.toml could not be read; the draft then holds only the installed browsers. */
-  let loadError = $state<string | null>(null);
+  let loadError = $state<RustMessage | null>(null);
 
   const dirty = $derived(draft !== null && JSON.stringify(draft) !== saved);
 
@@ -50,8 +51,8 @@
       await api.saveConfig(snapshot);
       adopt(snapshot);
       status = loadError
-        ? { tone: "info", text: "Saved. The unreadable file is kept as config.toml.broken." }
-        : { tone: "success", text: "Saved." };
+        ? { tone: "info", text: t("settings.savedBroken") }
+        : { tone: "success", text: t("settings.saved") };
       loadError = null;
     } catch (e) {
       status = { tone: "error", text: describeError(e) };
@@ -67,17 +68,30 @@
   $effect(() => {
     if (draft) applyTheme(draft.settings.theme);
   });
+  // A language chosen in General shows at once, as the theme does; Discard
+  // brings the saved one back.
+  $effect(() => {
+    if (draft) setLanguage(draft.settings.language);
+  });
+  // Rust names the window after the page's title.
+  $effect(() => {
+    document.title = t("settings.title");
+  });
   $effect(() => {
     if (status?.tone === "success") {
-      const t = setTimeout(() => (status = null), 2500);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => (status = null), 2500);
+      return () => clearTimeout(timer);
     }
   });
 </script>
 
 <svelte:window
-  onerror={(e) => (status = { tone: "error", text: `Unexpected error: ${e instanceof ErrorEvent ? e.message : "see the console"}` })}
-  onunhandledrejection={(e) => (status = { tone: "error", text: `Unexpected error: ${describeError(e.reason)}` })}
+  onerror={(e) =>
+    (status = {
+      tone: "error",
+      text: t("settings.unexpected", { detail: e instanceof ErrorEvent ? e.message : t("settings.unexpected.console") }),
+    })}
+  onunhandledrejection={(e) => (status = { tone: "error", text: t("settings.unexpected", { detail: describeError(e.reason) }) })}
   onkeydown={(e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === "s") {
       e.preventDefault();
@@ -90,19 +104,16 @@
 />
 
 <div class="layout">
-  <nav aria-label="Settings sections">
-    <div class="brand">Reroute</div>
-    {#each tabs as t (t.id)}
-      <button type="button" class:active={tab === t.id} onclick={() => (tab = t.id)}>{t.label}</button>
+  <nav aria-label={t("settings.sections")}>
+    <div class="brand" translate="no">Reroute</div>
+    {#each tabs as item (item.id)}
+      <button type="button" class:active={tab === item.id} onclick={() => (tab = item.id)}>{t(item.label)}</button>
     {/each}
   </nav>
 
   <section class="content">
     {#if loadError}
-      <Banner tone="error">
-        config.toml could not be read: {loadError}. You are editing a new configuration with the browsers installed on this computer. Saving keeps the
-        unreadable file as config.toml.broken, next to it, so you can repair it or copy rules from it.
-      </Banner>
+      <Banner tone="error">{t("settings.loadError", { reason: tRust(loadError) })}</Banner>
     {/if}
     {#if draft}
       {#if tab === "browsers"}
@@ -117,7 +128,7 @@
     {:else if status}
       <Banner tone={status.tone}>{status.text}</Banner>
     {:else}
-      <p class="muted">Loading…</p>
+      <p class="muted">{t("settings.loading")}</p>
     {/if}
   </section>
 
@@ -125,11 +136,11 @@
     {#if status}
       <Banner tone={status.tone}>{status.text}</Banner>
     {:else if dirty}
-      <span class="muted">Unsaved changes</span>
+      <span class="muted">{t("settings.unsaved")}</span>
     {/if}
     <span class="grow"></span>
-    <button type="button" onclick={discard} disabled={!dirty}>Discard</button>
-    <button type="button" class="primary" onclick={save} disabled={!dirty}>Save</button>
+    <button type="button" onclick={discard} disabled={!dirty}>{t("settings.discard")}</button>
+    <button type="button" class="primary" onclick={save} disabled={!dirty}>{t("settings.save")}</button>
   </footer>
 </div>
 

@@ -37,6 +37,21 @@ understand in an afternoon, so the bar is "clear and boring" rather than
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/)
 (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`).
 
+## Translations
+
+Translators: the guide is [docs/translations.md](docs/translations.md#translating-reroute).
+A GitHub account is all it takes; open a
+[*New language*](https://github.com/Gilgalidd/reroute/issues/new?template=new-language.yml)
+issue first, so that two people do not translate the same language.
+
+Developers: every text the interface shows goes through `t()` and a key in
+`apps/desktop/src/i18n/locales/en.json`; `npm test` fails on a text written
+in a component, an unused key or a broken placeholder. A message Rust shows
+in a window is a code declared with `message_codes!` and a `rust.<code>` key,
+never a sentence; `cargo test` prints the list to paste into
+`apps/desktop/src/i18n/rust-messages.json`. The rules and the checks are in
+[docs/translations.md](docs/translations.md#for-developers).
+
 ## Code style
 
 - Rust: `rustfmt` defaults with `max_width = 100`; clippy pedantic is on.

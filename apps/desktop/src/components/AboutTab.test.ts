@@ -2,7 +2,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { beforeEach, describe, expect, it } from "vitest";
 import AboutTab from "./AboutTab.svelte";
-import { mockIpc } from "../test/ipc";
+import { mockIpc, rustMessage } from "../test/ipc";
 
 const PAGE = "https://github.com/Gilgalidd/reroute/releases/latest";
 
@@ -48,7 +48,7 @@ describe("About tab, version check", () => {
   it("shows why a check failed", async () => {
     show({
       check_latest_release: () => {
-        throw "no published release was found (are the releases private?)";
+        throw rustMessage("release.not_found");
       },
     });
     await fireEvent.click(screen.getByRole("button", { name: "Check for a new version" }));

@@ -37,6 +37,10 @@ base64 = "0.23"
 # A private directory for the configuration when there is no home directory.
 tempfile = { workspace = true }
 
+[dev-dependencies]
+# Already a dependency of Tauri; reads the interface's list of message codes.
+serde_json = { workspace = true }
+
 [target.'cfg(target_os = "linux")'.dependencies]
 # Already built as part of GTK; used only to name the program (see lib.rs).
 glib = "0.18"

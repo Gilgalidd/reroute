@@ -40,6 +40,9 @@ design and a code base small enough for one person to maintain.
   `Space` opens the profile menu, `Esc` cancels, `,` opens settings.
 - **Tiles or a list** — the picker shows tiles, or a list in one or two
   columns where every name is written in full.
+- **In English and French** — following the system's language, or the one
+  chosen in *Settings › General*. Other languages are one JSON file each,
+  see [translations](docs/translations.md).
 - **Finds your browsers** — desktop entries on Linux (including Flatpak and
   Snap), the registry on Windows, application bundles on macOS, with their
   real icons. Each browser with a private mode gets a second entry for it,
@@ -183,6 +186,7 @@ The full reference, including every pattern kind, is in
 | [Security model](docs/security.md) | Threat model, URL validation, process execution, file permissions, web view hardening, supply chain |
 | [Architecture](docs/architecture.md) | Crates, modules, life of a click, design decisions |
 | [Development guide](docs/development.md) | Toolchain, build, test, manual checklist, releasing |
+| [Roadmap](ROADMAP.md) | What is planned next |
 | [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Security policy](SECURITY.md) | Project process |
 
 ## Status

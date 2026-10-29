@@ -40,9 +40,12 @@ mod exe_icon;
 pub mod foreground;
 pub mod icons;
 pub mod launch;
+pub mod message;
 pub mod paths;
 pub mod register;
 pub mod release;
+
+use reroute_core::Message;
 
 /// Errors from OS integration.
 #[derive(Debug, thiserror::Error)]
@@ -64,4 +67,46 @@ pub enum PlatformError {
     /// Icon file rejected.
     #[error("icon rejected: {0}")]
     Icon(String),
+}
+
+impl PlatformError {
+    /// What to tell the user. The system's own words stay in English, as
+    /// the `detail` of the message.
+    pub fn message(&self) -> Message {
+        let text = self.to_string();
+        match self {
+            Self::Tool { tool, reason } => {
+                message::PLATFORM_TOOL.with([(*tool).into(), reason.as_str().into()], text)
+            }
+            Self::Os(detail) => message::PLATFORM_OS.with([detail.as_str().into()], text),
+            Self::Unsupported => message::PLATFORM_UNSUPPORTED.with([], text),
+            Self::Icon(detail) => message::PLATFORM_ICON.with([detail.as_str().into()], text),
+        }
+    }
+}
+
+impl From<PlatformError> for Message {
+    fn from(error: PlatformError) -> Self {
+        error.message()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_tool_that_failed_is_named() {
+        let error = PlatformError::Tool {
+            tool: "xdg-settings",
+            reason: "exit status 1".into(),
+        };
+        let message = error.message();
+        assert_eq!(message.code, "platform.tool");
+        assert_eq!(message.text, "xdg-settings failed: exit status 1");
+        assert_eq!(
+            serde_json::to_value(&message).unwrap()["params"],
+            serde_json::json!({ "tool": "xdg-settings", "detail": "exit status 1" })
+        );
+    }
 }

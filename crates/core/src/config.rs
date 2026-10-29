@@ -8,7 +8,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::browser::{Browser, BrowserId, Launch, LaunchId};
-use crate::error::ConfigError;
+use crate::error::{ConfigError, PatternError};
+use crate::message::{self, Message};
 use crate::rules::Ruleset;
 
 /// Format version written to new files. Bump when a change is not
@@ -63,7 +64,14 @@ pub struct Settings {
     /// Ask once a day, when Reroute starts, whether a newer version is
     /// published. The answer colours the update button in the picker.
     pub check_for_updates: bool,
+    /// Language of the interface: [`AUTO_LANGUAGE`], the system's, or a
+    /// language tag such as `fr` or `pt-BR`. The interface shows English
+    /// for a language it does not have.
+    pub language: String,
 }
+
+/// The `language` setting that follows the system.
+pub const AUTO_LANGUAGE: &str = "auto";
 
 impl Default for Settings {
     fn default() -> Self {
@@ -76,8 +84,20 @@ impl Default for Settings {
             picker_layout: PickerLayout::Tiles,
             run_in_background: true,
             check_for_updates: true,
+            language: AUTO_LANGUAGE.to_owned(),
         }
     }
+}
+
+/// Whether `language` can be the `language` setting: [`AUTO_LANGUAGE`], or
+/// a language tag, parts of one to eight letters or digits joined by
+/// hyphens. Whether Reroute has that language is the interface's business.
+fn is_language_setting(language: &str) -> bool {
+    language == AUTO_LANGUAGE
+        || (language.len() <= 35
+            && language.split('-').all(|part| {
+                (1..=8).contains(&part.len()) && part.bytes().all(|b| b.is_ascii_alphanumeric())
+            }))
 }
 
 /// Outcome of [`Config::merge`].
@@ -87,8 +107,8 @@ pub struct MergeReport {
     pub browsers_added: usize,
     /// Rulesets appended.
     pub rulesets_added: usize,
-    /// Human-readable remarks about redirected or skipped items.
-    pub notes: Vec<String>,
+    /// Remarks about redirected or skipped items.
+    pub notes: Vec<Message>,
 }
 
 /// Everything Reroute persists.
@@ -144,9 +164,13 @@ impl Config {
         toml::to_string_pretty(self).map_err(|e| ConfigError::Parse(e.to_string()))
     }
 
-    /// Check referential integrity: unique ids, absolute paths, and every
-    /// ruleset pointing at an existing browser/launch.
+    /// Check referential integrity: unique ids, absolute paths, every
+    /// ruleset pointing at an existing browser/launch, and a well-formed
+    /// language.
     pub fn validate(&self) -> Result<(), ConfigError> {
+        if !is_language_setting(&self.settings.language) {
+            return Err(ConfigError::InvalidLanguage(self.settings.language.clone()));
+        }
         let mut seen = std::collections::HashSet::new();
         for b in &self.browsers {
             if b.name.trim().is_empty() {
@@ -259,9 +283,12 @@ impl Config {
         for browser in other.browsers {
             if let Some(existing) = self.browsers.iter().find(|b| b.path == browser.path) {
                 browser_map.insert(browser.id, existing.id);
-                report.notes.push(format!(
-                    "browser `{}` already exists as `{}`; rules were redirected to it",
-                    browser.name, existing.name
+                report.notes.push(message::MERGE_BROWSER_EXISTS.with(
+                    [browser.name.as_str().into(), existing.name.as_str().into()],
+                    format!(
+                        "browser `{}` already exists as `{}`; rules were redirected to it",
+                        browser.name, existing.name
+                    ),
                 ));
             } else {
                 browser_map.insert(browser.id, browser.id);
@@ -272,19 +299,23 @@ impl Config {
         }
         for mut set in other.rulesets {
             let Some(&browser) = browser_map.get(&set.browser) else {
-                report
-                    .notes
-                    .push(format!("skipped ruleset `{}`: unknown browser", set.name));
+                report.notes.push(message::MERGE_UNKNOWN_BROWSER.with(
+                    [set.name.as_str().into()],
+                    format!("skipped ruleset `{}`: unknown browser", set.name),
+                ));
                 continue;
             };
             set.browser = browser;
             if let Some(launch) = set.launch
                 && !kept_launches.contains(&launch)
             {
-                report.notes.push(format!(
+                report.notes.push(message::MERGE_DEFAULT_LAUNCH.with(
+                    [set.name.as_str().into()],
+                    format!(
                         "ruleset `{}` now uses the default launch (its profile belonged to a browser that already existed)",
                         set.name
-                    ));
+                    ),
+                ));
                 set.launch = None;
             }
             self.rulesets.push(set);
@@ -306,14 +337,8 @@ impl Config {
         host: &str,
         browser: BrowserId,
         launch: Option<LaunchId>,
-    ) -> Result<(), ConfigError> {
-        let pattern: crate::rules::Pattern =
-            format!("domain:*.{host}")
-                .parse()
-                .map_err(|source| ConfigError::Pattern {
-                    ruleset: "remembered".into(),
-                    source,
-                })?;
+    ) -> Result<(), PatternError> {
+        let pattern: crate::rules::Pattern = format!("domain:*.{host}").parse()?;
         if let Some(set) = self
             .rulesets
             .iter_mut()
@@ -398,6 +423,29 @@ mod tests {
             assert_eq!(config.unwrap().settings.picker_layout, layout, "{text}");
         }
         assert!(Config::from_toml("[settings]\npicker_layout = \"grid\"\n").is_err());
+    }
+
+    #[test]
+    fn language_is_optional_and_a_well_formed_tag() {
+        let older = Config::from_toml("[settings]\ntheme = \"dark\"\n").unwrap();
+        assert_eq!(older.settings.language, AUTO_LANGUAGE);
+        for tag in ["auto", "fr", "pt-BR", "zh-Hant-TW", "pseudo"] {
+            let config = Config::from_toml(&format!("[settings]\nlanguage = \"{tag}\"\n"));
+            assert_eq!(config.unwrap().settings.language, tag);
+        }
+        for bad in [
+            "",
+            "fr_FR",
+            "fr-",
+            "-fr",
+            "français",
+            "toolongpart",
+            "fr fr",
+        ] {
+            let err =
+                Config::from_toml(&format!("[settings]\nlanguage = \"{bad}\"\n")).unwrap_err();
+            assert_eq!(err, ConfigError::InvalidLanguage(bad.to_owned()), "{bad:?}");
+        }
     }
 
     #[test]
@@ -603,7 +651,20 @@ mod tests {
         );
         assert_eq!(mine.rulesets[1].launch, None, "foreign launch dropped");
         assert_eq!(mine.rulesets[2].name, "To Brave");
-        assert_eq!(report.notes.len(), 3, "{:?}", report.notes);
+        let codes: Vec<&str> = report.notes.iter().map(|note| note.code).collect();
+        assert_eq!(
+            codes,
+            [
+                "merge.browser_exists",
+                "merge.default_launch",
+                "merge.unknown_browser"
+            ]
+        );
+        assert!(
+            report.notes[0]
+                .text
+                .contains("`FF` already exists as `Firefox`")
+        );
         mine.validate().unwrap();
     }
 

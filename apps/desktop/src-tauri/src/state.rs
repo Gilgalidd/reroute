@@ -6,7 +6,9 @@ use std::sync::{Mutex, MutexGuard, PoisonError};
 use std::time::SystemTime;
 
 use reroute_core::release::UpdateStatus;
-use reroute_core::{Browser, Config, ConfigStore, SafeUrl};
+use reroute_core::{Browser, Config, ConfigStore, Message, SafeUrl};
+
+use crate::messages;
 
 /// Everything the windows need to know.
 pub struct AppState {
@@ -17,8 +19,8 @@ pub struct AppState {
     /// to notice an edit made by hand while Reroute runs in the background.
     read_at: Mutex<Option<SystemTime>>,
     pending: Mutex<Option<Pending>>,
-    url_error: Mutex<Option<String>>,
-    config_error: Mutex<Option<String>>,
+    url_error: Mutex<Option<Message>>,
+    config_error: Mutex<Option<Message>>,
     /// This process stays in the background for later clicks.
     resident: AtomicBool,
     /// A link waits for the picker, which shows once its page has read it.
@@ -71,7 +73,7 @@ impl AppState {
             Ok(config) => config,
             Err(error) => {
                 log::error!("configuration not loaded: {error}");
-                config_error = Some(error.to_string());
+                config_error = Some(error.message());
                 Config::default()
             }
         };
@@ -125,7 +127,7 @@ impl AppState {
             }
             Err(error) => {
                 log::error!("configuration not reloaded: {error}");
-                *lock(&self.config_error) = Some(error.to_string());
+                *lock(&self.config_error) = Some(error.message());
             }
         }
         *lock(&self.read_at) = now;
@@ -202,13 +204,13 @@ impl AppState {
     /// If the file could not be read at start-up, it is moved aside as
     /// `config.toml.broken` first: the user may want the rules it holds, and
     /// the empty configuration in memory must not overwrite them.
-    pub fn save(&self, config: Config) -> Result<(), String> {
+    pub fn save(&self, config: Config) -> Result<(), Message> {
         if self.config_error().is_some()
-            && let Some(kept) = self.store.set_aside().map_err(|e| e.to_string())?
+            && let Some(kept) = self.store.set_aside()?
         {
             log::warn!("unreadable configuration kept as {}", kept.display());
         }
-        self.store.save(&config).map_err(|e| e.to_string())?;
+        self.store.save(&config)?;
         *lock(&self.config) = config;
         *lock(&self.config_error) = None;
         *lock(&self.read_at) = modified(&self.store);
@@ -229,11 +231,14 @@ impl AppState {
     /// picker showed when the user chose: a new link may have arrived
     /// meanwhile, and the choice, "always use for this domain" included,
     /// was made for the link on screen.
-    pub fn pending_for(&self, url: &str) -> Result<Pending, &'static str> {
+    pub fn pending_for(&self, url: &str) -> Result<Pending, Message> {
         match self.pending() {
-            None => Err("there is no URL to open"),
+            None => Err(messages::PICK_NO_LINK.with([], "there is no URL to open")),
             Some(pending) if pending.url.as_str() == url => Ok(pending),
-            Some(_) => Err("A new link arrived. Choose a browser for it."),
+            Some(_) => {
+                Err(messages::PICK_NEW_LINK
+                    .with([], "A new link arrived. Choose a browser for it."))
+            }
         }
     }
 
@@ -245,18 +250,18 @@ impl AppState {
     }
 
     /// Record why the incoming URL was refused (shown in the picker).
-    pub fn set_url_error(&self, message: String) {
+    pub fn set_url_error(&self, message: Message) {
         *lock(&self.pending) = None;
         *lock(&self.url_error) = Some(message);
     }
 
     /// Last URL refusal, if any.
-    pub fn url_error(&self) -> Option<String> {
+    pub fn url_error(&self) -> Option<Message> {
         lock(&self.url_error).clone()
     }
 
     /// Why the configuration could not be loaded, if it could not.
-    pub fn config_error(&self) -> Option<String> {
+    pub fn config_error(&self) -> Option<Message> {
         lock(&self.config_error).clone()
     }
 }
@@ -335,14 +340,19 @@ mod tests {
     fn a_choice_counts_only_for_the_link_on_screen() {
         let dir = tempfile::tempdir().unwrap();
         let state = AppState::open(ConfigStore::in_dir(dir.path()), installed);
-        assert!(state.pending_for("https://a.org/").is_err(), "no link yet");
+        let refusal = |link| state.pending_for(link).err().map(|message| message.code);
+        assert_eq!(
+            refusal("https://a.org/"),
+            Some("pick.no_link"),
+            "no link yet"
+        );
 
         state.set_pending(url("https://a.org/"), Some("kwin-1".into()));
         let pending = state.pending_for("https://a.org/").unwrap();
         assert_eq!(pending.activation.as_deref(), Some("kwin-1"));
 
         state.set_pending(url("https://b.org/"), None);
-        assert!(state.pending_for("https://a.org/").is_err(), "replaced");
+        assert_eq!(refusal("https://a.org/"), Some("pick.new_link"), "replaced");
     }
 
     #[test]
@@ -350,7 +360,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let state = AppState::open(ConfigStore::in_dir(dir.path()), installed);
         state.set_pending(url("https://a.org/"), None);
-        state.set_url_error("scheme `javascript` is not allowed".into());
+        state
+            .set_url_error(reroute_core::UrlError::SchemeNotAllowed("javascript".into()).message());
         assert!(state.pending().is_none());
         assert!(state.url_error().is_some());
         state.clear_pending();

@@ -1,0 +1,58 @@
+name: New language
+description: Offer or ask for Reroute in a language it does not have yet.
+title: "Translation: "
+labels: ["translation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. Translating Reroute needs a GitHub account and nothing else: one JSON file per language, editable in GitHub's web editor, and CI says what is wrong. The guide is [docs/translations.md](https://github.com/Gilgalidd/reroute/blob/main/docs/translations.md).
+
+        Opening this issue first tells others that the language is taken, so that two people do not translate it at once. Look for an open issue or pull request for your language before you start.
+  - type: input
+    id: language
+    attributes:
+      label: Language
+      description: Its name in its own words, then in English.
+      placeholder: Português (Brasil), Portuguese (Brazil)
+    validations:
+      required: true
+  - type: input
+    id: tag
+    attributes:
+      label: Language tag
+      description: The BCP 47 tag the file will be named after, such as de, pt-BR or zh-Hant. A region or script only when the language needs one.
+      placeholder: pt-BR
+    validations:
+      required: true
+  - type: dropdown
+    id: who
+    attributes:
+      label: Who translates
+      options:
+        - I will translate it
+        - I would like it, but cannot translate it myself
+    validations:
+      required: true
+  - type: dropdown
+    id: direction
+    attributes:
+      label: Direction of writing
+      description: Languages written right to left wait until the interface has been checked in that direction; this issue will say when.
+      options:
+        - Left to right
+        - Right to left
+    validations:
+      required: true
+  - type: input
+    id: reviewer
+    attributes:
+      label: Second reader
+      description: Someone fluent who could read the translation before it is merged, if you know one (a GitHub @name). Optional.
+  - type: checkboxes
+    id: licence
+    attributes:
+      label: Licence
+      options:
+        - label: Any translation I contribute is under the MIT licence of the project.
+          required: true

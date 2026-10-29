@@ -2,6 +2,7 @@
 Type=Application
 Name={{name}}
 Comment={{comment}}
+Comment[fr]=Choisir un navigateur pour chaque lien
 Exec={{exec}} %u
 Icon={{icon}}
 Terminal=false

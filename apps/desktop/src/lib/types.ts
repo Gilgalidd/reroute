@@ -2,6 +2,16 @@
 
 export type Uuid = string;
 
+/**
+ * Something Rust tells the user: `tRust` words it from the catalogue key
+ * `rust.<code>`, and shows `text`, in English, for a code it does not know.
+ */
+export interface RustMessage {
+  code: string;
+  params: Record<string, string | number | RustMessage>;
+  text: string;
+}
+
 export interface Launch {
   id: Uuid;
   name: string;
@@ -42,6 +52,8 @@ export interface Settings {
   run_in_background: boolean;
   /** Ask once a day, at start-up, whether a newer version is published. */
   check_for_updates: boolean;
+  /** `"auto"` (the system's) or a language tag such as `"fr"`. */
+  language: string;
 }
 
 /** Where the running version stands; colours the picker's update button. */
@@ -49,7 +61,7 @@ export type UpdateStatus =
   | { state: "unknown" }
   | { state: "current"; version: string }
   | { state: "available"; version: string }
-  | { state: "failed"; reason: string };
+  | { state: "failed"; reason: RustMessage };
 
 export interface Config {
   version: number;
@@ -73,8 +85,8 @@ export interface BrowserView {
 
 export interface LaunchContext {
   url: { href: string; host: string } | null;
-  url_error: string | null;
-  config_error: string | null;
+  url_error: RustMessage | null;
+  config_error: RustMessage | null;
   settings: Settings;
   browsers: BrowserView[];
   update: UpdateStatus;
@@ -82,17 +94,17 @@ export interface LaunchContext {
 
 export interface TestResult {
   normalized: string | null;
-  error: string | null;
+  error: RustMessage | null;
   matched: { ruleset: string; pattern: string; browser: string; launch: string | null } | null;
 }
 
-export type RegisterOutcome = { kind: "done" } | { kind: "needs_user_action"; message: string };
+export type RegisterOutcome = { kind: "done" } | { kind: "needs_user_action"; message: RustMessage };
 
 /** What the settings window edits (`get_config`). */
 export interface EditableConfig {
   config: Config;
   /** Why config.toml could not be read; `config` then holds only the installed browsers. */
-  load_error: string | null;
+  load_error: RustMessage | null;
 }
 
 export interface ImportReport {
@@ -100,7 +112,7 @@ export interface ImportReport {
   config: Config;
   browsers_added: number;
   rulesets_added: number;
-  notes: string[];
+  notes: RustMessage[];
 }
 
 export interface LatestRelease {

@@ -41,6 +41,9 @@ cargo test --workspace
 cargo deny check
 cd apps/desktop && npm run check && npm test && npm run build
 
+# how complete each translation is (never fails; CI shows it on its summary page)
+cd apps/desktop && npm run i18n:status
+
 # run the app with hot reload; opens the settings window
 cd apps/desktop && npm run tauri dev
 
@@ -117,6 +120,7 @@ See [architecture.md](architecture.md). Rule of thumb when adding code:
 | Cross-platform parsers | same, run on the three OS runners in CI | — |
 | Front-end helpers | Vitest | `npm test` in `apps/desktop` |
 | Front-end windows | Vitest + jsdom + Testing Library, with a fake IPC bridge (`src/test/ipc.ts`) | `npm test` in `apps/desktop` |
+| Translation files, and no invisible character in any source | Vitest (`src/i18n/catalog.test.ts`, see [translations.md](translations.md#checks)) | `npm test` in `apps/desktop` |
 | Type checks | `svelte-check`, `tsc` | `npm run check` |
 | Lints | clippy (pedantic, warnings are errors), rustfmt | `cargo clippy --workspace --all-targets -- -D warnings` |
 | Supply chain | `cargo deny` (licences, bans, sources, RustSec advisories), `npm audit` | `cargo deny check` |
@@ -136,6 +140,12 @@ if you fix a bug they found.
 - [ ] `reroute javascript:alert(1)` shows a refusal, opens nothing.
 - [ ] Settings › General › Make default; then click a link in another app.
 - [ ] Rules › Try a URL reports the expected rule.
+- [ ] Settings › General › Language › Français: the window and its title bar
+      switch at once; after *Save*, the picker is in French too, and nothing
+      is cut at its minimum size. macOS: with the system in French and the
+      setting on *Follow system*, Reroute is in French. In French,
+      `reroute javascript:alert(1)` gives its reason in French, and so does
+      *Make default* on Windows and macOS.
 - [ ] Corrupt `config.toml` on purpose: the picker offers the installed
       browsers and shows the error; Settings shows it too, and *Save* keeps
       the file as `config.toml.broken`.
@@ -177,7 +187,8 @@ if you fix a bug they found.
    installers on the three platforms, without any right to write, and a
    last job computes `SHA256SUMS`, attests the build provenance of each
    installer and attaches everything to a draft GitHub release. Review,
-   then publish.
+   name in its notes the languages below 100 % in the *Translations*
+   section of the CI run, as "partly in English", then publish.
 
 A tag with a pre-release suffix, such as `v0.2.0-rc.1`, runs the same
 workflow and leaves a draft marked as a pre-release: a way to try the

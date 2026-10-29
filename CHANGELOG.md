@@ -6,7 +6,41 @@ All notable changes to Reroute are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- The interface in French. *Settings › General › Language* follows the
+  system by default, or keeps English or French whatever the system says
+  (`language` in `config.toml`: `"auto"`, `"en"`, `"fr"`). The settings
+  window and its title bar switch at once. On macOS, the app bundle now
+  declares its languages, without which the web view reports English only;
+  on Linux, the desktop entries describe Reroute in French too.
+- What Rust tells the user in the windows is translated as well: refused
+  links, configuration, pattern and launch errors, Hurl import notes, the
+  default-browser instructions and the version check. Rust sends a code and
+  its values (`reroute_core::Message`), the page words it; logs and the
+  command line keep the English text. Messages from the system or other
+  programs stay in English inside the translated sentence.
+- Translations are open to contributors: a guide for translators, who need
+  nothing but GitHub's web editor ([docs/translations.md](docs/translations.md)),
+  a *New language* issue form, and `npm run i18n:status`, which reports how
+  complete each language is; CI shows that report on each run's summary
+  page.
+
+### Changed
+
+- Every text of the picker and settings windows now comes from one
+  catalogue, `apps/desktop/src/i18n/locales/en.json`, the first step towards
+  translations ([docs/translations.md](docs/translations.md)). Counts read
+  "1 browser" or "2 browsers" instead of "browser(s)".
+- Tests: each translation file is checked (unknown keys, placeholders, plural
+  forms, no markup, no invisible or bidirectional characters), every key of
+  `en.json` must be used, no component may use `{@html}`, and both windows
+  are drawn in a pseudo-language to catch any text written outside the
+  catalogue. A Rust test and a Vitest test keep the codes Rust sends, listed
+  in `apps/desktop/src/i18n/rust-messages.json`, in step with the catalogue.
+  The sources, documentation included, may hold no invisible character, and
+  a translated `desktop.comment` neither `"` nor `\`, since it is copied into
+  a Rust string.
 
 ## [0.1.19] - 2026-10-28
 

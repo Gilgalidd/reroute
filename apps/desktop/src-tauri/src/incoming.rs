@@ -16,7 +16,7 @@ pub fn route(state: &AppState, raw: &str, activation: Option<String>) -> bool {
         Ok(url) => url,
         Err(error) => {
             log::warn!("refused incoming URL: {error}");
-            state.set_url_error(error.to_string());
+            state.set_url_error(error.message());
             return true;
         }
     };
@@ -89,7 +89,9 @@ mod tests {
         assert!(!state.link_arrived());
         assert!(route(&state, "javascript:alert(1)", None));
         assert!(state.pending().is_none());
-        assert!(state.url_error().unwrap().contains("javascript"));
+        let refusal = state.url_error().unwrap();
+        assert_eq!(refusal.code, "url.scheme_not_allowed");
+        assert!(refusal.text.contains("javascript"));
         assert!(state.link_arrived(), "a refused link counts too");
     }
 

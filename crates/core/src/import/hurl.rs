@@ -13,16 +13,18 @@ use uuid::Uuid;
 
 use crate::browser::{Browser, BrowserId, Launch, LaunchId};
 use crate::config::Config;
+use crate::error::ImportError;
+use crate::message::{self, Message};
 use crate::rules::{Pattern, Ruleset};
 
-/// Result of an import: the converted configuration plus human-readable
-/// notes about anything that was skipped or adapted.
+/// Result of an import: the converted configuration plus notes about
+/// anything that was skipped or adapted.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Imported {
     /// Converted browsers and rulesets (settings are defaults).
     pub config: Config,
-    /// One line per skipped or adapted item.
-    pub notes: Vec<String>,
+    /// One per skipped or adapted item.
+    pub notes: Vec<Message>,
 }
 
 #[derive(Deserialize)]
@@ -94,31 +96,40 @@ impl Rules {
 }
 
 /// Convert the JSON text of a Hurl `UserSettings.json`.
-pub fn import(json: &str) -> Result<Imported, String> {
+pub fn import(json: &str) -> Result<Imported, ImportError> {
     let file: HurlFile =
-        serde_json::from_str(json).map_err(|e| format!("not a Hurl settings file: {e}"))?;
+        serde_json::from_str(json).map_err(|e| ImportError::NotHurl(e.to_string()))?;
     let mut notes = Vec::new();
     let mut config = Config::default();
 
     for b in file.browsers {
         if b.is_uwp {
-            notes.push(format!("skipped UWP browser `{}` (not supported)", b.name));
+            notes.push(message::HURL_UWP.with(
+                [b.name.as_str().into()],
+                format!("skipped UWP browser `{}` (not supported)", b.name),
+            ));
             continue;
         }
         let path = PathBuf::from(&b.exe_path);
         if !path.is_absolute() {
-            notes.push(format!(
-                "skipped browser `{}`: path `{}` is not absolute",
-                b.name, b.exe_path
+            notes.push(message::HURL_RELATIVE_PATH.with(
+                [b.name.as_str().into(), b.exe_path.as_str().into()],
+                format!(
+                    "skipped browser `{}`: path `{}` is not absolute",
+                    b.name, b.exe_path
+                ),
             ));
             continue;
         }
         let icon = b.custom_icon_path.filter(|p| {
             let local = PathBuf::from(p).is_absolute();
             if !local {
-                notes.push(format!(
-                    "dropped remote icon `{p}` of `{}` (network icons are not supported)",
-                    b.name
+                notes.push(message::HURL_REMOTE_ICON.with(
+                    [b.name.as_str().into(), p.as_str().into()],
+                    format!(
+                        "dropped remote icon `{p}` of `{}` (network icons are not supported)",
+                        b.name
+                    ),
                 ));
             }
             local
@@ -149,8 +160,9 @@ pub fn import(json: &str) -> Result<Imported, String> {
             .unwrap_or_else(|| format!("Ruleset {}", index + 1));
         let browser = BrowserId(set.browser_id);
         if config.browser(browser).is_none() {
-            notes.push(format!(
-                "skipped ruleset `{name}`: browser {browser} was not imported"
+            notes.push(message::HURL_UNKNOWN_BROWSER.with(
+                [name.as_str().into(), browser.to_string().into()],
+                format!("skipped ruleset `{name}`: browser {browser} was not imported"),
             ));
             continue;
         }
@@ -159,7 +171,14 @@ pub fn import(json: &str) -> Result<Imported, String> {
         for rule in set.rules.into_vec() {
             match convert_rule(&rule).parse::<Pattern>() {
                 Ok(p) => patterns.push(p),
-                Err(e) => notes.push(format!("skipped rule `{rule}` in `{name}`: {e}")),
+                Err(e) => notes.push(message::HURL_BAD_RULE.with(
+                    [
+                        rule.as_str().into(),
+                        name.as_str().into(),
+                        e.message().into(),
+                    ],
+                    format!("skipped rule `{rule}` in `{name}`: {e}"),
+                )),
             }
         }
         config.rulesets.push(Ruleset {
@@ -170,7 +189,7 @@ pub fn import(json: &str) -> Result<Imported, String> {
         });
     }
 
-    config.validate().map_err(|e| e.to_string())?;
+    config.validate()?;
     Ok(Imported { config, notes })
 }
 
@@ -194,6 +213,7 @@ fn split_args(text: &str) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::message::Param;
 
     /// The sample uses an absolute path for the host OS so the test is portable.
     const CHROME_PATH: &str = if cfg!(windows) {
@@ -268,7 +288,23 @@ mod tests {
     #[test]
     fn reports_every_skip() {
         let imported = import(&sample()).unwrap();
-        let notes = imported.notes.join("\n");
+        let codes: Vec<&str> = imported.notes.iter().map(|note| note.code).collect();
+        assert_eq!(
+            codes,
+            [
+                "hurl.remote_icon",
+                "hurl.uwp",
+                "hurl.relative_path",
+                "hurl.bad_rule",
+                "hurl.unknown_browser"
+            ]
+        );
+        let notes: Vec<&str> = imported
+            .notes
+            .iter()
+            .map(|note| note.text.as_str())
+            .collect();
+        let notes = notes.join("\n");
         assert!(notes.contains("UWP browser `Firefox`"), "{notes}");
         assert!(notes.contains("`Broken`"), "{notes}");
         assert!(notes.contains("remote icon"), "{notes}");
@@ -277,12 +313,21 @@ mod tests {
             notes.contains("33333333-3333-3333-3333-333333333333"),
             "{notes}"
         );
+        let bad_rule = &imported.notes[3];
+        assert_eq!(bad_rule.params["rule"], Param::Text("r$(".into()));
+        let Param::Message(problem) = &bad_rule.params["problem"] else {
+            panic!("{bad_rule:?}");
+        };
+        assert_eq!(problem.code, "pattern.invalid_regex");
     }
 
     #[test]
     fn rejects_non_hurl_json() {
-        assert!(import("{ \"Browsers\": 5 }").is_err());
-        assert!(import("nope").is_err());
+        assert!(matches!(
+            import("{ \"Browsers\": 5 }"),
+            Err(ImportError::NotHurl(_))
+        ));
+        assert!(matches!(import("nope"), Err(ImportError::NotHurl(_))));
         assert!(import("{}").unwrap().config.browsers.is_empty());
     }
 

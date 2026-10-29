@@ -44,7 +44,10 @@ pub fn register() -> Result<Outcome, PlatformError> {
         }
     }
     Ok(Outcome::NeedsUserAction(
-        "macOS asks you to confirm the change in the dialog it just showed.".into(),
+        crate::message::REGISTER_CONFIRM_MACOS.with(
+            [],
+            "macOS asks you to confirm the change in the dialog it just showed.",
+        ),
     ))
 }
 

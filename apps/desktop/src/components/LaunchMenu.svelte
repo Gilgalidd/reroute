@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "../i18n/i18n.svelte";
   import type { BrowserView } from "../lib/types";
 
   let {
@@ -15,7 +16,7 @@
 
   let menu = $state<HTMLDivElement | undefined>();
   let active = $state(0);
-  const items = $derived([{ id: null as string | null, name: `${browser.name} (default)` }, ...browser.launches]);
+  const items = $derived([{ id: null as string | null, name: t("picker.menu.default", { browser: browser.name }) }, ...browser.launches]);
 
   const position = $derived.by(() => {
     const rect = anchor.getBoundingClientRect();

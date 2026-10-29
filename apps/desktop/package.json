@@ -11,6 +11,7 @@
     "check": "svelte-check --tsconfig ./tsconfig.json && node scripts/check-tauri-versions.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
+    "i18n:status": "node scripts/i18n-status.mjs",
     "tauri": "tauri"
   },
   "dependencies": {

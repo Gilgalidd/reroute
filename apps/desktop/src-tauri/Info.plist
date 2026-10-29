@@ -28,5 +28,14 @@
       </array>
     </dict>
   </array>
+  <!-- The languages of the interface, one per file in src/i18n/locales/.
+       WKWebView reports in navigator.languages only those the bundle
+       declares, so a language missing here never shows on macOS. A test
+       compares the two lists. -->
+  <key>CFBundleLocalizations</key>
+  <array>
+    <string>en</string>
+    <string>fr</string>
+  </array>
 </dict>
 </plist>

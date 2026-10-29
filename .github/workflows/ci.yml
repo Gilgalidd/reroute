@@ -44,6 +44,9 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run check
       - run: npm test
+      # How complete each translation is, on the run's summary page. A
+      # missing translation shows in English and fails nothing.
+      - run: npm run i18n:status
       - run: npm run build
       - run: npm audit --audit-level=high
 

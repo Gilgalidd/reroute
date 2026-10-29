@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, tParts, tRust } from "../i18n/i18n.svelte";
   import { api, describeError } from "../lib/api";
   import { splitLines } from "../lib/lines";
   import { patternProblem } from "../lib/patterns";
@@ -14,7 +15,7 @@
   function add() {
     const first = config.browsers[0];
     if (!first) return;
-    const set: Ruleset = { name: "New ruleset", browser: first.id, launch: null, patterns: [] };
+    const set: Ruleset = { name: t("rules.newName"), browser: first.id, launch: null, patterns: [] };
     config.rulesets.unshift(set);
   }
 
@@ -41,7 +42,7 @@
   function problems(patterns: string[]): string[] {
     return patterns.flatMap((pattern) => {
       const problem = patternProblem(pattern);
-      return problem ? [`${pattern}: ${problem}`] : [];
+      return problem ? [t("rules.problem", { pattern, problem: t(problem) })] : [];
     });
   }
 
@@ -57,12 +58,12 @@
 
 <div class="rules">
   <div class="row">
-    <button type="button" class="primary" onclick={add} disabled={config.browsers.length === 0}>Add ruleset</button>
-    <span class="muted">Evaluated top to bottom; the first matching pattern wins.</span>
+    <button type="button" class="primary" onclick={add} disabled={config.browsers.length === 0}>{t("rules.add")}</button>
+    <span class="muted">{t("rules.order")}</span>
   </div>
 
   {#if !config.settings.rules_enabled}
-    <Banner tone="info">Rules are currently disabled in General settings; the picker always asks.</Banner>
+    <Banner tone="info">{t("rules.disabled")}</Banner>
   {/if}
 
   {#each config.rulesets as set, i}
@@ -72,12 +73,12 @@
           type="text"
           class="grow"
           value={set.name}
-          placeholder="Ruleset name"
+          placeholder={t("rules.name")}
           oninput={(e) => update(i, { name: e.currentTarget.value })}
         />
         <select
           value={set.browser}
-          aria-label="Browser"
+          aria-label={t("rules.browser")}
           onchange={(e) => update(i, { browser: e.currentTarget.value, launch: null })}
         >
           {#each config.browsers as b (b.id)}
@@ -86,22 +87,23 @@
         </select>
         <select
           value={set.launch ?? ""}
-          aria-label="Launch option"
+          aria-label={t("rules.launch")}
           onchange={(e) => update(i, { launch: e.currentTarget.value || null })}
         >
-          <option value="">Default launch</option>
+          <option value="">{t("rules.launch.default")}</option>
           {#each launchesOf(set.browser) as l (l.id)}
             <option value={l.id}>{l.name}</option>
           {/each}
         </select>
-        <button type="button" aria-label="Move up" onclick={() => move(i, -1)} disabled={i === 0}>↑</button>
-        <button type="button" aria-label="Move down" onclick={() => move(i, 1)} disabled={i === config.rulesets.length - 1}>↓</button>
-        <button type="button" class="danger" aria-label="Delete ruleset" onclick={() => config.rulesets.splice(i, 1)}>✕</button>
+        <button type="button" aria-label={t("rules.moveUp")} onclick={() => move(i, -1)} disabled={i === 0}>↑</button>
+        <button type="button" aria-label={t("rules.moveDown")} onclick={() => move(i, 1)} disabled={i === config.rulesets.length - 1}>↓</button>
+        <button type="button" class="danger" aria-label={t("rules.delete")} onclick={() => config.rulesets.splice(i, 1)}>✕</button>
       </div>
       <textarea
         rows="3"
         spellcheck="false"
-        aria-label="Patterns, one per line"
+        translate="no"
+        aria-label={t("rules.patterns")}
         placeholder={"domain:*.github.com\nregex:^https://open\\.spotify\\.com/\nexact:https://example.com/login"}
         value={set.patterns.join("\n")}
         oninput={(e) => update(i, { patterns: splitLines(e.currentTarget.value) })}
@@ -114,7 +116,7 @@
   {/each}
 
   <details class="card" open>
-    <summary>Try a URL</summary>
+    <summary>{t("rules.test")}</summary>
     <form
       class="row"
       onsubmit={(e) => {
@@ -122,21 +124,20 @@
         void runTest();
       }}
     >
-      <input type="text" class="grow" bind:value={testInput} placeholder="https://…" spellcheck="false" />
-      <button type="submit">Test saved rules</button>
+      <input type="text" class="grow" bind:value={testInput} placeholder="https://…" spellcheck="false" translate="no" />
+      <button type="submit">{t("rules.test.run")}</button>
     </form>
-    <p class="muted">Tests the rules as last saved.</p>
+    <p class="muted">{t("rules.test.saved")}</p>
     {#if testError}
       <Banner tone="error">{testError}</Banner>
     {:else if testResult?.error}
-      <Banner tone="error">Refused: {testResult.error}</Banner>
+      <Banner tone="error">{t("rules.test.refused", { reason: tRust(testResult.error) })}</Banner>
     {:else if testResult?.matched}
-      <Banner tone="success">
-        Opens in <strong>{testResult.matched.browser}</strong>{testResult.matched.launch ? ` (${testResult.matched.launch})` : ""}
-        via <code>{testResult.matched.pattern}</code> in “{testResult.matched.ruleset}”.
-      </Banner>
+      {@const { browser, launch, pattern, ruleset } = testResult.matched}
+      <!-- On one line: whitespace between the parts would show. -->
+      <Banner tone="success">{#each tParts(launch ? "rules.test.matchLaunch" : "rules.test.match", { browser, launch: launch ?? "", pattern, ruleset }) as part}{#if part.slot === "browser"}<strong>{part.text}</strong>{:else if part.slot === "pattern"}<code>{part.text}</code>{:else}{part.text}{/if}{/each}</Banner>
     {:else if testResult}
-      <Banner tone="info">No rule matches; the picker would ask.</Banner>
+      <Banner tone="info">{t("rules.test.none")}</Banner>
     {/if}
   </details>
 </div>

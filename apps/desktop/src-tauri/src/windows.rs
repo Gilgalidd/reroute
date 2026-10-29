@@ -211,6 +211,13 @@ pub fn open_settings(app: &AppHandle) -> tauri::Result<()> {
         WebviewUrl::App("index.html#/settings".into()),
     )
     .title("Reroute settings")
+    // The page names the window in the language it shows, through its
+    // `document.title`; it needs no window permission for that.
+    .on_document_title_changed(|window, title| {
+        if let Err(error) = window.set_title(&title) {
+            log::warn!("cannot rename the settings window: {error}");
+        }
+    })
     .inner_size(880.0, 640.0)
     .min_inner_size(640.0, 480.0)
     .center()

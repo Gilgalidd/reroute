@@ -11,6 +11,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::message::Message;
+
 /// Page a person opens to download a new version.
 pub const RELEASES_PAGE: &str = "https://github.com/Gilgalidd/reroute/releases/latest";
 
@@ -95,7 +97,7 @@ pub enum UpdateStatus {
     /// The last check did not get an answer.
     Failed {
         /// What went wrong, for a tooltip.
-        reason: String,
+        reason: Message,
     },
 }
 

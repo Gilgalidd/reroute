@@ -18,6 +18,8 @@
 //! * [`private`] — the second entry that opens a browser privately.
 //! * [`control`] — what a new Reroute process asks the one running in the
 //!   background.
+//! * [`Message`] — what the interface tells the user, as a code it
+//!   translates and the values it needs.
 //!
 //! The crate deliberately has no dependency on any GUI or OS API so that
 //! its behaviour is fully covered by fast unit and property tests.
@@ -31,6 +33,7 @@ pub mod config;
 pub mod control;
 pub mod error;
 pub mod import;
+pub mod message;
 pub mod private;
 pub mod release;
 pub mod rules;
@@ -40,7 +43,8 @@ pub mod url;
 pub use brand::Brand;
 pub use browser::{Browser, BrowserId, Launch, LaunchId, LaunchPlan, URL_PLACEHOLDER};
 pub use config::{CONFIG_VERSION, Config, MergeReport, PickerLayout, Settings, Theme};
-pub use error::{ConfigError, Error, LaunchError, PatternError, UrlError};
+pub use error::{ConfigError, Error, ImportError, LaunchError, PatternError, UrlError};
+pub use message::Message;
 pub use rules::{Match, Pattern, Ruleset};
 pub use store::ConfigStore;
 pub use url::SafeUrl;

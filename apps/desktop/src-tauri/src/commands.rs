@@ -3,17 +3,20 @@
 //! Every command is listed in `build.rs`, which generates an
 //! `allow-<command>` permission; `capabilities/*.json` then grants each
 //! window only the commands it needs.
+//!
+//! What a window shows the user comes as a [`Message`], which the page words
+//! in its language: commands fail with one, never with an English sentence.
 
 // Tauri's command macro requires `State` and `AppHandle` by value.
 #![allow(clippy::needless_pass_by_value)]
 
 use base64::Engine;
-use reroute_core::{Brand, Browser, BrowserId, Config, LaunchId, SafeUrl};
+use reroute_core::{Brand, Browser, BrowserId, Config, LaunchId, Message, SafeUrl};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, State};
 
 use crate::state::AppState;
-use crate::{incoming, windows};
+use crate::{incoming, messages, windows};
 
 /// A browser as the picker shows it.
 #[derive(Serialize)]
@@ -36,8 +39,8 @@ struct LaunchView {
 #[derive(Serialize)]
 pub struct LaunchContext {
     url: Option<UrlView>,
-    url_error: Option<String>,
-    config_error: Option<String>,
+    url_error: Option<Message>,
+    config_error: Option<Message>,
     settings: reroute_core::Settings,
     browsers: Vec<BrowserView>,
     /// Where the running version stands, for the update button's colour.
@@ -99,11 +102,16 @@ pub fn launch_context(state: State<'_, AppState>) -> LaunchContext {
     }
 }
 
+/// A window could not be shown or created. Tauri's words stay in English.
+fn window_error(error: &tauri::Error) -> Message {
+    messages::WINDOW.with([error.to_string().into()], format!("window error: {error}"))
+}
+
 /// The picker's page has read the pending link: show its window, if a link
 /// is waiting (see `windows::show_picker`).
 #[tauri::command]
-pub fn show_picker(app: AppHandle) -> Result<(), String> {
-    windows::show_picker(&app).map_err(|e| e.to_string())
+pub fn show_picker(app: AppHandle) -> Result<(), Message> {
+    windows::show_picker(&app).map_err(|e| window_error(&e))
 }
 
 /// The user chose a browser for the link `url`, the one the picker showed.
@@ -115,7 +123,7 @@ pub fn pick(
     browser: BrowserId,
     launch: Option<LaunchId>,
     remember: bool,
-) -> Result<(), String> {
+) -> Result<(), Message> {
     let pending = state.pending_for(&url)?;
     let url = &pending.url;
     // Build the remembered rule before opening anything: when the host
@@ -125,14 +133,18 @@ pub fn pick(
         let mut config = state.config().clone();
         config
             .remember_domain(url.host(), browser, launch)
-            .map_err(|e| format!("cannot remember {}: {e}", url.host()))?;
+            .map_err(|e| {
+                messages::PICK_REMEMBER.with(
+                    [url.host().into(), e.message().into()],
+                    format!("cannot remember {}: {e}", url.host()),
+                )
+            })?;
         Some(config)
     } else {
         None
     };
     let activation = pending.activation.as_deref();
-    incoming::launch(&state.config(), url, browser, launch, activation)
-        .map_err(|e| e.to_string())?;
+    incoming::launch(&state.config(), url, browser, launch, activation)?;
     if let Some(config) = remembered {
         // The browser is open by now; a failed write is logged, not shown.
         if let Err(error) = state.save(config) {
@@ -154,8 +166,8 @@ pub fn dismiss(app: AppHandle) {
 /// command deadlocks WebView2, and the new window never responds (a known
 /// issue, documented on Tauri's `WebviewWindowBuilder`).
 #[tauri::command]
-pub async fn open_settings(app: AppHandle) -> Result<(), String> {
-    windows::open_settings(&app).map_err(|e| e.to_string())
+pub async fn open_settings(app: AppHandle) -> Result<(), Message> {
+    windows::open_settings(&app).map_err(|e| window_error(&e))
 }
 
 /// What the settings window edits.
@@ -165,7 +177,7 @@ pub struct EditableConfig {
     /// Why `config.toml` could not be read, when it could not. `config` then
     /// holds only the installed browsers, and saving keeps the old file as
     /// `config.toml.broken`.
-    load_error: Option<String>,
+    load_error: Option<Message>,
 }
 
 /// The full configuration, for editing.
@@ -183,7 +195,7 @@ pub fn save_config(
     app: AppHandle,
     state: State<'_, AppState>,
     config: Config,
-) -> Result<(), String> {
+) -> Result<(), Message> {
     let background = config.settings.run_in_background;
     state.save(config)?;
     // Starting with the session follows the setting. Turning it on takes
@@ -221,7 +233,7 @@ pub fn discover_browsers(mut config: Config) -> Config {
 #[derive(Serialize)]
 pub struct TestResult {
     normalized: Option<String>,
-    error: Option<String>,
+    error: Option<Message>,
     matched: Option<TestMatch>,
 }
 
@@ -241,7 +253,7 @@ pub fn test_url(state: State<'_, AppState>, url: String) -> TestResult {
         Err(error) => {
             return TestResult {
                 normalized: None,
-                error: Some(error.to_string()),
+                error: Some(error.message()),
                 matched: None,
             };
         }
@@ -268,17 +280,17 @@ pub fn test_url(state: State<'_, AppState>, url: String) -> TestResult {
 
 /// Is Reroute the system's default browser?
 #[tauri::command]
-pub fn default_browser_status() -> Result<bool, String> {
-    reroute_platform::register::is_default().map_err(|e| e.to_string())
+pub fn default_browser_status() -> Result<bool, Message> {
+    reroute_platform::register::is_default().map_err(Message::from)
 }
 
 /// Ask the system to make Reroute the default browser.
 #[tauri::command]
-pub fn register_default_browser() -> Result<reroute_platform::register::Outcome, String> {
+pub fn register_default_browser() -> Result<reroute_platform::register::Outcome, Message> {
     if let Err(error) = reroute_platform::register::install_icons(crate::APP_ICONS) {
         log::warn!("icons not installed: {error}");
     }
-    reroute_platform::register::register().map_err(|e| e.to_string())
+    reroute_platform::register::register().map_err(Message::from)
 }
 
 /// Result of importing a Hurl settings file.
@@ -288,13 +300,13 @@ pub struct ImportReport {
     config: Config,
     browsers_added: usize,
     rulesets_added: usize,
-    notes: Vec<String>,
+    notes: Vec<Message>,
 }
 
 /// Merge a Hurl `UserSettings.json` (pasted as text) into the settings
 /// window's draft. Like [`discover_browsers`], nothing is saved here.
 #[tauri::command]
-pub fn import_hurl(mut config: Config, json: String) -> Result<ImportReport, String> {
+pub fn import_hurl(mut config: Config, json: String) -> Result<ImportReport, Message> {
     let imported = reroute_core::import::hurl::import(&json)?;
     let report = config.merge(imported.config);
     let mut notes = imported.notes;
@@ -313,10 +325,15 @@ pub fn import_hurl(mut config: Config, json: String) -> Result<ImportReport, Str
 #[tauri::command]
 pub async fn check_latest_release(
     app: AppHandle,
-) -> Result<reroute_core::release::LatestRelease, String> {
+) -> Result<reroute_core::release::LatestRelease, Message> {
     tauri::async_runtime::spawn_blocking(move || crate::updates::check_now(&app))
         .await
-        .map_err(|e| format!("the check could not run: {e}"))?
+        .map_err(|e| {
+            messages::RELEASE_NOT_RUN.with(
+                [e.to_string().into()],
+                format!("the check could not run: {e}"),
+            )
+        })?
 }
 
 /// Open the download page in a browser: the one a rule picks for it, else
@@ -324,8 +341,8 @@ pub async fn check_latest_release(
 /// server sent us. No click of the desktop's asked for it, so there is no
 /// activation token to give the browser.
 #[tauri::command]
-pub fn open_release_page(state: State<'_, AppState>) -> Result<(), String> {
-    let url = SafeUrl::parse(reroute_core::release::RELEASES_PAGE).map_err(|e| e.to_string())?;
+pub fn open_release_page(state: State<'_, AppState>) -> Result<(), Message> {
+    let url = SafeUrl::parse(reroute_core::release::RELEASES_PAGE)?;
     let config = state.config();
     let (browser, launch) = match incoming::rule_for(&config, &url) {
         Some(found) => (found.browser, found.launch),
@@ -333,12 +350,12 @@ pub fn open_release_page(state: State<'_, AppState>) -> Result<(), String> {
             config
                 .visible_browsers()
                 .next()
-                .ok_or("no browser is configured")?
+                .ok_or_else(|| messages::RELEASE_NO_BROWSER.with([], "no browser is configured"))?
                 .id,
             None,
         ),
     };
-    incoming::launch(&config, &url, browser, launch, None).map_err(|e| e.to_string())
+    incoming::launch(&config, &url, browser, launch, None).map_err(Message::from)
 }
 
 /// Static facts for the About tab.

@@ -93,7 +93,10 @@ pub fn register() -> Result<Outcome, PlatformError> {
     }
     open_default_apps_settings()?;
     Ok(Outcome::NeedsUserAction(
-        "Windows only lets you choose the default browser yourself: in the Settings page that just opened, select Reroute.".into(),
+        crate::message::REGISTER_CONFIRM_WINDOWS.with(
+            [],
+            "Windows only lets you choose the default browser yourself: in the Settings page that just opened, select Reroute.",
+        ),
     ))
 }
 
