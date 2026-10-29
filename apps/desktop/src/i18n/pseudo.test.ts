@@ -111,6 +111,18 @@ describe("in the pseudo-language", () => {
       expect(untranslated()).toEqual([]);
     });
 
+    it("translates the link's field and a failed copy", async () => {
+      mockIpc({ launch_context: () => launchContext() });
+      render(Picker);
+      await screen.findByText("github.com", { selector: ".host" });
+      await fireEvent.click(screen.getByRole("button", { name: t("picker.edit") }));
+      await screen.findByRole("textbox", { name: t("picker.edit.field") });
+      // No clipboard in this test's page: the copy fails.
+      await fireEvent.click(screen.getByRole("button", { name: t("picker.copy") }));
+      await screen.findByText(t("picker.copyFailed"));
+      expect(untranslated()).toEqual([]);
+    });
+
     it("translates every answer of the update button", async () => {
       const answers = [
         () => ({ version: "9.9.9", newer: true, page: "https://example.org/" }),

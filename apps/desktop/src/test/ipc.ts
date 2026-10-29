@@ -75,6 +75,7 @@ export function launchContext(): LaunchContext {
       launches: (b.launches ?? []).map((l) => ({ id: l.id, name: l.name })),
       icon: null,
       brand: null,
+      private: null,
     })),
     update: { state: "unknown" },
   };

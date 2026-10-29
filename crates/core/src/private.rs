@@ -53,6 +53,33 @@ pub fn private_entry(browser: &Browser, brand: &str) -> Option<Browser> {
     })
 }
 
+/// The private entry of `browser` among `browsers`: the same program, with
+/// the same arguments and the private argument of its family, wherever that
+/// argument sits. Hidden entries count, so that hiding the private tile
+/// leaves the private window within reach of the ordinary one (`Shift` in
+/// the picker). `None` for a browser Reroute knows no private argument for,
+/// or one that already opens privately.
+pub fn private_entry_in<'a>(browsers: &'a [Browser], browser: &Browser) -> Option<&'a Browser> {
+    let brand = crate::Brand::from_program(&browser.path)?;
+    let flag = private_mode(brand.key)?.flag;
+    if browser.args.iter().any(|a| a == flag) {
+        return None;
+    }
+    browsers.iter().find(|candidate| {
+        candidate.id != browser.id
+            && candidate.path == browser.path
+            && is_with_flag(&candidate.args, &browser.args, flag)
+    })
+}
+
+/// Is `args` exactly `plain` with `flag` inserted once, anywhere?
+fn is_with_flag(args: &[String], plain: &[String], flag: &str) -> bool {
+    let Some(at) = args.iter().position(|a| a == flag) else {
+        return false;
+    };
+    args.len() == plain.len() + 1 && args[..at] == plain[..at] && args[at + 1..] == plain[at..]
+}
+
 /// Add `flag` to an argument list, before the argument that carries the
 /// URL. A browser started through a wrapper, such as `flatpak run …`, keeps
 /// the arguments that reach it.
@@ -107,6 +134,51 @@ mod tests {
         assert_eq!(private.args, ["--private-window", "%URL%"]);
         assert_ne!(private.id, plain.id, "rules can tell them apart");
         assert!(private.launches.is_empty());
+    }
+
+    #[test]
+    fn the_ordinary_entry_finds_its_private_one_even_hidden() {
+        let plain = firefox();
+        let mut private = private_entry(&plain, "firefox").unwrap();
+        private.hidden = true;
+        let other = Browser::new("Chrome", "/usr/bin/chrome");
+        let browsers = vec![plain.clone(), other.clone(), private.clone()];
+        assert_eq!(
+            private_entry_in(&browsers, &plain).map(|b| b.id),
+            Some(private.id)
+        );
+        assert!(
+            private_entry_in(&browsers, &private).is_none(),
+            "already private"
+        );
+        assert!(private_entry_in(&browsers, &other).is_none(), "none listed");
+    }
+
+    #[test]
+    fn a_private_entry_must_differ_by_the_flag_alone() {
+        let plain = firefox();
+        let mut profile = private_entry(&plain, "firefox").unwrap();
+        profile.args = ["-P", "work", "--private-window", "%URL%"]
+            .map(String::from)
+            .to_vec();
+        let mut elsewhere = private_entry(&plain, "firefox").unwrap();
+        elsewhere.path = "/opt/firefox/firefox".into();
+        assert!(private_entry_in(&[plain.clone(), profile, elsewhere], &plain).is_none());
+
+        // The flag may sit anywhere, as when written by hand.
+        let mut last = private_entry(&plain, "firefox").unwrap();
+        last.args = ["%URL%", "--private-window"].map(String::from).to_vec();
+        assert_eq!(
+            private_entry_in(&[plain.clone(), last.clone()], &plain).map(|b| b.id),
+            Some(last.id)
+        );
+
+        // A program Reroute does not recognise has no private argument.
+        let unknown = Browser::new("Mine", "/usr/bin/mine");
+        let mut flagged = unknown.clone();
+        flagged.id = BrowserId::new();
+        flagged.args = vec!["--private-window".to_owned()];
+        assert!(private_entry_in(&[unknown.clone(), flagged], &unknown).is_none());
     }
 
     #[test]

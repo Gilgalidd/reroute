@@ -25,8 +25,22 @@ All notable changes to Reroute are documented here. The format follows
   a *New language* issue form, and `npm run i18n:status`, which reports how
   complete each language is; CI shows that report on each run's summary
   page.
+- Quicker actions in the picker. `Ctrl+C` (`⌘C` on macOS), or the copy
+  button beside the link, copies the link and closes the picker; text
+  selected on the page is copied as usual instead. `Ctrl+L` (`⌘L`), or the
+  pencil button, turns the link into a field: `Enter` applies the edit,
+  which Rust validates as any incoming link (`http` and `https` only, no
+  credentials), `Esc` gives the old link back. `Shift` with a click, a digit
+  or `Enter` opens the browser's private entry, hidden or not, when it has
+  one, so a private window needs no second tile. The key hint lists these
+  keys.
 
 ### Changed
+
+- The picker reads digit keys by their place on the keyboard, so the top
+  row picks a browser on layouts that type other characters there without
+  `Shift`, such as AZERTY; `Shift` now asks for a private window. Digits and
+  `Enter` pressed with `Ctrl`, `⌘` or `Alt` are left to the system.
 
 - Every text of the picker and settings windows now comes from one
   catalogue, `apps/desktop/src/i18n/locales/en.json`, the first step towards

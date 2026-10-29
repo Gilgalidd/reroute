@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from "@testing-library/svelte";
-import { beforeEach, describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import Picker from "./Picker.svelte";
 import { launchContext, mockIpc, rustMessage } from "../test/ipc";
 
@@ -125,6 +125,138 @@ describe("Picker window", () => {
     await screen.findByText("github.com", { selector: ".host" });
     const order = ipc.calls.map((c) => c.cmd).filter((cmd) => cmd === "launch_context" || cmd === "show_picker");
     expect(order).toEqual(["launch_context", "show_picker"]);
+  });
+
+  describe("quick actions", () => {
+    const PRIVATE = "44444444-4444-4444-4444-444444444444";
+
+    /** Firefox with a private entry, hidden from the picker. */
+    function withPrivateFirefox() {
+      const base = launchContext();
+      return { ...base, browsers: base.browsers.map((b, i) => (i === 0 ? { ...b, private: PRIVATE } : b)) };
+    }
+
+    /** A Clipboard API that records what it is given. */
+    function clipboard(writeText: (text: string) => Promise<void>) {
+      Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    }
+
+    afterEach(() => {
+      Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true });
+    });
+
+    it("opens the private entry with Shift and a digit", async () => {
+      const ipc = mockIpc({ launch_context: withPrivateFirefox, pick: () => null });
+      render(Picker);
+      await screen.findByText("github.com", { selector: ".host" });
+      await fireEvent.keyDown(window, { key: "!", code: "Digit1", shiftKey: true });
+      const picks = () => ipc.calls.filter((c) => c.cmd === "pick").map((c) => c.args.browser);
+      expect(picks()).toEqual([PRIVATE]);
+    });
+
+    it("opens the private entry on a Shift-click, the browser itself without one", async () => {
+      for (const [shiftKey, expected] of [
+        [true, PRIVATE],
+        [false, "11111111-1111-1111-1111-111111111111"],
+      ] as const) {
+        document.body.innerHTML = "";
+        const ipc = mockIpc({ launch_context: withPrivateFirefox, pick: () => null });
+        render(Picker);
+        await fireEvent.click(await screen.findByRole("button", { name: /^Firefox/ }), { shiftKey });
+        expect(ipc.calls.find((c) => c.cmd === "pick")?.args).toMatchObject({ browser: expected, launch: null });
+      }
+    });
+
+    it("opens a browser that has no private entry as usual with Shift", async () => {
+      const ipc = mockIpc({ launch_context: () => launchContext(), pick: () => null });
+      render(Picker);
+      await screen.findByText("github.com", { selector: ".host" });
+      await fireEvent.keyDown(window, { key: "Enter", shiftKey: true });
+      expect(ipc.calls.find((c) => c.cmd === "pick")?.args).toMatchObject({ browser: "11111111-1111-1111-1111-111111111111" });
+    });
+
+    it("copies the link and closes with Ctrl+C or the button", async () => {
+      const copied: string[] = [];
+      clipboard((text) => {
+        copied.push(text);
+        return Promise.resolve();
+      });
+      const ipc = mockIpc({ launch_context: () => launchContext(), dismiss: () => null });
+      render(Picker);
+      await screen.findByText("github.com", { selector: ".host" });
+      await fireEvent.keyDown(window, { key: "c", ctrlKey: true });
+      await waitFor(() => expect(ipc.calls.some((c) => c.cmd === "dismiss")).toBe(true));
+      await fireEvent.click(screen.getByRole("button", { name: "Copy the link" }));
+      await waitFor(() => expect(copied).toHaveLength(2));
+      expect(copied).toEqual([launchContext().url?.href, launchContext().url?.href]);
+      expect(ipc.calls.some((c) => c.cmd === "pick")).toBe(false);
+    });
+
+    it("stays open and says so when the link could not be copied", async () => {
+      clipboard(() => Promise.reject(new Error("denied")));
+      const ipc = mockIpc({ launch_context: () => launchContext(), dismiss: () => null });
+      render(Picker);
+      await screen.findByText("github.com", { selector: ".host" });
+      await fireEvent.click(screen.getByRole("button", { name: "Copy the link" }));
+      expect(await screen.findByRole("alert")).toHaveTextContent("The link could not be copied.");
+      expect(ipc.calls.some((c) => c.cmd === "dismiss")).toBe(false);
+    });
+
+    it("edits the link with Ctrl+L, Rust checks it, and the browser gets the new one", async () => {
+      const edited = { href: "https://example.org/other", host: "example.org" };
+      const ipc = mockIpc({ launch_context: () => launchContext(), edit_link: () => edited, pick: () => null });
+      render(Picker);
+      await screen.findByText("github.com", { selector: ".host" });
+      await fireEvent.keyDown(window, { key: "l", ctrlKey: true });
+      const field = await screen.findByRole("textbox", { name: "Link to open" });
+      expect(field).toHaveValue(launchContext().url?.href);
+
+      // Keys typed in the field are the field's: no digit picks a browser.
+      await fireEvent.keyDown(field, { key: "2" });
+      await fireEvent.input(field, { target: { value: "https://example.org/other" } });
+      await fireEvent.keyDown(field, { key: "Enter" });
+      expect(await screen.findByText("example.org", { selector: ".host" })).toBeInTheDocument();
+      expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+      expect(ipc.calls.find((c) => c.cmd === "edit_link")?.args).toEqual({
+        url: launchContext().url?.href,
+        edited: "https://example.org/other",
+      });
+      expect(ipc.calls.some((c) => c.cmd === "pick")).toBe(false);
+
+      await fireEvent.keyDown(window, { key: "1" });
+      expect(ipc.calls.find((c) => c.cmd === "pick")?.args).toMatchObject({ url: edited.href });
+    });
+
+    it("keeps the field open on a refused link, and Escape gives the old one back", async () => {
+      const ipc = mockIpc({
+        launch_context: () => launchContext(),
+        edit_link: () => {
+          throw rustMessage("url.scheme_not_allowed", { scheme: "javascript" });
+        },
+        dismiss: () => null,
+      });
+      render(Picker);
+      await screen.findByText("github.com", { selector: ".host" });
+      await fireEvent.click(screen.getByRole("button", { name: "Edit the link" }));
+      const field = await screen.findByRole("textbox", { name: "Link to open" });
+      await fireEvent.input(field, { target: { value: "javascript:alert(1)" } });
+      await fireEvent.keyDown(field, { key: "Enter" });
+      expect(await screen.findByRole("alert")).toHaveTextContent("“javascript” links are not allowed");
+      expect(field).toBeInTheDocument();
+
+      await fireEvent.keyDown(field, { key: "Escape" });
+      expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      expect(screen.getByText(launchContext().url?.href ?? "", { selector: ".href" })).toBeInTheDocument();
+      expect(ipc.calls.some((c) => c.cmd === "dismiss")).toBe(false);
+    });
+
+    it("lists the new keys in its hint", async () => {
+      mockIpc({ launch_context: () => launchContext() });
+      render(Picker);
+      await screen.findByText("github.com", { selector: ".host" });
+      expect(screen.getByRole("status")).toHaveTextContent("Shift private · Ctrl+C copy · Ctrl+L edit");
+    });
   });
 
   it("dismisses on Escape and shows a refused URL", async () => {
